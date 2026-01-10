@@ -1,5 +1,3 @@
-import { Fetch } from "@devvit/public-api";
-
 export interface NHLGame {
   id: number;
   season: number;
@@ -97,7 +95,7 @@ export interface NHLScheduleResponse {
   }>;
 }
 
-export async function getTodaysSchedule(fetch: Fetch): Promise<NHLGame[]> {
+export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
   
@@ -112,7 +110,7 @@ export async function getTodaysSchedule(fetch: Fetch): Promise<NHLGame[]> {
   return todayGames?.games || [];
 }
 
-export async function getGameData(gameId: number, fetch: Fetch, etag?: string): Promise<{
+export async function getGameData(gameId: number, fetch: any, etag?: string): Promise<{
   game: NHLGame;
   etag: string;
   modified: boolean;

@@ -21,13 +21,6 @@ import { dailyGameFinder, pregameThread, liveUpdate } from "./scheduler.js";
       onRun: liveUpdate,
     });
 
-    /*
-    devvit.addSchedulerJob({
-      name: "intermission",
-      onRun: intermission,
-    })
-    */
-
   // configuration form
   const nhlConfigForm = devvit.createForm(
     {

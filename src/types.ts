@@ -6,13 +6,13 @@ export interface SportConfig {
 }
 
 export interface SubredditConfig {
-  sports: {
+  league: "nhl"; // "nhl" | "nfl" | "nba";
     nhl?: NHLConfig;
-    // Future: nfl?: NFLConfig, nba?: NBAConfig, etc.
-  };
+  //nfl?: NFLConfig;
 }
 
 export interface NHLConfig {
   teamAbbreviation: string;
+  enableGameDayThreads: boolean;
   enablePostGameThreads: boolean;
 }

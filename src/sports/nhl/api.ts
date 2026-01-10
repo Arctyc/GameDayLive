@@ -105,7 +105,6 @@ export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
   
   const data: NHLScheduleResponse = await response.json();
   
-  // Find today's games
   const todayGames = data.gameWeek.find(day => day.date === today);
   return todayGames?.games || [];
 }
@@ -126,7 +125,7 @@ export async function getGameData(gameId: number, fetch: any, etag?: string): Pr
   );
   
   if (response.status === 304) {
-    // Not modified
+    // No changes to game data
     return { game: {} as NHLGame, etag: etag!, modified: false };
   }
   

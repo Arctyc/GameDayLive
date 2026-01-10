@@ -15,12 +15,12 @@ export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: Jo
     // For now, we'll check the current subreddit only
     const config = await getSubredditConfig(context.subredditId, context);
     
-    if (!config || !config.sports.nhl) {
-      console.log("No NHL config for this subreddit");
+    if (!config || !config.nhl || config.league !== "nhl") {
+      console.log("No NHL config or NHL not active for this subreddit");
       return;
     }
     
-    const teamAbbrev = config.sports.nhl.teamAbbreviation;
+    const teamAbbrev = config.nhl.teamAbbreviation;
     
     // Find games involving this team
     const teamGames = games.filter(
@@ -121,7 +121,7 @@ export async function liveUpdate(event: ScheduledJobEvent<any>, context: JobCont
       
       // Check if should create post-game thread
       const config = await getSubredditConfig(context.subredditId, context);
-      if (config?.sports.nhl?.enablePostGameThreads) {
+      if (config?.nhl?.enablePostGameThreads) {
         // TODO: Create post-game thread
         console.log("Would create post-game thread");
       }

@@ -1,5 +1,7 @@
 import { Devvit } from "@devvit/public-api";
 import { registerNHLModule } from "./sports/nhl/index.js";
+import { getSubredditConfig, setSubredditConfig } from "./core/config.js";
+import { NHL_TEAMS } from "./sports/nhl/config.js";
 
 Devvit.configure({
   redditAPI: true,
@@ -10,7 +12,70 @@ Devvit.configure({
 // Register sport modules
 registerNHLModule(Devvit);
 
-// Future: registerNFLModule(Devvit);
-// Future: registerNBAModule(Devvit);
+const configForm = Devvit.createForm(
+  {
+    fields: [
+      {
+        name: "league",
+        label: "League",
+        type: "select",
+        options: [
+          { label: "NHL", value: "nhl" },
+        ],
+        defaultValue: ["nhl"],
+        required: true,
+      },
+      {
+        name: "team",
+        label: "Your Team",
+        type: "select",
+        options: NHL_TEAMS,
+        required: true,
+      },
+      {
+        name: "gameDayThreads",
+        label: "Create game day threads",
+        type: "boolean",
+        defaultValue: true,
+      },
+      {
+        name: "postGameThreads",
+        label: "Create post-game threads",
+        type: "boolean",
+        defaultValue: true,
+      },
+    ],
+    title: "Configure GameDayLive",
+    acceptLabel: "Save",
+    cancelLabel: "Cancel",
+  },
+  async ({ values }, context) => {
+    const league = values.league[0];
+    
+    if (league === "nhl") {
+      const newConfig = {
+        league: "nhl" as const,
+        nhl: {
+          teamAbbreviation: values.team[0],
+          enableGameDayThreads: values.gameDayThreads,
+          enablePostGameThreads: values.postGameThreads,
+        },
+      };
+      await setSubredditConfig(context.subredditId, newConfig, context);
+    }
+    
+    context.ui.showToast("GameDayLive configured!");
+  }
+);
+
+Devvit.addMenuItem({
+  location: "subreddit",
+  label: "Configure GameDayLive",
+  description: "Set your league, team, and preferences",
+  forUserType: "moderator",
+  onPress: (_event, context) => {
+    context.ui.showForm(configForm);
+  },
+});
 
 export default Devvit;

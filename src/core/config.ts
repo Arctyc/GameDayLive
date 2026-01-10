@@ -25,18 +25,3 @@ export async function setSubredditConfig(
   const key = `${CONFIG_KEY_PREFIX}${subredditId}:config`;
   await context.redis.set(key, JSON.stringify(config));
 }
-
-export async function updateSubredditSportConfig<T>(
-  subredditId: string,
-  sport: keyof SubredditConfig["sports"],
-  sportConfig: T,
-  context: Context | JobContext
-): Promise<void> {
-  const config = (await getSubredditConfig(subredditId, context)) || {
-    sports: {},
-  };
-  
-  config.sports[sport] = sportConfig as any;
-  
-  await setSubredditConfig(subredditId, config, context);
-}

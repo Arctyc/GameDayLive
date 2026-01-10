@@ -6,7 +6,9 @@ import { NHL_TEAMS } from "./sports/nhl/config.js";
 Devvit.configure({
   redditAPI: true,
   redis: true,
-  http: true,
+  http: {
+    domains: ['api-web.nhle.com'],
+  },
 });
 
 // Register sport modules
@@ -62,8 +64,15 @@ const configForm = Devvit.createForm(
         },
       };
       await setSubredditConfig(context.subredditId, newConfig, context);
-    }
-    
+      
+      // Trigger daily game finder immediately
+      await context.scheduler.runJob({
+        name: "nhl_daily_game_finder",
+        data: {},
+        runAt: new Date(),
+      });
+    }    
+
     context.ui.showToast("GameDayLive configured!");
   }
 );

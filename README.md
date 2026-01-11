@@ -41,8 +41,8 @@ The bot will now automatically create game day and (optionally) post-game thread
 ### Prerequisites
 
 - Node.js 18+
-- npm
-- Devvit CLI (`npm install -g devvit`)
+- TypeScript 5+
+- Devvit (More info: https://developers.reddit.com/)
 
 ### Setup
 ```bash

@@ -1,7 +1,7 @@
 import { Devvit } from "@devvit/public-api";
-import { registerNHLModule } from "./sports/nhl/index.js";
+import { registerNHLModule } from "./leagues/nhl/index.js";
 import { getSubredditConfig, setSubredditConfig } from "./core/config.js";
-import { NHL_TEAMS } from "./sports/nhl/config.js";
+import { NHL_TEAMS } from "./leagues/nhl/config.js";
 
 Devvit.configure({
   redditAPI: true,
@@ -11,7 +11,7 @@ Devvit.configure({
   },
 });
 
-// Register sport modules
+// Register league modules
 registerNHLModule(Devvit);
 
 const configForm = Devvit.createForm(

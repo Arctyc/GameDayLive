@@ -13,26 +13,30 @@ GameDayLive automatically creates and updates live game threads for NHL teams (w
 ## Features
 
 - **NHL Support**: Full integration with the NHL API for real-time game data
-- **Modular Design**: Easily extensible for NFL, NBA, MLB, and other sports
-- **Per-Subreddit Configuration**: Each subreddit selects their team and preferences
+- **Modular Design**: Easily extensible for NFL, NBA, MLB, and other leagues
+- **Per-Subreddit Configuration**: Each subreddit selects their league, team, and preferences
 
 ## Installation
 
+Note: installation and configuration is not compatible with old reddit, but the bot is!
+
 Moderators can install GameDayLive from the Reddit Apps directory:
 
-1. Go to your subreddit's Mod Tools
-2. Navigate to Apps
-3. Search for "GameDayLive"
-4. Click Install
-5. Configure your team preferences
+1. From your subreddit, click Mod Tools
+2. select Browse Apps on the left sidebar
+3. Search for and select "GameDayLive" and "+ Add to community"
+
 
 ## Configuration
 
-After installation, moderators can configure the bot:
+After installation, you must configure the bot:
 
-1. Click the subreddit menu (three dots)
+1. Click the subreddit menu (three dots next to Mod Tools)
 2. Select "Configure GameDayLive"
 3. Choose your team and preferences
+
+That's it! 
+The bot will now automatically create game day and (optionally) post-game threads for your chosen team.
 
 ## Development
 
@@ -63,34 +67,32 @@ devvit playtest your-test-subreddit
 src/
 ├── main.ts                # App orchestrator
 ├── types.ts               # Shared TypeScript types
+├── threads.ts             # Unified thread-posting
 ├── core/
 │   └── config.ts          # Config storage utilities
-└── sports/
-    └── nfl/               # NFL module registration - Not implemented
+└── leagues/
+    └── nfl/               # NFL module registration - Contribute to implement this league
     └── nhl/
-        ├── index.ts       # NHL module registration
-        ├── config.ts      # NHL team data
         ├── api.ts         # NHL API client
-        ├── scheduler.ts   # Scheduler jobs
-        └── threads.ts     # Thread formatting (coming soon)
+        ├── config.ts      # NHL team data
+        ├── constants.ts   # NHL global constants
+        ├── formatter.ts   # NHL Thread formatting
+        ├── index.ts       # NHL module registration
+        ├── scheduler.ts   # NHL process automation
 ```
 
-### Adding a New Sport
+### Adding a New League
 
-1. Create `src/sports/{sport}/` directory
-2. Implement API client, scheduler, and config
+1. Create `src/leagues/{league}/` directory
+2. Implement config, API client, scheduler, formatter
 3. Register module in `src/main.ts`
-4. Add sport config to `src/types.ts`
+4. Add league config to `src/types.ts`
 
 ## Roadmap
 
-- [x] NHL support
-- [x] Modular architecture
-- [ ] Thread creation and formatting
-- [ ] Post-game threads
-- [ ] Customizable thread templates
-- [ ] NFL support
-- [ ] More sports
+- [x] NHL support (WIP)
+- [ ] More sports/leagues
+- [ ] Customizable thread templates?
 - [ ] Your desired features? Contribute!
 
 ## Contributing

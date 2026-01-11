@@ -1,7 +1,7 @@
 import { Context } from "@devvit/public-api";
 
-export interface SportConfig {
-  sport: string;
+export interface LeagueConfig {
+  league: string;
   enabled: boolean;
 }
 

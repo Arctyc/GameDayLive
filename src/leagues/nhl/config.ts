@@ -32,11 +32,11 @@ export const NHL_TEAMS: NHLTeam[] = [
   { label: "St. Louis Blues", value: "STL", timezone: "America/Chicago" },
   { label: "Tampa Bay Lightning", value: "TBL", timezone: "America/New_York" },
   { label: "Toronto Maple Leafs", value: "TOR", timezone: "America/Toronto" },
+  { label: "Utah Mammoth", value: "UTA", timezone: "America/Denver" },
   { label: "Vancouver Canucks", value: "VAN", timezone: "America/Vancouver" },
   { label: "Vegas Golden Knights", value: "VGK", timezone: "America/Los_Angeles" },
   { label: "Washington Capitals", value: "WSH", timezone: "America/New_York" },
   { label: "Winnipeg Jets", value: "WPG", timezone: "America/Winnipeg" },
-  { label: "Utah Hockey Club", value: "UTA", timezone: "America/Denver" },
 ];
 
 export function getTeamTimezone(teamAbbrev: string): string | undefined {

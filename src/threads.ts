@@ -18,5 +18,8 @@ export async function updateThread(
   postId: string,
   body: string
 ) {
+  // TODO: Replace with actual Reddit API call
   console.log(`Updating post ${postId}`);
+  
+  // TODO: return success/failure
 }

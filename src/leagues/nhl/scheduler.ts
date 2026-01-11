@@ -3,6 +3,7 @@ import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
 import { getSubredditConfig } from "../../core/config.js";
 import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
 import { formatThreadTitle, formatThreadBody } from "./formatter.js";
+import { createThread, updateThread } from "../../threads.js";
 
 export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: JobContext) {
   console.log("Running daily game finder...");
@@ -53,13 +54,14 @@ export async function pregameThread(event: ScheduledJobEvent<any>, context: JobC
   
   try {
     // NOTE: WAITING FOR API ENDPOINT APPROVAL
-    //const { game, etag, modified } = await getGameData(gameId, fetch);
-    //console.log("Fetched game data:", game, "etag:", etag, "modified:", modified);
+    const { game, etag, modified } = await getGameData(gameId, fetch);
+    console.log("Fetched game data:", game, "etag:", etag, "modified:", modified);
 
-    // TODO: create thread
-    console.log(`Would create pre-game thread for game ${gameId} in ${context.subredditName}`);
+    // Create thread
+    console.log(`Attempting to create pre-game thread for game ${gameId} in ${context.subredditName}`);
+    const postId = await createNhlThread(game, context, subredditId);
 
-    // TODO: Schedule live update job
+    // TODO: Schedule live update job with postId
     console.log(`Would schedule live update job`);
 
   } catch (error) {
@@ -106,17 +108,18 @@ async function handleGameUpdate(
   const gameState = game.gameState || GAME_STATES.UNKNOWN;
   
   if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT || gameState === GAME_STATES.FINAL) {    
-    // TODO: Update thread with new game data
-    console.log(`Would update thread content for ${gameState} game`);
-    
+    // Update thread with new game data
+    console.log(`Attempting to update thread content for ${gameId}`);
+    await updateThread(context, postId, await formatThreadBody(game, context));
+
   } else if (gameState === GAME_STATES.OFF) {
     console.log(`Game ${gameId} is OFF`);
     
+    // Create post-game thread if opt-in
     const config = await getSubredditConfig(context.subredditId, context);
     if (config?.nhl?.enablePostGameThreads) {
-      // TODO: Create post-game thread
-      console.log(`Would create post-game thread for game ${gameId} in ${context.subredditName}`);
-      
+      console.log(`Attempting to create post-game thread for game ${gameId} in ${context.subredditName}`);
+      await createNhlThread(game, context, context.subredditId);
     }
   }
 }
@@ -149,4 +152,13 @@ async function scheduleNextUpdate(
   } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
     console.log("Game is over, not scheduling another update.");
   }
+}
+
+async function createNhlThread(game: NHLGame, context: JobContext, subredditId: string) {
+  return createThread(
+    context,
+    subredditId,
+    await formatThreadTitle(game, context),
+    await formatThreadBody(game, context)
+  );
 }

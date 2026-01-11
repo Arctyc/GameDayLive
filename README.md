@@ -26,10 +26,7 @@ Moderators can install GameDayLive from the Reddit Apps directory:
 2. select Browse Apps on the left sidebar
 3. Search for and select "GameDayLive" and "+ Add to community"
 
-
-## Configuration
-
-After installation, you must configure the bot:
+After installation, easily configure the bot:
 
 1. Click the subreddit menu (three dots next to Mod Tools)
 2. Select "Configure GameDayLive"

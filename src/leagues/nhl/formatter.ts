@@ -36,7 +36,9 @@ export async function formatThreadBody(game: NHLGame, context: JobContext): Prom
         "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
-        buildBodyPenalties(game);
+        buildBodyPenalties(game) +
+        "\n\n---\n\n" +
+        buildBodyFooter();
     return body;
 }
 
@@ -157,6 +159,10 @@ function buildBodyPenalties(game: any): string {
     }
 
     return out;
+}
+
+function buildBodyFooter(){
+    return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
 }
 
 

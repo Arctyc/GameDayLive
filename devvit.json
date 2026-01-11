@@ -1,5 +1,24 @@
 {
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "gamedaylive",
-  "version": "0.0.1",
-  "main": "src/main.ts"
+
+  "server": {
+    "entry": "src/server/index.ts"
+  },
+
+  "post": {
+    "entrypoints": {
+      "default": {
+        "entry": "public/index.html"
+      }
+    }
+  },
+
+  "permissions": {
+    "http": {
+      "domains": [
+        "api-web.nhle.com"
+      ]
+    }
+  }
 }

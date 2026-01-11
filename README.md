@@ -4,11 +4,12 @@ Automated game day and post-game thread bot for sports subreddits.
 
 ## Overview
 
-GameDayLive automatically creates and updates live game threads for NHL teams (with support for more sports planned). The bot:
+GameDayLive automatically creates and updates live game threads for NHL teams (with support for more sports planned).
 
+The bot:
 - Posts game day threads 1 hour before puck drop
-- Updates threads live with goals, penalties, and scores every 30 seconds
-- Creates post-game threads when games end
+- Updates threads live with game details, goals, penalties, and scores every 30 seconds
+- Creates post-game threads when games end (optional)
 
 ## Features
 

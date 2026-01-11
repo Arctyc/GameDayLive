@@ -9,7 +9,7 @@ export async function createThread(
   // TODO: Replace with actual Reddit API call
   console.log(`Posting thread to ${subredditId}: ${title}`);
 
-  // TODO: Simulate returning postId
+  // TODO: Return postId
   return `post_${Date.now()}`;
 }
 

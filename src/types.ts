@@ -13,6 +13,5 @@ export interface SubredditConfig {
 
 export interface NHLConfig {
   teamAbbreviation: string;
-  enableGameDayThreads: boolean;
   enablePostGameThreads: boolean;
 }

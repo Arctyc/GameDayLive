@@ -35,12 +35,6 @@ const configForm = Devvit.createForm(
         required: true,
       },
       {
-        name: "gameDayThreads",
-        label: "Create game day threads",
-        type: "boolean",
-        defaultValue: true,
-      },
-      {
         name: "postGameThreads",
         label: "Create post-game threads",
         type: "boolean",
@@ -59,7 +53,6 @@ const configForm = Devvit.createForm(
         league: "nhl" as const,
         nhl: {
           teamAbbreviation: values.team[0],
-          enableGameDayThreads: values.gameDayThreads,
           enablePostGameThreads: values.postGameThreads,
         },
       };

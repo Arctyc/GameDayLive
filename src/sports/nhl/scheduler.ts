@@ -2,7 +2,7 @@ import { JobContext, ScheduledJobEvent } from "@devvit/public-api";
 import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
 import { getSubredditConfig } from "../../core/config.js";
 import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
-import { } from "./threads.js";
+import { formatThreadTitle, formatThreadBody } from "./formatter.js";
 
 export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: JobContext) {
   console.log("Running daily game finder...");
@@ -23,7 +23,6 @@ export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: Jo
     const teamGames = games.filter(
       game => game.awayTeam.abbrev === teamAbbrev || game.homeTeam.abbrev === teamAbbrev
     );
-    
     console.log(`Found ${teamGames.length} games for team ${teamAbbrev}`);
     
     // Schedule pre-game threads for each game
@@ -53,9 +52,13 @@ export async function pregameThread(event: ScheduledJobEvent<any>, context: JobC
   const { gameId, subredditId } = event.data as { gameId: number; subredditId: string };
   
   try {
-    // TODO: Fetch game data and create thread
+    // NOTE: WAITING FOR API ENDPOINT APPROVAL
+    //const { game, etag, modified } = await getGameData(gameId, fetch);
+    //console.log("Fetched game data:", game, "etag:", etag, "modified:", modified);
+
+    // TODO: create thread
     console.log(`Would create pre-game thread for game ${gameId} in ${context.subredditName}`);
-    
+
     // TODO: Schedule live update job
     console.log(`Would schedule live update job`);
 

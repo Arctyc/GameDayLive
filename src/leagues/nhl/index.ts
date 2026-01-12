@@ -1,5 +1,5 @@
 import { Devvit } from "@devvit/public-api";
-import { getSubredditConfig } from "../../core/config.js";
+import { getSubredditConfig } from "../../../config.js";
 import { NHL_TEAMS } from "./config.js";
 import { NHLConfig } from "../../types.js";
 import { dailyGameFinder, pregameThread, liveUpdate } from "./scheduler.js";

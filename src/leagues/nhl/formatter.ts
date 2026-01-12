@@ -1,4 +1,4 @@
-import { getSubredditConfig } from "../../core/config.js";
+import { getSubredditConfig } from "../../../config.js";
 import { getTeamTimezone } from "./config.js";
 import { GAME_STATES } from "./constants.js";
 import type { NHLGame } from "./api.js";

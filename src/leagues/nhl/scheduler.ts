@@ -1,6 +1,6 @@
 import { JobContext, ScheduledJobEvent } from "@devvit/public-api";
 import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
-import { getSubredditConfig } from "../../core/config.js";
+import { getSubredditConfig } from "../../../config.js";
 import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
 import { formatThreadTitle, formatThreadBody } from "./formatter.js";
 import { createThread, updateThread } from "../../threads.js";

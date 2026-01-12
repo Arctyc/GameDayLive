@@ -1,4 +1,4 @@
-import { JobContext } from "@devvit/public-api";
+import { } from '@devvit/web/server';
 
 export async function createThread(
   context: JobContext,

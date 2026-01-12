@@ -2,7 +2,7 @@ import { getSubredditConfig } from "../../config.js";
 import { getTeamTimezone } from "./config.js";
 import { GAME_STATES } from "./constants.js";
 import type { NHLGame } from "./api.js";
-import type { JobContext } from "@devvit/public-api";
+import { context } from '@devvit/web/server'; //   import { Devvit } from '@devvit/web';?
 
 export async function formatThreadTitle(game: NHLGame, context: JobContext): Promise<string> {
     const homeTeam = game.homeTeam.abbrev;

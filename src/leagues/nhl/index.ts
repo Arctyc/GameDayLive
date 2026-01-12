@@ -1,4 +1,4 @@
-import { Devvit } from "@devvit/public-api";
+import { Devvit } from '@devvit/web'; //?
 import { getSubredditConfig } from "../../config.js";
 import { NHL_TEAMS } from "./config.js";
 import { NHLConfig } from "../../types.js";

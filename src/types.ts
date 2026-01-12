@@ -1,5 +1,3 @@
-import { Context } from "@devvit/public-api";
-
 export interface LeagueConfig {
   league: string;
   enabled: boolean;

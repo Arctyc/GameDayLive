@@ -36,9 +36,9 @@ app.post('/internal/config-menu', (req, res) => {
             type: 'select',
             name: 'league',
             label: 'League',
-            options: LEAGUES.map(l => ({
-              label: l.toUpperCase(),
-              value: l
+            options: LEAGUES.map((l: typeof LEAGUES[number]) => ({
+            label: l.toUpperCase(),
+            value: l
             })),
             onValueChanged: 'refresh',
           },

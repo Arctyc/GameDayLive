@@ -3,14 +3,15 @@ import { getTeamTimezone } from "./config.js";
 import { GAME_STATES } from "./constants.js";
 import type { NHLGame } from "./api.js";
 import { context } from '@devvit/web/server'; //   import { Devvit } from '@devvit/web';?
+import { SubredditConfig } from "../../types.js";
 
-export async function formatThreadTitle(game: NHLGame, context): Promise<string> {
+export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
     
-    // Get the team from subreddit config
-    const config = await getSubredditConfig(context.subredditId, context);
+    // Determine time zone
+    const config = await getSubredditConfig(subredditName);
     const teamAbbrev = config!.nhl!.teamAbbreviation;
     const timezone = getTeamTimezone(teamAbbrev)!;
     
@@ -30,9 +31,9 @@ export async function formatThreadTitle(game: NHLGame, context): Promise<string>
     else return `GDT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
 }
 
-export async function formatThreadBody(game: NHLGame, context: JobContext): Promise<string> {
+export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
     const body =
-        await buildBodyHeader(game, context) +
+        await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
@@ -42,7 +43,7 @@ export async function formatThreadBody(game: NHLGame, context: JobContext): Prom
     return body;
 }
 
-async function buildBodyHeader(game: NHLGame, context: JobContext): Promise<string> {
+async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<string> {
     const homeTeamAbbrev = game.homeTeam.abbrev;
     const awayTeamAbbrev = game.awayTeam.abbrev;
     const homeTeamPlace = game.homeTeam.placeName.default;
@@ -56,8 +57,8 @@ async function buildBodyHeader(game: NHLGame, context: JobContext): Promise<stri
     const period = game.periodDescriptor?.number ?? "N/A";
     const periodType = game.periodDescriptor?.periodType ?? "";
     
-    // Get the configured team from Redis to determine timezone
-    const config = await getSubredditConfig(context.subredditId, context);
+    // Determine time zone
+    const config = await getSubredditConfig(subredditName);
     const teamAbbrev = config!.nhl!.teamAbbreviation;
     const timezone = getTeamTimezone(teamAbbrev)!;
     

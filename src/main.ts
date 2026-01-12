@@ -1,6 +1,6 @@
 import { Devvit } from "@devvit/public-api";
 import { registerNHLModule } from "./leagues/nhl/index.js";
-import { getSubredditConfig, setSubredditConfig } from "./core/config.js";
+import { getSubredditConfig, setSubredditConfig } from "../config.js";
 import { NHL_TEAMS } from "./leagues/nhl/config.js";
 
 Devvit.configure({

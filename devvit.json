@@ -6,19 +6,23 @@
     "entry": "src/server/index.ts"
   },
 
-  "post": {
-    "entrypoints": {
-      "default": {
-        "entry": "public/index.html"
+  "permissions": 
+    {
+      "http": {
+        "enable": true,
+        "domains": [
+          "api-web.nhle.com"
+        ]
       }
-    }
-  },
+    },
 
-  "permissions": {
-    "http": {
-      "domains": [
-        "api-web.nhle.com"
-      ]
-    }
+  "menu": {
+    "items": [
+      {
+        "label": "GameDayLive Config",
+        "location": "subreddit",
+        "forUserType": "moderator"
+      }
+    ]
   }
 }

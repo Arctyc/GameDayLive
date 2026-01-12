@@ -2,7 +2,7 @@ import { getSubredditConfig } from "../../config";
 import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
-import { context } from '@devvit/web/server'; //   import { Devvit } from '@devvit/web';?
+import { context } from '@devvit/web/server';
 import { SubredditConfig } from "../../types";
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
@@ -32,7 +32,9 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
 }
 
 export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
-    const body =
+    const body = 
+        await buildBodyHeader(game, subredditName); // temporary
+        /*
         await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
@@ -40,6 +42,7 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
         buildBodyPenalties(game) +
         "\n\n---\n\n" +
         buildBodyFooter();
+        */
     return body;
 }
 
@@ -116,6 +119,8 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     return header;
 }
 
+/******
+
 function buildBodyGoals(game: any): string {
     const { goals } = organizePlaysByPeriod(game.plays);
 
@@ -138,7 +143,9 @@ function buildBodyGoals(game: any): string {
 
     return out;
 }
+***/
 
+/***
 function buildBodyPenalties(game: any): string {
     const { penalties } = organizePlaysByPeriod(game.plays);
 
@@ -165,7 +172,7 @@ function buildBodyPenalties(game: any): string {
 function buildBodyFooter(){
     return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
 }
-
+***/
 
 function makeGoalsTableHeader() {
     return (
@@ -247,7 +254,7 @@ function getPlayerInfo(game: any, playerId?: number) {
 function formatTime(t: string): string {
     if (!t || !t.includes(":")) return "00:00";
     const [m, s] = t.split(":").map(Number);
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`; // FIX: m! and s! ? possibly undefined workaround
 }
 
 function organizePlaysByPeriod(plays: any[]) {

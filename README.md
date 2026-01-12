@@ -63,27 +63,24 @@ devvit playtest your-test-subreddit
 ### Project Structure
 ```
 src/
-├── main.ts                # App orchestrator
-├── types.ts               # Shared TypeScript types
-├── threads.ts             # Unified thread-posting
-├── core/
-│   └── config.ts          # Config storage utilities
-└── leagues/
-    └── nfl/               # NFL module registration - Contribute to implement this league
-    └── nhl/
-        ├── api.ts         # NHL API client
-        ├── config.ts      # NHL team data
-        ├── constants.ts   # NHL global constants
-        ├── formatter.ts   # NHL Thread formatting
-        ├── index.ts       # NHL module registration
-        ├── scheduler.ts   # NHL process automation
+├── leagues/
+│   └── nhl/
+│       ├── api.ts         # NHL API client
+│       ├── config.ts      # NHL team data
+│       ├── constants.ts   # NHL global constants
+│       ├── formatter.ts   # NHL thread formatting
+│       ├── index.ts       # NHL module registration
+│       └── scheduler.ts   # NHL process automation
+└── server/
+    ├── index.ts           # Server entry point
+    └── threads.ts         # Universal thread posting
 ```
 
 ### Adding a New League
 
 1. Create `src/leagues/{league}/` directory
-2. Implement config, API client, scheduler, formatter
-3. Register module in `src/main.ts`
+2. Implement API client, config, etc.
+3. Register module in `src/server/index.ts`
 4. Add league config to `src/types.ts`
 
 ## Roadmap

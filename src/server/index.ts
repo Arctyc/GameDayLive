@@ -1,6 +1,7 @@
 import { createServer, getServerPort } from '@devvit/web/server';
-import * as nhl from '../leagues/nhl/index.js';
+import { LEAGUES } from '../types.js';
 import { NHL_TEAMS } from '../leagues/nhl/config.js';
+import * as nhl from '../leagues/nhl/index.js';
 import { handleConfigSubmit } from "../server/config.js";
 import express from "express";
 
@@ -11,7 +12,7 @@ app.use(express.json());
 // Register scheduler jobs
 nhl.registerNHLModule;
 
-// FIX: Add menu for moderators to configure the bot
+// CHECK/FIX: Add menu for moderators to configure the bot
 app.post('/internal/config-menu', (req, res) => {
   res.json({
     showForm: {
@@ -23,24 +24,24 @@ app.post('/internal/config-menu', (req, res) => {
             type: 'select',
             name: 'league',
             label: 'League',
-            options: [
-              { label: 'NHL', value: 'nhl' }
-            ],
-            defaultValue: ['nhl'],
+            options: LEAGUES.map(l => ({
+              label: l.toUpperCase(),
+              value: l
+            })),
           },
           {
             type: 'select',
             name: 'team',
-            label: 'Team',
+            label: 'Primary Team',
             options: NHL_TEAMS.map(team => ({
-              label: team.label, 
-              value: team.value 
+              label: team.label,
+              value: team.value
             })),
           },
           {
             type: 'boolean',
             name: 'enablePostgameThreads',
-            label: 'Enable post-game threads',
+            label: 'Enable Post-Game Threads',
             defaultValue: true,
           }
         ],
@@ -51,6 +52,7 @@ app.post('/internal/config-menu', (req, res) => {
 });
 
 // Subreddit config endpoint
+// TODO: set up context? where get subreddit name?
 app.post("/api/config", async (req, res) => {
   const { formData } = req.body;
   await handleConfigSubmit(context, formData);

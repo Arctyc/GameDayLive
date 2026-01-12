@@ -3,7 +3,7 @@
   "name": "gamedaylive",
 
   "server": {
-    "entry": "/src/server/index.ts"
+    "entry": "index.ts"
   },
 
   "permissions": 

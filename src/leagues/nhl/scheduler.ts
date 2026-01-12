@@ -1,9 +1,9 @@
 import { JobContext, ScheduledJobEvent } from "@devvit/public-api";
 import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
-import { getSubredditConfig } from "../../../config.js";
+import { getSubredditConfig } from "../../config.js";
 import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
 import { formatThreadTitle, formatThreadBody } from "./formatter.js";
-import { createThread, updateThread } from "../../threads.js";
+import { createThread, updateThread } from "../../server/threads.js";
 
 export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: JobContext) {
   console.log("Running daily game finder...");

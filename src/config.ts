@@ -1,5 +1,5 @@
 import { Context, JobContext } from "@devvit/public-api";
-import { SubredditConfig } from "./src/types.js";
+import { SubredditConfig } from "./types.js";
 
 const CONFIG_KEY_PREFIX = "subreddit:";
 

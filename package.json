@@ -5,17 +5,18 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {
-    "deploy": "devvit upload",
+    "build": "tsc",
+    "deploy": "npm run build && devvit upload",
     "dev": "dotenv -e .env -- devvit playtest",
     "login": "devvit login",
-    "launch": "devvit publish",
+    "launch": "npm run build && npm run deploy && devvit publish",
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@devvit/public-api": "^0.12.7"
+    "@devvit/web": "0.12.3",
+    "devvit": "0.12.3"
   },
   "devDependencies": {
-    "devvit": "0.12.7",
     "dotenv-cli": "8.0.0",
     "typescript": "5.8.3"
   }

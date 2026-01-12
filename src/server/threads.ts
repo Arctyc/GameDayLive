@@ -1,25 +1,31 @@
-import { JobContext } from "@devvit/public-api";
+import { reddit, type Post } from "@devvit/web/server";
 
+// Create new thread
 export async function createThread(
-  context: JobContext,
-  subredditId: string,
-  title: string,
+  context: any,
+  title: string, 
   body: string
-) {
-  // TODO: Replace with actual Reddit API call
-  console.log(`Posting thread to ${subredditId}: ${title}`);
+): Promise<string> {
 
-  // TODO: Return postId
-  return `post_${Date.now()}`;
+  const post = await reddit.submitPost({
+    subredditName: context.subredditName,
+    title: title,
+    text: body
+  });
+
+  await post.sticky();
+  return post.id;
 }
 
+// Update existing thread
 export async function updateThread(
-  context: JobContext,
-  postId: string,
+  postId: Post["id"],
   body: string
-) {
-  // TODO: Replace with actual Reddit API call
-  console.log(`Updating post ${postId}`);
+): Promise<void> {
   
-  // TODO: return success/failure
+  const post = await reddit.getPostById(postId);
+
+  await post.edit({
+    text: body,
+  });
 }

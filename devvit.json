@@ -3,11 +3,14 @@
   "name": "gamedaylive",
 
   "server": {
-    "entry": "src/server/index.ts"
+    "dir": "dist/server",
+    "entry": "index.cjs"
   },
 
   "permissions": 
     {
+      "reddit": true,
+      "redis": true,
       "http": {
         "enable": true,
         "domains": [
@@ -19,7 +22,8 @@
   "menu": {
     "items": [
       {
-        "label": "GameDayLive Config",
+        "label": "GameDayLive",
+        "description": "Configure GameDayLive settings",
         "location": "subreddit",
         "endpoint": "/internal/config-menu",
         "forUserType": "moderator"

@@ -1,16 +1,17 @@
-import { getSubredditConfig } from "../../../config.js";
-import { getTeamTimezone } from "./config.js";
-import { GAME_STATES } from "./constants.js";
-import type { NHLGame } from "./api.js";
-import type { JobContext } from "@devvit/public-api";
+import { getSubredditConfig } from "../../config";
+import { getTeamTimezone } from "./config";
+import { GAME_STATES } from "./constants";
+import type { NHLGame } from "./api";
+import { context } from '@devvit/web/server';
+import { SubredditConfig } from "../../types";
 
-export async function formatThreadTitle(game: NHLGame, context: JobContext): Promise<string> {
+export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
     
-    // Get the team from subreddit config
-    const config = await getSubredditConfig(context.subredditId, context);
+    // Determine time zone
+    const config = await getSubredditConfig(subredditName);
     const teamAbbrev = config!.nhl!.teamAbbreviation;
     const timezone = getTeamTimezone(teamAbbrev)!;
     
@@ -30,19 +31,22 @@ export async function formatThreadTitle(game: NHLGame, context: JobContext): Pro
     else return `GDT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
 }
 
-export async function formatThreadBody(game: NHLGame, context: JobContext): Promise<string> {
-    const body =
-        await buildBodyHeader(game, context) +
+export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
+    const body = 
+        await buildBodyHeader(game, subredditName); // temporary
+        /*
+        await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
         buildBodyPenalties(game) +
         "\n\n---\n\n" +
         buildBodyFooter();
+        */
     return body;
 }
 
-async function buildBodyHeader(game: NHLGame, context: JobContext): Promise<string> {
+async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<string> {
     const homeTeamAbbrev = game.homeTeam.abbrev;
     const awayTeamAbbrev = game.awayTeam.abbrev;
     const homeTeamPlace = game.homeTeam.placeName.default;
@@ -56,8 +60,8 @@ async function buildBodyHeader(game: NHLGame, context: JobContext): Promise<stri
     const period = game.periodDescriptor?.number ?? "N/A";
     const periodType = game.periodDescriptor?.periodType ?? "";
     
-    // Get the configured team from Redis to determine timezone
-    const config = await getSubredditConfig(context.subredditId, context);
+    // Determine time zone
+    const config = await getSubredditConfig(subredditName);
     const teamAbbrev = config!.nhl!.teamAbbreviation;
     const timezone = getTeamTimezone(teamAbbrev)!;
     
@@ -115,6 +119,8 @@ async function buildBodyHeader(game: NHLGame, context: JobContext): Promise<stri
     return header;
 }
 
+/******
+
 function buildBodyGoals(game: any): string {
     const { goals } = organizePlaysByPeriod(game.plays);
 
@@ -137,7 +143,9 @@ function buildBodyGoals(game: any): string {
 
     return out;
 }
+***/
 
+/***
 function buildBodyPenalties(game: any): string {
     const { penalties } = organizePlaysByPeriod(game.plays);
 
@@ -164,7 +172,7 @@ function buildBodyPenalties(game: any): string {
 function buildBodyFooter(){
     return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
 }
-
+***/
 
 function makeGoalsTableHeader() {
     return (
@@ -246,7 +254,7 @@ function getPlayerInfo(game: any, playerId?: number) {
 function formatTime(t: string): string {
     if (!t || !t.includes(":")) return "00:00";
     const [m, s] = t.split(":").map(Number);
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`; // FIX: m! and s! ? possibly undefined workaround
 }
 
 function organizePlaysByPeriod(plays: any[]) {

@@ -114,7 +114,7 @@ export async function getGameData(gameId: number, fetch: any, etag?: string): Pr
   etag: string;
   modified: boolean;
 }> {
-  const headers: HeadersInit = {};
+  const headers: Record<string, string> = {};
   if (etag) {
     headers['If-None-Match'] = etag;
   }

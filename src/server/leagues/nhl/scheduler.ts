@@ -1,10 +1,11 @@
-import { JobContext, ScheduledJobEvent } from "@devvit/public-api";
-import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
-import { getSubredditConfig } from "../../../config.js";
-import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
-import { formatThreadTitle, formatThreadBody } from "./formatter.js";
-import { createThread, updateThread } from "../../threads.js";
+import { context, redis } from '@devvit/web/server';
+import { getTodaysSchedule, getGameData, NHLGame } from "./api";
+import { getSubredditConfig } from "../../config";
+import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants";
+import { formatThreadTitle, formatThreadBody } from "./formatter";
+import { createThread, updateThread } from "../../threads";
 
+/*******************************
 export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: JobContext) {
   console.log("Running daily game finder...");
   
@@ -101,7 +102,6 @@ async function handleGameUpdate(
   game: NHLGame, 
   gameId: number, 
   postId: string, 
-  context: JobContext
 ) {
   console.log(`Updating post ${postId} for game ${gameId}`);
   
@@ -110,16 +110,16 @@ async function handleGameUpdate(
   if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT || gameState === GAME_STATES.FINAL) {    
     // Update thread with new game data
     console.log(`Attempting to update thread content for ${gameId}`);
-    await updateThread(context, postId, await formatThreadBody(game, context));
+    await updateThread( post.Id, await formatThreadBody(game, context.subredditName));
 
   } else if (gameState === GAME_STATES.OFF) {
     console.log(`Game ${gameId} is OFF`);
     
     // Create post-game thread if opt-in
-    const config = await getSubredditConfig(context.subredditId, context);
+    const config = await getSubredditConfig(context.subredditName);
     if (config?.nhl?.enablePostGameThreads) {
       console.log(`Attempting to create post-game thread for game ${gameId} in ${context.subredditName}`);
-      await createNhlThread(game, context, context.subredditId);
+      await createNhlThread(game);
     }
   }
 }
@@ -128,7 +128,6 @@ async function scheduleNextUpdate(
   game: NHLGame,
   gameId: number,
   postId: string,
-  context: JobContext
 ) {
   const gameState = game.gameState || GAME_STATES.UNKNOWN;
   
@@ -154,11 +153,11 @@ async function scheduleNextUpdate(
   }
 }
 
-async function createNhlThread(game: NHLGame, context: JobContext, subredditId: string) {
+async function createNhlThread(game: NHLGame) {
   return createThread(
     context,
-    subredditId,
-    await formatThreadTitle(game, context),
-    await formatThreadBody(game, context)
+    await formatThreadTitle(game, context.subredditName),
+    await formatThreadBody(game, context.subredditName)
   );
 }
+*/

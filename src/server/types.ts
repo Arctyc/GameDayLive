@@ -1,4 +1,5 @@
-import { Context } from "@devvit/public-api";
+
+export const LEAGUES = ["nhl", "mlb", "nfl", "nba"] as const;
 
 export interface LeagueConfig {
   league: string;
@@ -6,12 +7,11 @@ export interface LeagueConfig {
 }
 
 export interface SubredditConfig {
-  league: "nhl"; // "nhl" | "nfl" | "nba";
-    nhl?: NHLConfig;
-  //nfl?: NFLConfig;
+  league: typeof LEAGUES[number]; 
+  nhl?: NHLConfig;
+  enablePostgameThreads: boolean;
 }
 
 export interface NHLConfig {
   teamAbbreviation: string;
-  enablePostGameThreads: boolean;
 }

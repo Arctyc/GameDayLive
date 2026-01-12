@@ -1,9 +1,6 @@
 
-import { Subreddit } from "@devvit/web/server";
 import { SubredditConfig } from "../types.js";
 import { redis } from '@devvit/redis';
-
-const CONFIG_KEY_PREFIX = "subreddit:";
 
 export async function handleConfigSubmit(
   context: any,
@@ -21,8 +18,7 @@ export async function setSubredditConfig(
   subredditName: string,
   config: SubredditConfig,
 ): Promise<void> {
-  const key = `${CONFIG_KEY_PREFIX}${subredditName}:config`;
-  await redis.set(key, JSON.stringify(config));
+  await redis.set(subredditName, JSON.stringify(config));
 }
 
 export async function getSubredditConfig(subredditName: string){

@@ -3,7 +3,7 @@
   "name": "gamedaylive",
 
   "server": {
-    "entry": "src/server/index.ts"
+    "entry": "/src/server/index.ts"
   },
 
   "permissions": 
@@ -19,7 +19,8 @@
   "menu": {
     "items": [
       {
-        "label": "GameDayLive Config",
+        "label": "GameDayLive",
+        "description": "Configure GameDayLive settings",
         "location": "subreddit",
         "endpoint": "/internal/config-menu",
         "forUserType": "moderator"

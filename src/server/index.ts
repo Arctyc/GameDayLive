@@ -1,4 +1,4 @@
-import { createServer, getServerPort } from '@devvit/web/server';
+import { createServer, getServerPort, context } from '@devvit/web/server';
 import { LEAGUES } from '../types.js';
 import { NHL_TEAMS } from '../leagues/nhl/config.js';
 import * as nhl from '../leagues/nhl/index.js';
@@ -14,6 +14,18 @@ nhl.registerNHLModule;
 
 // CHECK/FIX: Add menu for moderators to configure the bot
 app.post('/internal/config-menu', (req, res) => {
+  const selectedLeague = req.body.values?.league || LEAGUES[0];
+  
+  // Map league to teams
+  const leagueTeams: Record<string, Array<{label: string, value: string}>> = {
+    nhl: NHL_TEAMS.map(team => ({ label: team.label, value: team.value })),
+    // mlb: MLB_TEAMS.map(team => ({ label: team.label, value: team.value })),
+    // nfl: NFL_TEAMS.map(team => ({ label: team.label, value: team.value })),
+    // nba: NBA_TEAMS.map(team => ({ label: team.label, value: team.value })),
+  };
+
+  const teamOptions = leagueTeams[selectedLeague] || [];
+
   res.json({
     showForm: {
       name: 'configForm',
@@ -28,36 +40,28 @@ app.post('/internal/config-menu', (req, res) => {
               label: l.toUpperCase(),
               value: l
             })),
+            onValueChanged: 'refresh',
           },
           {
             type: 'select',
             name: 'team',
-            label: 'Primary Team',
-            options: NHL_TEAMS.map(team => ({
-              label: team.label,
-              value: team.value
-            })),
+            label: 'Team',
           },
           {
             type: 'boolean',
             name: 'enablePostgameThreads',
-            label: 'Enable Post-Game Threads',
+            label: 'Enable post-game threads',
             defaultValue: true,
           }
         ],
-        acceptLabel: 'Save Settings',
+        acceptLabel: 'Save',
       },
     },
   });
 });
 
-// Subreddit config endpoint
-// TODO: set up context? where get subreddit name?
-app.post("/api/config", async (req, res) => {
-  const { formData } = req.body;
-  await handleConfigSubmit(context, formData);
-  res.status(200).json({ success: true });
-});
+// TODO: Save form data
+
 
 const server = createServer(app);
 server.listen(getServerPort());

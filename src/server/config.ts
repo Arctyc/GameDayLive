@@ -1,23 +1,23 @@
 
 import { SubredditConfig } from "../types.js";
+import { context } from '@devvit/server';
 import { redis } from '@devvit/redis';
 
 export async function handleConfigSubmit(
-  context: any,
-  formData: SubredditConfig
+  subredditConfig: SubredditConfig,
 ){
   const subredditName = context.subredditName;
-
   if (!subredditName) {
     throw new Error("No subreddit context available.");
   }
-  await setSubredditConfig( subredditName, formData );
+  await setSubredditConfig( subredditName, subredditConfig );
 }
 
 export async function setSubredditConfig(
   subredditName: string,
   config: SubredditConfig,
 ): Promise<void> {
+  console.log(`Setting subredditConfig for subredditName: ${subredditName} with data: ${JSON.stringify(config)}`);
   await redis.set(subredditName, JSON.stringify(config));
 }
 

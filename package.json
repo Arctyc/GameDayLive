@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@devvit/web": "0.12.3",
-    "devvit": "0.12.3"
+    "devvit": "0.12.3",
+    "express": "^5.2.1"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "dotenv-cli": "8.0.0",
     "typescript": "5.8.3"
   }

@@ -8,6 +8,8 @@
 
   "permissions": 
     {
+      "reddit": true,
+      "redis": true,
       "http": {
         "enable": true,
         "domains": [

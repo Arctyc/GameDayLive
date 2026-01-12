@@ -1,10 +1,10 @@
-import { getSubredditConfig } from "../../config.js";
+import { getSubredditConfig } from "../../server/config.js";
 import { getTeamTimezone } from "./config.js";
 import { GAME_STATES } from "./constants.js";
 import type { NHLGame } from "./api.js";
 import { context } from '@devvit/web/server'; //   import { Devvit } from '@devvit/web';?
 
-export async function formatThreadTitle(game: NHLGame, context: JobContext): Promise<string> {
+export async function formatThreadTitle(game: NHLGame, context): Promise<string> {
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;

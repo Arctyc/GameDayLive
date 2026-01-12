@@ -1,6 +1,6 @@
 import { createServer, context, redis, ? } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
-import { getSubredditConfig } from "../../config.js";
+import { getSubredditConfig } from "../../server/config.js";
 import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
 import { formatThreadTitle, formatThreadBody } from "./formatter.js";
 import { createThread, updateThread } from "../../server/threads.js";
@@ -154,11 +154,10 @@ async function scheduleNextUpdate(
   }
 }
 
-async function createNhlThread(game: NHLGame, context: JobContext, subredditId: string) {
+async function createNhlThread(game: NHLGame) {
   return createThread(
     context,
-    subredditId,
-    await formatThreadTitle(game, context),
-    await formatThreadBody(game, context)
+    await formatThreadTitle(game),
+    await formatThreadBody(game)
   );
 }

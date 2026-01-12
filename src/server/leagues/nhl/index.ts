@@ -1,6 +1,6 @@
-import { getSubredditConfig } from "../../server/config.js";
-import { NHL_TEAMS } from "./config.js";
-import { NHLConfig } from "../../types.js";
+import { getSubredditConfig } from "../../config";
+import { NHL_TEAMS } from "./config";
+import { NHLConfig } from "../../types";
 import { createServer, getServerPort, context } from "@devvit/server";
 //import { dailyGameFinder, pregameThread, liveUpdate } from "./scheduler.js";
 

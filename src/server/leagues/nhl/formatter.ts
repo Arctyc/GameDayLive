@@ -1,9 +1,9 @@
-import { getSubredditConfig } from "../../server/config.js";
-import { getTeamTimezone } from "./config.js";
-import { GAME_STATES } from "./constants.js";
-import type { NHLGame } from "./api.js";
+import { getSubredditConfig } from "../../config";
+import { getTeamTimezone } from "./config";
+import { GAME_STATES } from "./constants";
+import type { NHLGame } from "./api";
 import { context } from '@devvit/web/server'; //   import { Devvit } from '@devvit/web';?
-import { SubredditConfig } from "../../types.js";
+import { SubredditConfig } from "../../types";
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
     const homeTeam = game.homeTeam.abbrev;

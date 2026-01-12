@@ -1,4 +1,3 @@
-import { Subreddit } from "@devvit/web/server";
 
 export const LEAGUES = ["nhl", "mlb", "nfl", "nba"] as const;
 

@@ -1,5 +1,5 @@
 
-import { SubredditConfig } from "../types.js";
+import { SubredditConfig } from './types';
 import { context } from '@devvit/server';
 import { redis } from '@devvit/redis';
 

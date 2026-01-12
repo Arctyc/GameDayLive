@@ -1,8 +1,8 @@
 import { createServer, getServerPort, context } from '@devvit/web/server';
-import { LEAGUES } from '../types.js';
-import { NHL_TEAMS } from '../leagues/nhl/config.js';
-import * as nhl from '../leagues/nhl/index.js';
-import { handleConfigSubmit } from "../server/config.js";
+import { LEAGUES } from './types';
+import { NHL_TEAMS } from './leagues/nhl/config.js';
+import * as nhl from './leagues/nhl/index.js';
+import { handleConfigSubmit } from "./server/config.js";
 import express from "express";
 
 // Set up express

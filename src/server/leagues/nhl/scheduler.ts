@@ -1,9 +1,9 @@
 import { context, redis } from '@devvit/web/server';
-import { getTodaysSchedule, getGameData, NHLGame } from "./api.js";
-import { getSubredditConfig } from "../../server/config.js";
-import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants.js";
-import { formatThreadTitle, formatThreadBody } from "./formatter.js";
-import { createThread, updateThread } from "../../server/threads.js";
+import { getTodaysSchedule, getGameData, NHLGame } from "./api";
+import { getSubredditConfig } from "../../config";
+import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants";
+import { formatThreadTitle, formatThreadBody } from "./formatter";
+import { createThread, updateThread } from "../../threads";
 
 /*******************************
 export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: JobContext) {

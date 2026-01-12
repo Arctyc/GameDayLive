@@ -3,7 +3,8 @@
   "name": "gamedaylive",
 
   "server": {
-    "entry": "index.js"
+    "dir": "dist/server",
+    "entry": "index.cjs"
   },
 
   "permissions": 

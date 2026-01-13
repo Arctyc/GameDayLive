@@ -5,7 +5,7 @@ import { SubredditConfig, NHLConfig } from '../types';
 
 export const formAction = (router: Router): void => {
     router.post(
-        'internal/form/config-form',
+        '/internal/form/config-form',
         async (req, res): Promise<void> => {
 
             try {

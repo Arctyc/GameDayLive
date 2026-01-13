@@ -39,7 +39,7 @@
     "tasks": {
       "daily-game-check": {
         "endpoint": "/internal/scheduler/daily-game-check",
-        "cron": "0 6 * * * "
+        "cron": "0 8 * * * "
       },
       "create-game-thread": {
         "endpoint": "/internal/scheduler/create-game-thread"

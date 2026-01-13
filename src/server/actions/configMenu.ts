@@ -5,7 +5,7 @@ import { NHL_TEAMS } from "../leagues/nhl/config";
 
 export const menuAction = (router: Router): void => {
     router.post(
-        'internal/menu/config-menu',
+        '/internal/menu/config-menu',
         async (_req, res): Promise<void> => {
 
             // Build form

@@ -38,8 +38,7 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
     const logger = await Logger.Create('Format - Thread Body'); // TODO: Implement logging
     
     const body = 
-        await buildBodyHeader(game, subredditName); // temporarily disabled
-        /*
+        await buildBodyHeader(game, subredditName);
         await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
@@ -47,7 +46,6 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
         buildBodyPenalties(game) +
         "\n\n---\n\n" +
         buildBodyFooter();
-        */
     return body;
 }
 
@@ -126,8 +124,6 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     return header;
 }
 
-/******
-
 function buildBodyGoals(game: any): string {
     const { goals } = organizePlaysByPeriod(game.plays);
 
@@ -141,7 +137,7 @@ function buildBodyGoals(game: any): string {
         out += `**Period ${period}**\n\n`;
         out += makeGoalsTableHeader();
 
-        for (const play of goals[period]) {
+        for (const play of goals[period]!) {
             out += goalRowFromPlay(play, game);
         }
 
@@ -150,36 +146,38 @@ function buildBodyGoals(game: any): string {
 
     return out;
 }
-***/
 
-/***
 function buildBodyPenalties(game: any): string {
-    const { penalties } = organizePlaysByPeriod(game.plays);
+	const { penalties } = organizePlaysByPeriod(game.plays);
 
-    if (Object.keys(penalties).length === 0) {
-        return "# PENALTIES\n\nNo penalties.";
-    }
+	if (Object.keys(penalties).length === 0) {
+		return "# PENALTIES\n\nNo penalties.";
+	}
 
-    let out = `# PENALTIES\n\n`;
+	let out = `# PENALTIES\n\n`;
 
-    for (const period of Object.keys(penalties).map(Number).sort()) {
-        out += `**Period ${period}**\n\n`;
-        out += makePenaltiesTableHeader();
+	const periods = Object.keys(penalties).map(Number).sort((a, b) => a - b);
 
-        for (const play of penalties[period]) {
-            out += penaltyRowFromPlay(play, game);
-        }
+	for (const period of periods) {
+		const plays = penalties[period];
+		if (!plays) continue;
 
-        out += `\n`;
-    }
+		out += `**Period ${period}**\n\n`;
+		out += makePenaltiesTableHeader();
 
-    return out;
+		for (const play of plays) {
+			out += penaltyRowFromPlay(play, game);
+		}
+
+		out += `\n`;
+	}
+
+	return out;
 }
 
 function buildBodyFooter(){
     return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
 }
-***/
 
 function makeGoalsTableHeader() {
     return (

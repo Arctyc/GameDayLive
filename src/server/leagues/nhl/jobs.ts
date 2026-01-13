@@ -32,7 +32,7 @@ export async function dailyGameCheckJob(subredditName: string) {
     } 
 
     // Else, game found
-    logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam} at ${game.homeTeam}`);
+    logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam.abbrev} at ${game.homeTeam.abbrev}`);
 
     // Determine pre-game thread creation time
     const startTime = new Date(game.startTimeUTC).getTime();

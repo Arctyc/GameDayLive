@@ -2,12 +2,14 @@ import { Router } from 'express';
 import { context } from '@devvit/web/server';
 import { SubredditConfig, NHLConfig } from '../types';
 import { setSubredditConfig } from '../config';
-//import { Logger } from '../utils/Logger'; // TODO: implement proper logging
+import { dailyGameCheckJob } from '../leagues/nhl/jobs';
+import { Logger } from '../utils/Logger';
 
 export const formAction = (router: Router): void => {
     router.post(
         '/internal/form/config-form',
         async (req, res): Promise<void> => {
+            const logger = await Logger.Create('Form - Config');
 
             try {
                 // Extract form data
@@ -29,6 +31,10 @@ export const formAction = (router: Router): void => {
 
                 // Store in redis using helper function
                 await setSubredditConfig(context.subredditName, config);
+                
+                // Run daily game check immediately
+                // TODO:FIX: Determine job to run based on league selection
+                await dailyGameCheckJob(context.subredditName!);
 
                 // Send success toast
                 res.status(200).json({
@@ -39,8 +45,7 @@ export const formAction = (router: Router): void => {
                 });
 
             } catch (error) {
-                // logger.error('Error saving subreddit config:', error); // TODO: implement proper logging
-                console.error('Error saving subreddit config:', error);
+                logger.error('Error saving subreddit config:', error);
                 res.status(400).json({
                     showToast: {
                         appearance: 'error',

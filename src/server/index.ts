@@ -8,11 +8,9 @@ import { registerSchedulers } from './leagues/nhl/scheduler';
 const app = express();
 const router = express.Router();
 
-// Middleware for JSON body parsing
+// Middleware
 app.use(express.json());
-// Middleware for URL-encoded body parsing
 app.use(express.urlencoded({ extended: true }));
-// Middleware for plain text body parsing
 app.use(express.text());
 
 // Register bot functionality

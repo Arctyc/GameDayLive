@@ -4,8 +4,11 @@ import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
 import { context } from '@devvit/web/server';
 import { SubredditConfig } from "../../types";
+import { Logger } from '../../utils/Logger';
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
+    const logger = await Logger.Create('Format - Thread Title'); // TODO: Implement logging
+    
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
@@ -28,10 +31,12 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         return `PGT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
     } 
-    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${localTime}`; // TODO: Add date before time
+    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${game.gameDate} ${localTime}`;
 }
 
 export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
+    const logger = await Logger.Create('Format - Thread Body'); // TODO: Implement logging
+    
     const body = 
         await buildBodyHeader(game, subredditName); // temporarily disabled
         /*
@@ -47,6 +52,8 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
 }
 
 async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<string> {
+    const logger = await Logger.Create('Format - Body Header'); // TODO: Implement logging
+    
     const homeTeamAbbrev = game.homeTeam.abbrev;
     const awayTeamAbbrev = game.awayTeam.abbrev;
     const homeTeamPlace = game.homeTeam.placeName.default;

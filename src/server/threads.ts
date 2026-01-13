@@ -1,4 +1,5 @@
 import { reddit, type Post } from "@devvit/web/server";
+import { Logger } from '../utils/Logger'; // TODO: Implement logging
 
 // Create new thread
 export async function createThread(

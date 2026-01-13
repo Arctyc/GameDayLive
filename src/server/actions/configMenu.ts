@@ -1,12 +1,13 @@
-import { Router } from "express";
-import { LEAGUES } from "../types";
-import { NHL_TEAMS } from "../leagues/nhl/config";
-// TODO: implement proper logging
+import { Router } from 'express';
+import { LEAGUES } from '../types';
+import { NHL_TEAMS } from '../leagues/nhl/config';
+import { Logger } from '../utils/Logger';
 
 export const menuAction = (router: Router): void => {
     router.post(
         '/internal/menu/config-menu',
         async (_req, res): Promise<void> => {
+            const logger = await Logger.Create('Menu - Config'); // TODO: Implement logging
 
             // Build form
             try {
@@ -24,7 +25,7 @@ export const menuAction = (router: Router): void => {
                                 label: l.toUpperCase(),
                                 value: l
                                 })),
-                                defaultValue: LEAGUES[0],
+                                defaultValue: LEAGUES[0], // FIX: doesn't set a default
                                 onValueChanged: 'refresh',
                             },
                             {
@@ -32,7 +33,7 @@ export const menuAction = (router: Router): void => {
                                 name: 'team',
                                 label: 'Team',
                                 options: NHL_TEAMS, // FIX: Dynamic teams based on league
-                                defaultValue: NHL_TEAMS[0],
+                                defaultValue: NHL_TEAMS[0], // FIX: doesn't set a default
                             },
                             {
                                 type: 'boolean',

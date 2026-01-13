@@ -14,6 +14,8 @@ export const formAction = (router: Router): void => {
             try {
                 // Extract form data
                 const { league, team, enablePostgameThreads } = req.body;
+
+                // FIX: Don't allow N/A team or league
                 
                 // Convert arrays to single values if needed
                 const leagueValue = Array.isArray(league) ? league[0] : league;
@@ -34,6 +36,8 @@ export const formAction = (router: Router): void => {
                 
                 // Run daily game check immediately
                 // TODO:FIX: Determine job to run based on league selection
+                logger.info(`Logger: Attempting to run daily game check...`);
+                console.log(`Console: Attempting to run daily game check...`);
                 await dailyGameCheckJob(context.subredditName!);
 
                 // Send success toast

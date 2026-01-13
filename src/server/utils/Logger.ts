@@ -23,7 +23,7 @@ export class Logger {
     public static async GetLogLevelSetting(): Promise<LogLevel> {
         const savedLvl = await settings.get<string[]>('logLevel');
         const key = savedLvl?.[0];
-        return (key ? LogLevel[key as keyof typeof LogLevel] : LogLevel.Error) ?? LogLevel.Error;
+        return (key ? LogLevel[key as keyof typeof LogLevel] : LogLevel.Trace) ?? LogLevel.Trace;
     }
 
     public constructor(label: string, logLevel?: LogLevel) {

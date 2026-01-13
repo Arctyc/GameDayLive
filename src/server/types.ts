@@ -1,5 +1,5 @@
 
-export const LEAGUES = ["nhl", "mlb", "nfl", "nba"] as const;
+export const LEAGUES = ["nhl"] as const; // Add future leagues here
 
 export interface SubredditConfig {
   league: typeof LEAGUES[number]; 

@@ -24,13 +24,15 @@ export const menuAction = (router: Router): void => {
                                 label: l.toUpperCase(),
                                 value: l
                                 })),
+                                defaultValue: LEAGUES[0],
                                 onValueChanged: 'refresh',
                             },
                             {
                                 type: 'select',
                                 name: 'team',
                                 label: 'Team',
-                                options: NHL_TEAMS // FIX: Dynamic teams based on league
+                                options: NHL_TEAMS, // FIX: Dynamic teams based on league
+                                defaultValue: NHL_TEAMS[0],
                             },
                             {
                                 type: 'boolean',

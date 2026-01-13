@@ -28,7 +28,7 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         return `PGT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
     } 
-    else return `GDT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
+    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${localTime}`; // TODO: Add date before time
 }
 
 export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {

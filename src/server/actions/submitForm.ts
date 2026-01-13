@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { context } from '@devvit/web/server';
 import { SubredditConfig, NHLConfig } from '../types';
-import { setSubredditConfig } from '../config';
+import { setSubredditConfig, getSubredditConfig } from '../config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
 import { Logger } from '../utils/Logger';
 
@@ -32,12 +32,24 @@ export const formAction = (router: Router): void => {
                 };
 
                 // Store in redis using helper function
+                logger.debug(`Attempting to store config: subreddit ${context.subredditName} | config: ${config}`)
                 await setSubredditConfig(context.subredditName, config);
+
+                // DEBUG: Read back the config from Redis and log it
+                try {
+                    const savedConfig = await getSubredditConfig(context.subredditName!);
+                    if (savedConfig) {
+                        logger.info('Config retrieved from Redis after save:', savedConfig);
+                    } else {
+                        logger.warn('No config found in Redis after save!');
+                    }
+                } catch (err) {
+                    logger.error('Error retrieving config from Redis after save:', err);
+                }
                 
                 // Run daily game check immediately
                 // TODO:FIX: Determine job to run based on league selection
-                logger.info(`Logger: Attempting to run daily game check...`);
-                console.log(`Console: Attempting to run daily game check...`);
+                logger.debug(`Attempting to run daily game check...`);
                 await dailyGameCheckJob(context.subredditName!);
 
                 // Send success toast

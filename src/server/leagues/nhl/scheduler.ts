@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { context } from '@devvit/web/server';
-import { dailyGameCheckJob, createGameThreadJob, nextLiveUpdateJob } from './gameScheduler';
+import { dailyGameCheckJob, createGameThreadJob, nextLiveUpdateJob } from './jobs';
 
 export const dailyGameCheck = (router: Router) => {
   router.post('/internal/scheduler/daily-game-check', async (_req, res) => {

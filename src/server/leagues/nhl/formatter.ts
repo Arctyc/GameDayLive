@@ -33,7 +33,7 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
 
 export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
     const body = 
-        await buildBodyHeader(game, subredditName); // temporary
+        await buildBodyHeader(game, subredditName); // temporarily disabled
         /*
         await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +

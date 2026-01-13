@@ -30,7 +30,7 @@
       }
     ]
   },
-  
+
   "forms": {
     "subredditConfigForm": "/internal/form/config-form"
   },
@@ -40,6 +40,12 @@
       "daily-game-check": {
         "endpoint": "/internal/scheduler/daily-game-check",
         "cron": "0 6 * * * "
+      },
+      "create-game-thread": {
+        "endpoint": "/internal/scheduler/create-game-thread"
+      },
+      "next-live-update": {
+        "endpoint": "/internal/scheduler/next-live-update"
       }
     }
   }

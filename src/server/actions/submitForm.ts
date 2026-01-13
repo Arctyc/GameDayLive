@@ -32,7 +32,7 @@ export const formAction = (router: Router): void => {
                 };
 
                 // Store in redis using helper function
-                logger.debug(`Attempting to store config: subreddit ${context.subredditName} | config: ${config}`)
+                logger.debug(`Attempting to store config for ${context.subredditName}`)
                 await setSubredditConfig(context.subredditName, config);
 
                 // DEBUG: Read back the config from Redis and log it

@@ -2,8 +2,6 @@ import { getSubredditConfig } from "../../config";
 import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
-import { context } from '@devvit/web/server';
-import { SubredditConfig } from "../../types";
 import { Logger } from '../../utils/Logger';
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {

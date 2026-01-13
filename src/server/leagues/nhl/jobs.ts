@@ -1,44 +1,59 @@
-import { redis, context } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
 import { SubredditConfig } from '../../types';
+import { createThread, updateThread } from '../../threads';
 import { Logger } from '../../utils/Logger';
+import { Router } from 'express'; // TODO: Used?
 
 // Get SubredditConfig
 export async function getSubredditConfig(subredditName: string): Promise<SubredditConfig | null> {
-    const logger = await Logger.Create('Jobs - Get Config'); // TODO: Implement logging
-    
+    const logger = await Logger.Create('Jobs - Get Config');
+
     const configStr = await redis.hGet('subredditConfig', subredditName);
     if (!configStr) return null;
+
+    logger.info(`Returning subreddit config for ${subredditName}`);
+    logger.debug(`Config details: ${JSON.parse(configStr)}`);
+
     return JSON.parse(configStr) as SubredditConfig;
 }
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob(subredditName: string) {
     const logger = await Logger.Create('Jobs - Daily Game Check');
+    logger.debug(`Running daily game check...`);
     
     const config = await getSubredditConfig(subredditName);
-    if (!config || !config.nhl) return; // subreddit not configured or no NHL team
+    if (!config || !config.nhl) {
+        logger.debug(`No subreddit config returned for ${subredditName}`);
+        return; 
+    } 
 
     const teamAbbrev = config.nhl.teamAbbreviation;
     const todayGames = await getTodaysSchedule(fetch);
+    logger.info(`Team: ${teamAbbrev}, Games: ${todayGames}`);
 
     // Filter by the subreddit's NHL team
     const game = todayGames.find(
         g => g.homeTeam.abbrev === teamAbbrev || g.awayTeam.abbrev === teamAbbrev
     );
 
-    if (!game) return; // no game for this team today
+    if (!game){
+        logger.info(`No game found for ${context.subredditName}: ${teamAbbrev}`)
+        return;
+    } 
 
     // Else, game found
     logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam} at ${game.homeTeam}`);
 
-    // Schedule the game thread 1 hour before start
+    // Determine pre-game thread creation time
     const startTime = new Date(game.startTimeUTC).getTime();
-    const scheduleTime = startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET;
+    const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
 
-    await scheduleCreateGameThread(game.id, subredditName, scheduleTime);
+    await scheduleCreateGameThread(subredditName, game.id, scheduleTime);
+    
     }
 
 // --------------- Create Game Thread -----------------
@@ -52,19 +67,28 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
     const title = await formatThreadTitle(game, subredditName);
     const body = await formatThreadBody(game, subredditName);
 
-    // TODO: create thread on reddit with subredditName, title, body
+    // Create thread on reddit with subredditName, title, body
+    const result = await createThread(
+        context,
+        title,
+        body
+    )
 
-    // Store threadId in Redis for later updates // TODO: ensure cleared at some point
-    // await redis.set(`game:${gameId}:threadId`, post.id); // FIX: Temporarily disabled while no post.id to store
+    if (result.success) {
+        const post = result.post!;
+        logger.info(`Created post ID: ${post.id}`)
+        await redis.set(`game:${gameId}:threadId`, post.id); // TODO: clear this at some point! (game in OFF state?)\
+        // Schedule first live update 
+        const updateTime = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
+        await scheduleNextLiveUpdate(subredditName, post, game.id, updateTime);
 
-    // Schedule first live update 60 seconds before start
-    const startTime = new Date(game.startTimeUTC).getTime();
-    const firstUpdateTime = startTime - 60 * 1000;
-    await scheduleNextLiveUpdate(game, subredditName, firstUpdateTime);
+    } else {
+        logger.error(`Failed to create post:`, result.error);
+    }
 }
 
 // --------------- Next Live Update -----------------
-export async function nextLiveUpdateJob(gameId: number, subredditName: string) {
+export async function nextLiveUpdateJob(subredditName: string, post: Post, gameId: number) {
     const logger = await Logger.Create('Jobs - Next Live Update'); // TODO: Implement logging
     
     const threadId = await redis.get(`game:${gameId}:threadId`);
@@ -78,30 +102,42 @@ export async function nextLiveUpdateJob(gameId: number, subredditName: string) {
     // Format update text
     const body = await formatThreadBody(game, subredditName);
 
-    // TODO: update post
-    // 
+    // Update thread
+    const result = await updateThread( post.id, body);
+    // TODO: Use result
 
     // Schedule next live update
     if (game.gameState !== GAME_STATES.FINAL) {
         let nextUpdateDelay = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
         // TODO: if intermission, adjust to INTERMISSION interval
-        await scheduleNextLiveUpdate(game, subredditName, Date.now() + nextUpdateDelay);
+        await scheduleNextLiveUpdate(subredditName, post, gameId, nextUpdateDelay);
     } else {
         // Game finished
         // TODO: schedule postgame thread if enabled
-        // TODO: clear any existing data?
+        redis.del(`game:${gameId}:threadId`);
     }
 }
 
 // --------------- Scheduling helpers -----------------
-async function scheduleCreateGameThread(gameId: number, subredditName: string, time: number) {
-  const logger = await Logger.Create('Jobs - Schedule Create Thread');
-  
-  // TODO: call Devvit scheduler API to schedule create-game-thread at `time`
+async function scheduleCreateGameThread(subredditName: string, gameId: number, scheduledTime: Date) {
+    const job: ScheduledJob = {
+        id: `create-thread-${gameId}`,
+        name: 'create-game-thread',
+        data: { gameId, subredditName },
+        runAt: scheduledTime,
+    };
+
+    await scheduler.runJob(job);
 }
 
-async function scheduleNextLiveUpdate(game: NHLGame, subredditName: string, time: number) {
-  const logger = await Logger.Create('Jobs - Schedule Next Update');
-  
-  // TODO: call Devvit scheduler API to schedule next-live-update at `time`
+async function scheduleNextLiveUpdate(subredditName: string, post: Post, gameId: number, secondsFromNow: number) {
+    const postId = post.id;
+    const job: ScheduledJob = {
+        id: `update-${gameId}-${Date.now()}`,
+        name: 'next-live-update',
+        data: { subredditName, postId, gameId },
+        runAt: new Date(Date.now() + (secondsFromNow * 1000)),
+    };
+
+    await scheduler.runJob(job);
 }

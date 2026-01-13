@@ -45,12 +45,14 @@ export const createGameThread = (router: Router) => {
 export const nextLiveUpdate = (router: Router) => {
   router.post('/internal/scheduler/next-live-update', async (_req, res) => {
     const logger = await Logger.Create('Scheduler - Next Live Update');
-    
+
     try {
-      const { postId, gameId } = _req.body;
+      const { gameId } = _req.body;
       if (!gameId) throw new Error('gameId required');
-      await nextLiveUpdateJob(context.subredditName!, postId, gameId);
+
+      await nextLiveUpdateJob(context.subredditName!, gameId);
       res.status(200).json({ status: 'success' });
+      
     } catch (error) {
       logger.error('Next live update failed:', error);
       res.status(400).json({ 

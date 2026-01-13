@@ -66,7 +66,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         await redis.set(`game:${gameId}:threadId`, post.id); // TODO: clear this at some point! (game in OFF state?)\
         // Schedule first live update 
         const updateTime = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
-        await scheduleNextLiveUpdate(subredditName, post, game.id, updateTime);
+        await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
 
     } else {
         logger.error(`Failed to create post:`, result.error);
@@ -74,11 +74,14 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
 }
 
 // --------------- Next Live Update -----------------
-export async function nextLiveUpdateJob(subredditName: string, post: Post, gameId: number) {
+export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
     const logger = await Logger.Create('Jobs - Next Live Update'); // TODO: Implement logging
     
-    const threadId = await redis.get(`game:${gameId}:threadId`);
-    if (!threadId) return;
+    const postId = await redis.get(`game:${gameId}:threadId`);
+    if (!postId) {
+        logger.error(`Invalid postId`);
+        return;
+    } 
 
     const { game, modified } = await getGameData(gameId, fetch, await redis.get(REDIS_KEYS.GAME_ETAG(gameId)));
 
@@ -89,14 +92,14 @@ export async function nextLiveUpdateJob(subredditName: string, post: Post, gameI
     const body = await formatThreadBody(game, subredditName);
 
     // Update thread
-    const result = await updateThread( post.id, body);
+    const result = await updateThread( postId as Post["id"], body);
     // TODO: Use result
 
     // Schedule next live update
     if (game.gameState !== GAME_STATES.FINAL) {
         let nextUpdateDelay = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
         // TODO: if intermission, adjust to INTERMISSION interval
-        await scheduleNextLiveUpdate(subredditName, post, gameId, nextUpdateDelay);
+        await scheduleNextLiveUpdate(subredditName, postId, gameId, nextUpdateDelay);
     } else {
         // Game finished
         // TODO: schedule postgame thread if enabled
@@ -106,24 +109,57 @@ export async function nextLiveUpdateJob(subredditName: string, post: Post, gameI
 
 // --------------- Scheduling helpers -----------------
 async function scheduleCreateGameThread(subredditName: string, gameId: number, scheduledTime: Date) {
+    const logger = await Logger.Create('Jobs - Schedule Create Game Thread');
+    
+    const jobId = `create-thread-${gameId}`;
     const job: ScheduledJob = {
-        id: `create-thread-${gameId}`,
+        id: jobId,
         name: 'create-game-thread',
-        data: { gameId, subredditName },
+        data: { subredditName, gameId },
         runAt: scheduledTime,
     };
 
-    await scheduler.runJob(job);
+    try {
+        logger.info(`Attempting to schedule job ${jobId} for ${scheduledTime.toISOString()}. (Current time: ${new Date().toISOString()})`);
+        
+        // Check if scheduled time is future
+        if (scheduledTime.getTime() < Date.now()) {
+            logger.warn(`Warning: scheduledTime ${scheduledTime.toISOString()} is in the past. Job may run immediately or fail.`);
+        }
+
+        await scheduler.runJob(job);
+        logger.info(`Successfully scheduled ${jobId}`);
+
+    } catch (error) {
+        logger.error(`Failed to schedule ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 
-async function scheduleNextLiveUpdate(subredditName: string, post: Post, gameId: number, secondsFromNow: number) {
-    const postId = post.id;
+async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, secondsFromNow: number) {
+    const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
+    
+    const updateTime = new Date(Date.now() + (secondsFromNow * 1000));
+    const jobId = `update-${gameId}-${Date.now()}`;
+
     const job: ScheduledJob = {
-        id: `update-${gameId}-${Date.now()}`,
+        id: jobId,
         name: 'next-live-update',
-        data: { subredditName, postId, gameId },
-        runAt: new Date(Date.now() + (secondsFromNow * 1000)),
+        data: { subredditName, gameId, postId },
+        runAt: updateTime,
     };
 
-    await scheduler.runJob(job);
+    try {
+        logger.info(`Attempting to schedule update ${jobId} in ${secondsFromNow}s (at ${updateTime.toISOString()})`);
+
+        // Check if scheduled time is future
+        if (updateTime.getTime() < Date.now()) {
+            logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
+        }
+
+        await scheduler.runJob(job);
+        logger.info(`Successfully scheduled ${jobId}`);
+
+    } catch (error) {
+        logger.error(`Failed to schedule ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }

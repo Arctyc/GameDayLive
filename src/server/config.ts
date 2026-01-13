@@ -1,30 +1,26 @@
-
+import { redis } from '@devvit/web/server';
 import { SubredditConfig } from './types';
-import { context } from '@devvit/server';
-import { redis } from '@devvit/redis';
 
-export async function handleConfigSubmit(
-  subredditConfig: SubredditConfig,
-){
-  const subredditName = context.subredditName;
-  if (!subredditName) {
-    throw new Error("No subreddit context available.");
-  }
-  await setSubredditConfig( subredditName, subredditConfig );
+const keyFor = (subreddit: string) => `subreddit:${subreddit}`;
+
+/** Save a SubredditConfig to Redis */
+export async function setSubredditConfig(subreddit: string, config: SubredditConfig): Promise<void> {
+  const key = keyFor(subreddit);
+  await redis.set(key, JSON.stringify(config));
+  console.log(`Saved config for r/${subreddit}:`, config);
 }
 
-export async function setSubredditConfig(
-  subredditName: string,
-  config: SubredditConfig,
-): Promise<void> {
-  console.log(`Setting subredditConfig for subredditName: ${subredditName} with data: ${JSON.stringify(config)}`);
-  await redis.set(subredditName, JSON.stringify(config));
-}
+/** Get a SubredditConfig from Redis */
+export async function getSubredditConfig(subreddit: string): Promise<SubredditConfig | undefined> {
+  const key = keyFor(subreddit);
+  const data = await redis.get(key);
 
-export async function getSubredditConfig(subredditName: string){
-  const data = await redis.get(subredditName)
-  if (!data){
-    throw new Error("No subreddit data available.");
+  if (!data) {
+    console.log(`No config found for r/${subreddit}`);
+    return undefined;
   }
-  return JSON.parse(data);
+  
+  const config = JSON.parse(data) as SubredditConfig;
+  console.log(`Retrieved config for r/${subreddit}:`, config);
+  return config;
 }

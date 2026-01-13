@@ -62,18 +62,26 @@ devvit playtest your-test-subreddit
 
 ### Project Structure
 ```
-src/
-├── leagues/
-│   └── nhl/
-│       ├── api.ts         # NHL API client
-│       ├── config.ts      # NHL team data
-│       ├── constants.ts   # NHL global constants
-│       ├── formatter.ts   # NHL thread formatting
-│       ├── index.ts       # NHL module registration
-│       └── scheduler.ts   # NHL process automation
+/src/
 └── server/
-    ├── index.ts           # Server entry point
-    └── threads.ts         # Universal thread posting
+    ├── leagues/
+    │   ├── nhl/
+    │   │   ├── api.ts
+    │   │   ├── config.ts
+    │   │   ├── constants.ts
+    │   │   ├── formatter.ts
+    │   │   ├── index.ts
+    │   │   └── scheduler.ts
+    │   │
+    │   └── FutureLeagues/
+    │
+    ├── config.ts
+    ├── index.ts
+    ├── threads.ts
+    ├── types.ts
+    ├── tsconfig.json
+    └── vite.config.ts
+
 ```
 
 ### Adding a New League

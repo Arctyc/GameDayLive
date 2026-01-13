@@ -1,163 +1,61 @@
-import { context, redis } from '@devvit/web/server';
-import { getTodaysSchedule, getGameData, NHLGame } from "./api";
-import { getSubredditConfig } from "../../config";
-import { UPDATE_INTERVALS, REDIS_KEYS, GAME_STATES } from "./constants";
-import { formatThreadTitle, formatThreadBody } from "./formatter";
-import { createThread, updateThread } from "../../threads";
+import { Router } from 'express';
+import { context } from '@devvit/web/server';
+import { dailyGameCheckJob, createGameThreadJob, nextLiveUpdateJob } from './jobs';
 
-/*******************************
-export async function dailyGameFinder(event: ScheduledJobEvent<any>, context: JobContext) {
-  console.log("Running daily game finder...");
-  
-  try {
-    const config = await getSubredditConfig(context.subredditId, context);
-
-    const games = await getTodaysSchedule(fetch);
-    console.log(`Found ${games.length} games today`);  
-    
-    if (!config || !config.nhl || config.league !== "nhl") {
-      console.log("No NHL config or NHL not active for this subreddit");
-      return;
-    }
-    
-    // Find games involving the selected team
-    const teamAbbrev = config.nhl.teamAbbreviation;
-    const teamGames = games.filter(
-      game => game.awayTeam.abbrev === teamAbbrev || game.homeTeam.abbrev === teamAbbrev
-    );
-    console.log(`Found ${teamGames.length} games for team ${teamAbbrev}`);
-    
-    // Schedule pre-game threads for each game
-    for (const game of teamGames) {
-      const gameTime = new Date(game.startTimeUTC);
-      const oneHourBefore = new Date(gameTime.getTime() - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
-      
-      console.log(`Scheduling pre-game thread for game ${game.id} at ${oneHourBefore.toISOString()}`);
-      
-      await context.scheduler.runJob({
-        name: "nhl_pregame_thread",
-        data: {
-          gameId: game.id,
-          subredditId: context.subredditId,
-        },
-        runAt: oneHourBefore,
+export const dailyGameCheck = (router: Router) => {
+  router.post('/internal/scheduler/daily-game-check', async (_req, res) => {
+    try {
+      await dailyGameCheckJob(context.subredditName!);
+      res.status(200).json({ status: 'success' });
+    } catch (error) {
+      console.error('Daily game check failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Daily check failed',
+        error: error instanceof Error ? error.message : String(error)
       });
     }
-  } catch (error) {
-    console.error("Error in daily game finder:", error);
-  }
-}
+  });
+};
 
-export async function pregameThread(event: ScheduledJobEvent<any>, context: JobContext) {
-  console.log("Creating pre-game thread...");
-  
-  const { gameId, subredditId } = event.data as { gameId: number; subredditId: string };
-  
-  try {
-    // NOTE: WAITING FOR API ENDPOINT APPROVAL
-    const { game, etag, modified } = await getGameData(gameId, fetch);
-    console.log("Fetched game data:", game, "etag:", etag, "modified:", modified);
-
-    // Create thread
-    console.log(`Attempting to create pre-game thread for game ${gameId} in ${context.subredditName}`);
-    const postId = await createNhlThread(game, context, subredditId);
-
-    // TODO: Schedule live update job with postId
-    console.log(`Would schedule live update job`);
-
-  } catch (error) {
-    console.error("Error creating pre-game thread:", error);
-  }
-}
-
-export async function liveUpdate(event: ScheduledJobEvent<any>, context: JobContext) {
-  console.log("Running live update...");
-  
-  const { gameId, postId } = event.data as { gameId: number; postId: string };
-  
-  try {
-    const etagKey = REDIS_KEYS.GAME_ETAG(gameId);
-    const stateKey = REDIS_KEYS.GAME_STATE(gameId);
-    const storedEtag = await context.redis.get(etagKey);
-    
-    const { game, etag, modified } = await getGameData(gameId, fetch, storedEtag || undefined);
-    
-    if (modified) {
-      await context.redis.set(etagKey, etag);
-      await context.redis.set(stateKey, game.gameState || GAME_STATES.UNKNOWN);
-      await handleGameUpdate(game, gameId, postId, context);
-      await scheduleNextUpdate(game, gameId, postId, context);
-    } else {
-      console.log("Game data not modified, skipping update");
-      const cachedState = await context.redis.get(stateKey);
-      await scheduleNextUpdate({ gameState: cachedState } as NHLGame, gameId, postId, context);
+export const createGameThread = (router: Router) => {
+  router.post('/internal/scheduler/create-game-thread', async (_req, res) => {
+    try {
+      const { gameId } = _req.body;
+      if (!gameId) throw new Error('gameId required');
+      await createGameThreadJob(gameId, context.subredditName!);
+      res.status(200).json({ status: 'success' });
+    } catch (error) {
+      console.error('Create game thread failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Create game thread failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
-    
-  } catch (error) {
-    console.error("Error in live update:", error);
-  }
-}
+  });
+};
 
-async function handleGameUpdate(
-  game: NHLGame, 
-  gameId: number, 
-  postId: string, 
-) {
-  console.log(`Updating post ${postId} for game ${gameId}`);
-  
-  const gameState = game.gameState || GAME_STATES.UNKNOWN;
-  
-  if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT || gameState === GAME_STATES.FINAL) {    
-    // Update thread with new game data
-    console.log(`Attempting to update thread content for ${gameId}`);
-    await updateThread( post.Id, await formatThreadBody(game, context.subredditName));
-
-  } else if (gameState === GAME_STATES.OFF) {
-    console.log(`Game ${gameId} is OFF`);
-    
-    // Create post-game thread if opt-in
-    const config = await getSubredditConfig(context.subredditName);
-    if (config?.nhl?.enablePostGameThreads) {
-      console.log(`Attempting to create post-game thread for game ${gameId} in ${context.subredditName}`);
-      await createNhlThread(game);
+export const nextLiveUpdate = (router: Router) => {
+  router.post('/internal/scheduler/next-live-update', async (_req, res) => {
+    try {
+      const { gameId } = _req.body;
+      if (!gameId) throw new Error('gameId required');
+      await nextLiveUpdateJob(gameId, context.subredditName!);
+      res.status(200).json({ status: 'success' });
+    } catch (error) {
+      console.error('Next live update failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Next live update failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
-  }
-}
+  });
+};
 
-async function scheduleNextUpdate(
-  game: NHLGame,
-  gameId: number,
-  postId: string,
-) {
-  const gameState = game.gameState || GAME_STATES.UNKNOWN;
-  
-  if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
-    const periodDescriptor = game.periodDescriptor?.periodType;
-    
-    let nextRunDelay = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
-    
-    if (periodDescriptor === "SO" || periodDescriptor === "OT") {
-      nextRunDelay = UPDATE_INTERVALS.OVERTIME_SHOOTOUT;
-    }
-    
-    await context.scheduler.runJob({
-      name: "nhl_live_update",
-      data: { gameId, postId },
-      runAt: new Date(Date.now() + nextRunDelay),
-    });
-    
-    console.log(`Next update scheduled in ${nextRunDelay / 1000}s`);
-
-  } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-    console.log("Game is over, not scheduling another update.");
-  }
-}
-
-async function createNhlThread(game: NHLGame) {
-  return createThread(
-    context,
-    await formatThreadTitle(game, context.subredditName),
-    await formatThreadBody(game, context.subredditName)
-  );
-}
-*/
+export const registerSchedulers = (router: Router) => {
+  dailyGameCheck(router);
+  createGameThread(router);
+  nextLiveUpdate(router);
+};

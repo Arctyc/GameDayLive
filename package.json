@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "gamedaylive",
-  "version": "0.0.0",
+  "version": "0.0.9",
   "license": "BSD-3-Clause",
   "type": "module",
   "scripts": {

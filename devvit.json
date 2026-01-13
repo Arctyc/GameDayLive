@@ -25,9 +25,28 @@
         "label": "GameDayLive",
         "description": "Configure GameDayLive settings",
         "location": "subreddit",
-        "endpoint": "/internal/config-menu",
-        "forUserType": "moderator"
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/config-menu"
       }
     ]
+  },
+
+  "forms": {
+    "subredditConfigForm": "/internal/form/config-form"
+  },
+
+  "scheduler": {
+    "tasks": {
+      "daily-game-check": {
+        "endpoint": "/internal/scheduler/daily-game-check",
+        "cron": "0 8 * * * "
+      },
+      "create-game-thread": {
+        "endpoint": "/internal/scheduler/create-game-thread"
+      },
+      "next-live-update": {
+        "endpoint": "/internal/scheduler/next-live-update"
+      }
+    }
   }
 }

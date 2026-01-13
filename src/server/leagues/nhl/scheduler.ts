@@ -8,6 +8,7 @@ export const dailyGameCheck = (router: Router) => {
     const logger = await Logger.Create('Scheduler - Daily Game Check');
     
     try {
+      logger.info(`Running scheduled daily game check...`);
       await dailyGameCheckJob(context.subredditName!);
       res.status(200).json({ status: 'success' });
     } catch (error) {

@@ -25,7 +25,7 @@ export const menuAction = (router: Router): void => {
                                 label: l.toUpperCase(),
                                 value: l
                                 })),
-                                defaultValue: LEAGUES[0], // FIX: doesn't set a default
+                                defaultValue: LEAGUES[0], // FIX: doesn't set a default // TODO: Default to subredditConfig value if exists
                                 onValueChanged: 'refresh',
                             },
                             {
@@ -33,7 +33,7 @@ export const menuAction = (router: Router): void => {
                                 name: 'team',
                                 label: 'Team',
                                 options: NHL_TEAMS, // FIX: Dynamic teams based on league
-                                defaultValue: NHL_TEAMS[0], // FIX: doesn't set a default
+                                defaultValue: NHL_TEAMS[0], // FIX: doesn't set a default // TODO: Default to subredditConfig value if exists
                             },
                             {
                                 type: 'boolean',

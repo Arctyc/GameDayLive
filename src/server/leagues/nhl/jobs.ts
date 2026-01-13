@@ -2,30 +2,16 @@ import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget } from '
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
-import { SubredditConfig } from '../../types';
+import { getSubredditConfig } from '../../config';
 import { createThread, updateThread } from '../../threads';
 import { Logger } from '../../utils/Logger';
-import { Router } from 'express'; // TODO: Used?
-
-// Get SubredditConfig
-export async function getSubredditConfig(subredditName: string): Promise<SubredditConfig | null> {
-    const logger = await Logger.Create('Jobs - Get Config');
-
-    const configStr = await redis.hGet('subredditConfig', subredditName);
-    if (!configStr) return null;
-
-    logger.info(`Returning subreddit config for ${subredditName}`);
-    logger.debug(`Config details: ${JSON.parse(configStr)}`);
-
-    return JSON.parse(configStr) as SubredditConfig;
-}
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob(subredditName: string) {
     const logger = await Logger.Create('Jobs - Daily Game Check');
     logger.debug(`Running daily game check...`);
     
-    const config = await getSubredditConfig(subredditName);
+    const config = await getSubredditConfig(context.subredditName);
     if (!config || !config.nhl) {
         logger.debug(`No subreddit config returned for ${subredditName}`);
         return; 

@@ -1,46 +1,26 @@
 import { redis } from '@devvit/web/server';
-import { SubredditConfig, NHLConfig, LEAGUES } from './types';
+import { SubredditConfig } from './types';
 
 const keyFor = (subreddit: string) => `subreddit:${subreddit}`;
 
 /** Save a SubredditConfig to Redis */
-export async function setSubredditConfig(subreddit: string, config: SubredditConfig) {
+export async function setSubredditConfig(subreddit: string, config: SubredditConfig): Promise<void> {
   const key = keyFor(subreddit);
-
-  // Universal config data
-  const fields: Record<string, string> = {
-    league: config.league,
-    enablePostgameThreads: config.enablePostgameThreads.toString(),
-  };
-
-  // Conditionally add league-specific data
-  if (config.league === 'nhl' && config.nhl) {
-    fields.nhl = JSON.stringify(config.nhl);
-  }
-
-  // Future leagues can add their own fields here
-  // if (config.league === 'mlb' && config.mlb) { fields.mlb = JSON.stringify(config.mlb); }
-
-  await redis.hSet(key, fields);
+  await redis.set(key, JSON.stringify(config));
+  console.log(`Saved config for r/${subreddit}:`, config);
 }
 
 /** Get a SubredditConfig from Redis */
 export async function getSubredditConfig(subreddit: string): Promise<SubredditConfig | undefined> {
-  const key = `subreddit:${subreddit}`;
-  const data = await redis.hGetAll(key);
+  const key = keyFor(subreddit);
+  const data = await redis.get(key);
 
-  if (Object.keys(data).length === 0) return undefined;
-
-  // Universal config data
-  const config: SubredditConfig = {
-    league: data.league as typeof LEAGUES[number],
-    enablePostgameThreads: data.enablePostgameThreads === 'true',
-  };
-
-  // Conditionally add league-specific data
-  if (data.league === 'nhl' && data.nhl) {
-    config.nhl = JSON.parse(data.nhl) as NHLConfig;
+  if (!data) {
+    console.log(`No config found for r/${subreddit}`);
+    return undefined;
   }
-
+  
+  const config = JSON.parse(data) as SubredditConfig;
+  console.log(`Retrieved config for r/${subreddit}:`, config);
   return config;
-};
+}

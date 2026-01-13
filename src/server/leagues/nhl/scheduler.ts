@@ -8,7 +8,12 @@ export const dailyGameCheck = (router: Router) => {
       await dailyGameCheckJob(context.subredditName!);
       res.status(200).json({ status: 'success' });
     } catch (error) {
-      res.status(400).json({ status: 'error', message: 'Daily check failed' });
+      console.error('Daily game check failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Daily check failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 };
@@ -21,7 +26,12 @@ export const createGameThread = (router: Router) => {
       await createGameThreadJob(gameId, context.subredditName!);
       res.status(200).json({ status: 'success' });
     } catch (error) {
-      res.status(400).json({ status: 'error', message: 'Create game thread failed' });
+      console.error('Create game thread failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Create game thread failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 };
@@ -34,7 +44,12 @@ export const nextLiveUpdate = (router: Router) => {
       await nextLiveUpdateJob(gameId, context.subredditName!);
       res.status(200).json({ status: 'success' });
     } catch (error) {
-      res.status(400).json({ status: 'error', message: 'Next live update failed' });
+      console.error('Next live update failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Next live update failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 };

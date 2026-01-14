@@ -4,6 +4,7 @@ import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
 import { getSubredditConfig } from '../../config';
 import { cleanupThread, createThread, updateThread } from '../../threads';
+import { NewJobData, UpdateJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 
 //TODO:FIX: Stop passing subredditName, just get from context.subredditName
@@ -213,10 +214,13 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     const logger = await Logger.Create('Jobs - Schedule Create Game Thread');
     
     const jobId = `create-thread-${gameId}`;
+    const jobTitle = `Game Thread at ${scheduledTime.toISOString()} for game ${gameId}`; // TODO: Localize time
+    const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
         id: jobId,
         name: 'create-game-thread',
-        data: { subredditName, gameId },
+        data: jobData,
+        //data: { subredditName, gameId },
         runAt: scheduledTime,
     };
 
@@ -235,10 +239,12 @@ async function scheduleCreatePostgameThread(subredditName: string, gameId: numbe
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
     
     const jobId = `create-postgame-${gameId}`;
+    const jobTitle = `Postgame Thread at ${scheduledTime.toISOString()} for game ${gameId}`; // TODO: Localize time
+    const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
         id: jobId,
         name: 'create-postgame-thread',
-        data: { subredditName, gameId },
+        data: jobData,
         runAt: scheduledTime,
     };
 
@@ -255,11 +261,14 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
     const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
 
     const jobId = `update-${gameId}`;
+    const jobTitle = `Live update at ${updateTime.toISOString()} for game: ${gameId}`; // TODO: Localize time
+    const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
         id: jobId,
         name: 'next-live-update',
-        data: { subredditName, gameId, postId },
+        data: jobData,
+        //data: { subredditName, gameId, postId, jobTitle },
         runAt: updateTime,
     };
 

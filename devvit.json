@@ -23,6 +23,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/config-menu"
+      },
+      {
+        "label": "GameDayLive Schedule",
+        "description": "View/cancel scheduled jobs",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/scheduled-jobs"
       }
     ]
   },

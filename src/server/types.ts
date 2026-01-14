@@ -1,15 +1,24 @@
+import { NHLConfig } from "./leagues/nhl/types";
 
-export const LEAGUES = ["nhl"] as const; // Add future leagues here (1)
+export const LEAGUES = ["nhl"] as const;
 
 export interface SubredditConfig {
   league: typeof LEAGUES[number]; 
   nhl?: NHLConfig;
-  // here (2)
+  // Additional leagues here
   enablePostgameThreads: boolean;
 }
 
-export interface NHLConfig {
-  teamAbbreviation: string;
+// Enforce standard job data
+interface BaseJobData {
+  [key: string]: string | number;
+  subredditName: string;
+  gameId: string | number;
+  jobTitle: string; // Make this human readable and unique when scheduling jobs
 }
 
-// and here (3) as necessary
+export interface NewJobData extends BaseJobData {}
+
+export interface UpdateJobData extends BaseJobData {
+  postId: string;
+}

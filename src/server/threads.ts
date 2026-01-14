@@ -97,7 +97,11 @@ export async function cleanupThread(
         // Cleanup actions
 		// TODO: Use functions for trySticky tryUnsticky tryLock
         await post.unsticky();
+		
+		// Lock post
         //await post.lock(); TODO: Is this wanted? (add to config options?)
+
+		//
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };

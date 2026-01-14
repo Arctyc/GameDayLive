@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { LEAGUES, SubredditConfig } from '../types';
-import { NHL_TEAMS } from '../leagues/nhl/config';
 import { getTeamsForLeague } from '../leagues';
 import { getSubredditConfig } from '../config';
 import { context } from '@devvit/web/server';
@@ -23,9 +22,9 @@ export const menuAction = (router: Router): void => {
                 }
 
                 // Determine defaults
-                const defaultLeague = config?.league ?? LEAGUES[0];
-                const teamsForLeague = getTeamsForLeague(defaultLeague) ?? [];
-                const defaultTeam = config?.nhl?.teamAbbreviation ?? teamsForLeague?.[0]?.value ?? '';
+                const defaultLeague = config?.league ? [config.league] : [LEAGUES[0]];
+                const teamsForLeague = getTeamsForLeague(config?.league ?? LEAGUES[0]) ?? [];
+                const defaultTeam = config?.nhl?.teamAbbreviation ? [config.nhl.teamAbbreviation] : teamsForLeague[0] ? [teamsForLeague[0].value] : [];
 
                 // Build form
                 res.json({
@@ -33,11 +32,6 @@ export const menuAction = (router: Router): void => {
                         name: 'subredditConfigForm',
                         form: {
                             title: 'GameDayLive Configuration',
-                            initialValues: {
-                                league: defaultLeague,
-                                team: defaultTeam,
-                                enablePostgameThreads: config?.enablePostgameThreads ?? true,
-                            },
                             fields: [
                             {
                                 type: 'select',
@@ -47,6 +41,7 @@ export const menuAction = (router: Router): void => {
                                 label: l.toUpperCase(),
                                 value: l
                                 })),
+                                defaultValue: defaultLeague,
                                 onValueChanged: 'refresh',
                                 required: true,
                             },
@@ -55,6 +50,7 @@ export const menuAction = (router: Router): void => {
                                 name: 'team',
                                 label: 'Team',
                                 options: teamsForLeague,
+                                defaultValue: defaultTeam,
                                 required: true,
                             },
                             {

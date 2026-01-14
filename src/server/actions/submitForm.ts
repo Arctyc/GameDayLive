@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { context } from '@devvit/web/server';
-import { SubredditConfig, NHLConfig } from '../types';
+import { SubredditConfig } from '../types';
+import { NHLConfig } from '../leagues/nhl/types';
 import { getTeamLabel } from '../leagues/nhl/config';
 import { getSubredditConfig, setSubredditConfig } from '../config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';

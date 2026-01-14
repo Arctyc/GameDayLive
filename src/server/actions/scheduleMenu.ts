@@ -27,9 +27,9 @@ export const jobMenuAction = (router: Router): void => {
             // TODO: populate a form with readable job names
             res.json({
                 showForm: {
-                    name: 'subredditConfigForm',
+                    name: 'cancelJobForm',
                     form: {
-                        title: 'GameDayLive Configuration',
+                        title: 'Cancel a scheduled job',
                         fields: [
                         {
                             type: 'select',

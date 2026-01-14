@@ -10,6 +10,8 @@ export const UPDATE_INTERVALS = {
 export const REDIS_KEYS = {
   GAME_ETAG: (gameId: number) => `game:${gameId}:etag`,
   GAME_STATE: (gameId: number) => `game:${gameId}:state`,
+  GAME_THREAD_ID: (gameId: number) => `game:${gameId}:threadId`,
+  POSTGAME_THREAD_ID: (gameId: number) => `game:${gameId}:postgameThreadId`,
 } as const;
 
 // Game states

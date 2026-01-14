@@ -39,6 +39,46 @@ export const NHL_TEAMS: NHLTeam[] = [
   { label: "Winnipeg Jets", value: "WPG", timezone: "America/Winnipeg" },
 ];
 
+export const APPROVED_NHL_SUBREDDITS: string[] = [
+  "gamedaylive_dev",
+  "nhl",
+  "hockey",
+  "FantasyHockey",
+
+  "AnaheimDucks",
+  "BostonBruins",
+  "sabres",
+  "canes",
+  "BlueJackets",
+  "CalgaryFlames",
+  "hawks",
+  "ColoradoAvalanche",
+  "DallasStars",
+  "DetroitRedWings",
+  "EdmontonOilers",
+  "FloridaPanthers",
+  "losangeleskings",
+  "wildhockey",
+  "Habs",
+  "devils",
+  "NashvillePredators",
+  "NewYorkIslanders",
+  "rangers",
+  "OttawaSenators",
+  "Flyers",
+  "penguins",
+  "SeattleKraken",
+  "SanJoseSharks",
+  "stlouisblues",
+  "TampaBayLightning",
+  "leafs",
+  "Utah_Hockey",
+  "canucks",
+  "goldenknights",
+  "winnipegjets",
+  "caps",
+]
+
 export function getTeamTimezone(teamAbbrev: string): string | undefined {
   return NHL_TEAMS.find(team => team.value === teamAbbrev)?.timezone;
 }

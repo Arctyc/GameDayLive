@@ -1,26 +1,31 @@
 import { redis } from '@devvit/web/server';
 import { SubredditConfig } from './types';
+import { Logger } from './utils/Logger';
 
 const keyFor = (subreddit: string) => `subreddit:${subreddit}`;
 
 /** Save a SubredditConfig to Redis */
-export async function setSubredditConfig(subreddit: string, config: SubredditConfig): Promise<void> {
-  const key = keyFor(subreddit);
+export async function setSubredditConfig(subredditName: string, config: SubredditConfig): Promise<void> {
+  const logger = await Logger.Create('Config - Set');
+  
+  const key = keyFor(subredditName);
   await redis.set(key, JSON.stringify(config));
-  console.log(`Saved config for r/${subreddit}:`, config);
+  logger.info(`Saved config for ${subredditName}:`, config);
 }
 
 /** Get a SubredditConfig from Redis */
-export async function getSubredditConfig(subreddit: string): Promise<SubredditConfig | undefined> {
-  const key = keyFor(subreddit);
+export async function getSubredditConfig(subredditName: string): Promise<SubredditConfig | undefined> {
+  const logger = await Logger.Create('Config - Get');
+  
+  const key = keyFor(subredditName);
   const data = await redis.get(key);
 
   if (!data) {
-    console.log(`No config found for r/${subreddit}`);
+    logger.info(`No config found for ${subredditName}`);
     return undefined;
   }
   
   const config = JSON.parse(data) as SubredditConfig;
-  console.log(`Retrieved config for r/${subreddit}:`, config);
+  logger.info(`Retrieved config for ${subredditName}:`, config);
   return config;
 }

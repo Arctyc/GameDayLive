@@ -62,34 +62,44 @@ devvit playtest your-test-subreddit
 
 ### Project Structure
 ```
-/src/
-└── server/
-    ├── leagues/
-    │   ├── nhl/
-    │   │   ├── api.ts
-    │   │   ├── config.ts
-    │   │   ├── constants.ts
-    │   │   ├── formatter.ts
-    │   │   ├── index.ts
-    │   │   └── scheduler.ts
-    │   │
-    │   └── FutureLeagues/
-    │
+src/
+└── server
+    ├── actions
+    │   ├── configMenu.ts
+    │   └── submitForm.ts
+    ├── leagues
+    │   └── nhl
+    │       ├── api.ts
+    │       ├── config.ts
+    │       ├── constants.ts
+    │       ├── formatter.ts
+    │       ├── jobs.ts
+    │       └── scheduler.ts
+    ├── utils
+    │   └── Logger.ts
     ├── config.ts
     ├── index.ts
     ├── threads.ts
-    ├── types.ts
-    ├── tsconfig.json
-    └── vite.config.ts
-
+    └── types.ts
 ```
 
 ### Adding a New League
 
-1. Create `src/leagues/{league}/` directory
-2. Implement API client, config, etc.
-3. Register module in `src/server/index.ts`
-4. Add league config to `src/types.ts`
+1. Create `src/server/leagues/{league}/` directory
+    - `api.ts`          - API client for your data
+    - `config.ts`       - Team configs (timezones, common names, etc.)
+    - `constants.ts`    - League-specific constants
+    - `formatter.ts`    - Reddit thread formatting
+    - `jobs.ts`         - Core job logic (daily check, thread creation, updates)
+    - `scheduler.ts`    - Scheduler route handlers
+
+2. Add league config to `src/types.ts`
+
+3. Update `src/server/actions/submitForm.ts`
+
+4. Register scheduler in `src/index.ts` Note: Schedule execution and league-specific jobs need to be decoupled, (e.g.):
+    - Current   `/internal/scheduler/daily-game-check -> nhl/jobs.ts`
+    - Fix:      `/internal/scheduler/daily-game-check -> leagues/orchestrator?.ts`
 
 ## Roadmap
 

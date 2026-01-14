@@ -2,10 +2,9 @@ import { getSubredditConfig } from "../../config";
 import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
-import { context } from '@devvit/web/server';
-import { SubredditConfig } from "../../types";
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
+    
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
@@ -25,16 +24,16 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
     });
     
     // Build title based on game state
+    // HACK: Probably smarter to have a separate PGT function
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        return `PGT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
+        return `PGT | ${awayTeam} @ ${homeTeam}`;
     } 
-    else return `GDT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
+    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${game.gameDate} ${localTime}`;
 }
 
 export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
+    
     const body = 
-        await buildBodyHeader(game, subredditName); // temporarily disabled
-        /*
         await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
@@ -42,7 +41,6 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
         buildBodyPenalties(game) +
         "\n\n---\n\n" +
         buildBodyFooter();
-        */
     return body;
 }
 
@@ -57,8 +55,10 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     const awayScore = game.awayTeam.score ?? 0;
     
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
-    const period = game.periodDescriptor?.number ?? "N/A";
+    const period = game.periodDescriptor?.number ?? 0;
     const periodType = game.periodDescriptor?.periodType ?? "";
+    const inIntermission = game.clock?.inIntermission ?? false;
+    const rawTimeRemaining = game.clock?.timeRemaining ?? "";
     
     // Determine time zone
     const config = await getSubredditConfig(subredditName);
@@ -74,54 +74,47 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         timeZoneName: 'short'
     });
     
+    // Extract Networks
+    const networks = game.tvBroadcasts && game.tvBroadcasts.length > 0
+        ? game.tvBroadcasts.map(b => b.network).join(", ")
+        : "None?";
+
     // Build game status text
-    let statusText = gameState;
-    if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
-        // Check if in intermission
-        const clock = (game as any).clock;
-        const inIntermission = clock?.inIntermission ?? false;
-        
-        if (inIntermission) {
-            if (period === 2) {
-                statusText = "First Intermission";
-            } else if (period === 3) {
-                statusText = "Second Intermission";
-            } else {
-                statusText = `Intermission`;
-            }
-        } else {
-            // Active play
-            const timeRemaining = clock?.timeRemaining ?? "";
-            
-            if (periodType === "OT") {
-                statusText = `Overtime - ${timeRemaining}`;
-            } else if (periodType === "SO") {
-                statusText = "Shootout";
-            } else {
-                statusText = `Period ${period} - ${timeRemaining}`;
-            }
-        }
+    let periodLabel = `Period ${period}`;
+    if (periodType === "SO") {
+        periodLabel = "Shootout";
+    } else if (periodType === "OT") {
+        periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+    }
+
+    // 3. Determine the Time Remaining Display
+    let timeRemainingDisplay = rawTimeRemaining;
+    
+    if (inIntermission) {
+        timeRemainingDisplay = "Intermission";
+    } else if (periodType === "SO") {
+        timeRemainingDisplay = "In Progress";
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        statusText = "Final";
-    } else if (gameState === "FUT" || gameState === "PRE") {
-        statusText = "Scheduled";
+        timeRemainingDisplay = "Final";
     }
     
-    const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}
 
-**Status:** ${statusText}  
-**Score:** ${awayTeamAbbrev} ${awayScore}, ${homeTeamAbbrev} ${homeScore}  
-**Start Time:** ${localTime}  
-**Venue:** ${game.venue.default}  
+    const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
+
+**Period:** ${periodLabel}  
+**Scoreboard:** ${awayTeamAbbrev} ${awayScore} | ${timeRemainingDisplay} | ${homeScore} ${homeTeamAbbrev}  
+**Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;
     
     return header;
 }
 
-/******
+function buildBodyGoals(game: NHLGame): string {
+    if (!game.plays || game.plays.length === 0) {
+        return "# GOALS\n\nNo goals scored yet.";
+    }
 
-function buildBodyGoals(game: any): string {
     const { goals } = organizePlaysByPeriod(game.plays);
 
     if (Object.keys(goals).length === 0) {
@@ -130,23 +123,54 @@ function buildBodyGoals(game: any): string {
 
     let out = `# GOALS\n\n`;
 
-    for (const period of Object.keys(goals).map(Number).sort()) {
-        out += `**Period ${period}**\n\n`;
-        out += makeGoalsTableHeader();
+    // Sort periods numerically
+    const periods = Object.keys(goals).map(Number).sort((a, b) => a - b);
 
-        for (const play of goals[period]) {
-            out += goalRowFromPlay(play, game);
+    for (const period of periods) {
+        const sortedPlays = goals[period]?.sort((a, b) => {
+            return a.timeInPeriod.localeCompare(b.timeInPeriod);
+        });
+
+        // Fallback: If there are no plays yet, default to "Period X"
+        let periodLabel = `Period ${period}`;
+
+        if (sortedPlays && sortedPlays.length > 0) {
+            const descriptor = sortedPlays[0].periodDescriptor;
+            const type = descriptor?.periodType;
+
+            if (type === "SO") {
+                periodLabel = "Shootout";
+            } else if (type === "OT") {
+                periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+            }
+        } else {
+            // Additional safety: If the game is in a shootout but has no goals yet
+            if (game.shootoutInUse && period === 5) periodLabel = "Shootout";
+            else if (game.otInUse && period >= 4) periodLabel = "Overtime";
         }
 
+        out += `**${periodLabel}**\n\n`;
+        
+        if (!sortedPlays || sortedPlays.length === 0) {
+            out += "No goals scored in this period.\n\n";
+            continue;
+        }
+
+        out += makeGoalsTableHeader();
+        for (const play of sortedPlays) {
+            out += goalRowFromPlay(play, game);
+        }
         out += `\n`;
     }
 
     return out;
 }
-***/
 
-/***
-function buildBodyPenalties(game: any): string {
+function buildBodyPenalties(game: NHLGame): string {
+    if (!game.plays || game.plays.length === 0) {
+        return "# PENALTIES\n\nNo penalties.";
+    }
+
     const { penalties } = organizePlaysByPeriod(game.plays);
 
     if (Object.keys(penalties).length === 0) {
@@ -155,11 +179,19 @@ function buildBodyPenalties(game: any): string {
 
     let out = `# PENALTIES\n\n`;
 
-    for (const period of Object.keys(penalties).map(Number).sort()) {
+    const periods = Object.keys(penalties).map(Number).sort((a, b) => a - b);
+
+    for (const period of periods) {
+        const sortedPlays = penalties[period]?.sort((a, b) => {
+            // Sort chronologically
+            return a.timeInPeriod.localeCompare(b.timeInPeriod);
+        });
+        if (!sortedPlays || sortedPlays.length === 0) continue;
+
         out += `**Period ${period}**\n\n`;
         out += makePenaltiesTableHeader();
 
-        for (const play of penalties[period]) {
+        for (const play of sortedPlays) {
             out += penaltyRowFromPlay(play, game);
         }
 
@@ -172,12 +204,11 @@ function buildBodyPenalties(game: any): string {
 function buildBodyFooter(){
     return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
 }
-***/
 
 function makeGoalsTableHeader() {
     return (
-`Time | Team | Player | Shot Type | Assists
----|---|---|---|---
+`Time | Team | Player | Shot Type | Assists | Clip
+---|---|---|---|---|---
 `);
 }
 
@@ -188,17 +219,27 @@ function makePenaltiesTableHeader() {
 `);
 }
 
-function goalRowFromPlay(play: any, game: any): string {
+function goalRowFromPlay(play: any, game: NHLGame): string {
     const d = play.details;
+    if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
 
-    const scorer = getPlayerInfo(game, d.scoringPlayerId)!;
+    const scorer = getPlayerInfo(game, d.scoringPlayerId);
+    if (!scorer) return "";
 
-    const shotType = (d.shotType ?? "Shot")
-        .replace("_", " ")
+    let shotType: string = (d.shotType ?? "Unknown")
         .toLowerCase()
-        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        .replace(/\b\w/g, (c: string) => c.toUpperCase()
+    );
+
+    // Format shot type
+    if (shotType == "Slap" || shotType == "Snap" || shotType == "Wrist" ) {
+        shotType += " shot";
+    }
+    
+    // Add strength modifier (EV, PP, SH)
+    const modifier = d.strength ? ` (${d.strength.toUpperCase()})` : "";
 
     const assists: string[] = [];
 
@@ -210,11 +251,17 @@ function goalRowFromPlay(play: any, game: any): string {
 
     const assistsStr = assists.length ? assists.join(", ") : "Unassisted";
 
-    return `${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType} | ${assistsStr}\n`;
+    const clip = d.highlightClipSharingUrl 
+        ? `[nhl.com](${d.highlightClipSharingUrl})` 
+        : "N/A";
+    //console.debug(`clip URL: ${d.highlightClipSharingUrl}`);
+
+    return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }
 
-function penaltyRowFromPlay(play: any, game: any): string {
+function penaltyRowFromPlay(play: any, game: NHLGame): string {
     const d = play.details;
+    if (!d) return ""; // Skip plays with no penalties
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
 
@@ -229,19 +276,23 @@ function penaltyRowFromPlay(play: any, game: any): string {
         ? `#${drawn.number} ${drawn.name}`
         : "—";
 
-    const infraction = d.descKey ?? "Penalty";
+    const infraction = (d.descKey ?? "Penalty")
+        .split('-')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    
     const minutes = d.duration ?? 0;
 
     return `${time} | ${team} | ${playerStr} | ${infraction} | ${againstStr} | ${minutes}\n`;
 }
 
-function getTeamById(game: any, teamId: number): string {
+function getTeamById(game: NHLGame, teamId: number): string {
     if (game.homeTeam.id === teamId) return game.homeTeam.abbrev;
     if (game.awayTeam.id === teamId) return game.awayTeam.abbrev;
     return "UNK";
 }
 
-function getPlayerInfo(game: any, playerId?: number) {
+function getPlayerInfo(game: NHLGame, playerId?: number) {
     if (!playerId) return null;
     const p = game.rosterSpots?.find((r: any) => r.playerId === playerId);
     if (!p) return { number: "00", name: "Unknown Player" };
@@ -254,7 +305,7 @@ function getPlayerInfo(game: any, playerId?: number) {
 function formatTime(t: string): string {
     if (!t || !t.includes(":")) return "00:00";
     const [m, s] = t.split(":").map(Number);
-    return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`; // FIX: m! and s! ? possibly undefined workaround
+    return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`;
 }
 
 function organizePlaysByPeriod(plays: any[]) {
@@ -267,12 +318,12 @@ function organizePlaysByPeriod(plays: any[]) {
 
         if (type === "goal") {
             if (!goals[period]) goals[period] = [];
-            goals[period].push(play);
+            goals[period]!.push(play);
         }
 
         if (type === "penalty") {
             if (!penalties[period]) penalties[period] = [];
-            penalties[period].push(play);
+            penalties[period]!.push(play);
         }
     }
 

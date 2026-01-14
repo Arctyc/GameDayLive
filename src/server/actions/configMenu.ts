@@ -1,7 +1,6 @@
-import { Router } from "express";
-import { LEAGUES } from "../types";
-import { NHL_TEAMS } from "../leagues/nhl/config";
-// TODO: implement proper logging
+import { Router } from 'express';
+import { LEAGUES } from '../types';
+import { NHL_TEAMS } from '../leagues/nhl/config';
 
 export const menuAction = (router: Router): void => {
     router.post(
@@ -24,13 +23,17 @@ export const menuAction = (router: Router): void => {
                                 label: l.toUpperCase(),
                                 value: l
                                 })),
+                                defaultValue: [LEAGUES[0]], // TODO: Default to subredditConfig value if exists
                                 onValueChanged: 'refresh',
+                                required: true,
                             },
                             {
                                 type: 'select',
                                 name: 'team',
                                 label: 'Team',
-                                options: NHL_TEAMS // FIX: Dynamic teams based on league
+                                options: NHL_TEAMS, // FIX: Dynamic teams based on league
+                                defaultValue: [NHL_TEAMS[0]!.value], // TODO: Default to subredditConfig value if exists
+                                required: true,
                             },
                             {
                                 type: 'boolean',

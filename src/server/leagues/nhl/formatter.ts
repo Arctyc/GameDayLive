@@ -110,6 +110,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}
 
+**Networks:** Not implemented yet  
 **Status:** ${statusText}  
 **Score:** ${awayTeamAbbrev} ${awayScore}, ${homeTeamAbbrev} ${homeScore}  
 **Start Time:** ${localTime}  
@@ -133,11 +134,16 @@ function buildBodyGoals(game: NHLGame): string {
 
     let out = `# GOALS\n\n`;
 
-    for (const period of Object.keys(goals).map(Number).sort()) {
+    for (const period of Object.keys(goals).map(Number).sort((a, b) => a - b)) {
+        const sortedPlays = goals[period]?.sort((a, b) => {
+            return a.timeInPeriod.localeCompare(b.timeInPeriod);
+        });
+        if (!sortedPlays || sortedPlays.length === 0) continue;
+
         out += `**Period ${period}**\n\n`;
         out += makeGoalsTableHeader();
 
-        for (const play of goals[period]!) {
+        for (const play of sortedPlays) {
             out += goalRowFromPlay(play, game);
         }
 
@@ -163,13 +169,16 @@ function buildBodyPenalties(game: NHLGame): string {
     const periods = Object.keys(penalties).map(Number).sort((a, b) => a - b);
 
     for (const period of periods) {
-        const plays = penalties[period];
-        if (!plays) continue;
+        const sortedPlays = penalties[period]?.sort((a, b) => {
+            // Sort chronologically
+            return a.timeInPeriod.localeCompare(b.timeInPeriod);
+        });
+        if (!sortedPlays || sortedPlays.length === 0) continue;
 
         out += `**Period ${period}**\n\n`;
         out += makePenaltiesTableHeader();
 
-        for (const play of plays) {
+        for (const play of sortedPlays) {
             out += penaltyRowFromPlay(play, game);
         }
 
@@ -199,15 +208,20 @@ function makePenaltiesTableHeader() {
 
 function goalRowFromPlay(play: any, game: NHLGame): string {
     const d = play.details;
+    if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
 
-    const scorer = getPlayerInfo(game, d.scoringPlayerId)!;
+    const scorer = getPlayerInfo(game, d.scoringPlayerId);
+    if (!scorer) return "";
 
     const shotType = (d.shotType ?? "Shot")
         .replace("-", " ")
         .toLowerCase()
         .replace(/\b\w/g, (c: string) => c.toUpperCase());
+    
+    // Add strength modifier (EV, PP, SH)
+    const modifier = d.strength ? ` (${d.strength.toUpperCase()})` : "";
 
     const assists: string[] = [];
 
@@ -219,11 +233,12 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
 
     const assistsStr = assists.length ? assists.join(", ") : "Unassisted";
 
-    return `${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType} | ${assistsStr}\n`;
+    return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame): string {
     const d = play.details;
+    if (!d) return ""; // Skip plays with no penalties
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
 
@@ -239,9 +254,9 @@ function penaltyRowFromPlay(play: any, game: NHLGame): string {
         : "—";
 
     const infraction = (d.descKey ?? "Penalty")
-        .replace("-", " ")
-        .toLowerCase()
-        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        .split('-')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
     
     const minutes = d.duration ?? 0;
 
@@ -280,12 +295,12 @@ function organizePlaysByPeriod(plays: any[]) {
 
         if (type === "goal") {
             if (!goals[period]) goals[period] = [];
-            goals[period].push(play);
+            goals[period]!.push(play);
         }
 
         if (type === "penalty") {
             if (!penalties[period]) penalties[period] = [];
-            penalties[period].push(play);
+            penalties[period]!.push(play);
         }
     }
 

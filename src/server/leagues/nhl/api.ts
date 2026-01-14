@@ -175,21 +175,21 @@ export async function getGameData(gameId: number, fetch: any, etag?: string): Pr
   }
   
   const response = await fetch(
-    `https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`,
+    `https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`,
     { headers }
   );
   
   if (response.status === 304) {
     // No changes to game data
-    return { game: {} as NHLGame, etag: etag!, modified: false };
+    return { game: null as any, etag: etag!, modified: false };
   }
   
   if (!response.ok) {
     throw new Error(`NHL API error: ${response.status}`);
   }
   
-  const newEtag = response.headers.get('etag') || '';
   const data = await response.json();
+  const newEtag = response.headers.get('etag') || '';
   
   return {
     game: data,

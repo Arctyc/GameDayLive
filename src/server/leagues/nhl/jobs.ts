@@ -88,7 +88,7 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
     // FIX: Check that post is actually live on reddit somehow, if not, cancel and drop redis of game
 
     const { game, modified } = await getGameData(gameId, fetch, await redis.get(REDIS_KEYS.GAME_ETAG(gameId)));
-
+    
     // Update the ETag in Redis
     if (modified) await redis.set(REDIS_KEYS.GAME_ETAG(gameId), game.id.toString());
 
@@ -107,6 +107,7 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
         if (game.clock?.inIntermission) {
             const intermissionRemaining = game.clock.secondsRemaining;
             if (intermissionRemaining > 60) {
+                logger.debug(`Game is in intermission`);
                 updateTime = new Date(Date.now() + ((intermissionRemaining * 1000)-UPDATE_INTERVALS.INTERMISSION));
             }
         }

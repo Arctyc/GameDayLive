@@ -253,7 +253,7 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
     const clip = d.highlightClipSharingUrl 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "N/A";
-    console.debug(`clip URL: ${d.highlightClipSharingUrl}`);
+    console.trace(`clip URL: ${d.highlightClipSharingUrl}`);
 
     return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }

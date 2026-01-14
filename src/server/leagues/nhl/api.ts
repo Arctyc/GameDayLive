@@ -1,3 +1,7 @@
+import { context } from "@devvit/web/server";
+import { getSubredditConfig } from "../../config";
+import { NHL_TEAMS, NHLTeam } from "./config";
+
 export interface NHLGame {
   id: number;
   season: number;
@@ -126,7 +130,28 @@ export interface NHLScheduleResponse {
 }
 
 export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  // Load subreddit config to know which team we're using
+	const config = await getSubredditConfig(context.subredditName);
+	if (!config?.nhl) return [];
+
+	const teamAbbrev = config.nhl.teamAbbreviation;
+
+	// Find the team timezone from NHL_TEAMS
+	const team = NHL_TEAMS.find(t => t.value === teamAbbrev);
+	if (!team) return [];
+
+	const tz = team.timezone;
+
+	// Get today's date IN THAT TIMEZONE
+	const today = new Intl.DateTimeFormat('en-CA', {
+		timeZone: tz,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+	}).format(new Date()); 
+	// en-CA → YYYY-MM-DD
+
   const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
   
   if (!response.ok) {

@@ -1,8 +1,8 @@
 // Update intervals (in milliseconds)
 export const UPDATE_INTERVALS = {
-  LIVE_GAME_DEFAULT: 30 * 1000,           // 30 seconds
-  OVERTIME_SHOOTOUT: 15 * 1000,           // 15 seconds
-  INTERMISSION: 60 * 1000,                // 60 seconds before next period
+  LIVE_GAME_DEFAULT: 30, // Seconds to wait between updates, normal
+  OVERTIME_SHOOTOUT: 15, // Seconds to wait between updates, OT/SO
+  INTERMISSION: 60, // Seconds before next period to resume updating during intermission
   PREGAME_THREAD_OFFSET: 60 * 60 * 1000,  // 1 hour before game
 } as const;
 

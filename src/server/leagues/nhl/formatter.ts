@@ -36,7 +36,6 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
     const logger = await Logger.Create('Format - Thread Body'); // TODO: Implement logging
     
     const body = 
-        await buildBodyHeader(game, subredditName);
         await buildBodyHeader(game, subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
@@ -60,7 +59,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     const awayScore = game.awayTeam.score ?? 0;
     
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
-    const period = game.periodDescriptor?.number ?? "N/A";
+    const period = game.periodDescriptor?.number ?? 0;
     const periodType = game.periodDescriptor?.periodType ?? "";
     
     // Determine time zone
@@ -81,20 +80,19 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     let statusText = gameState;
     if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
         // Check if in intermission
-        const clock = (game as any).clock;
-        const inIntermission = clock?.inIntermission ?? false;
+        const inIntermission = game.clock?.inIntermission ?? false;
         
         if (inIntermission) {
-            if (period === 2) {
+            if (period === 1) {
                 statusText = "First Intermission";
-            } else if (period === 3) {
+            } else if (period === 2) {
                 statusText = "Second Intermission";
             } else {
                 statusText = `Intermission`;
             }
         } else {
             // Active play
-            const timeRemaining = clock?.timeRemaining ?? "";
+            const timeRemaining = game.clock?.timeRemaining ?? "";
             
             if (periodType === "OT") {
                 statusText = `Overtime - ${timeRemaining}`;
@@ -122,7 +120,11 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     return header;
 }
 
-function buildBodyGoals(game: any): string {
+function buildBodyGoals(game: NHLGame): string {
+    if (!game.plays || game.plays.length === 0) {
+        return "# GOALS\n\nNo goals scored yet.";
+    }
+
     const { goals } = organizePlaysByPeriod(game.plays);
 
     if (Object.keys(goals).length === 0) {
@@ -145,32 +147,36 @@ function buildBodyGoals(game: any): string {
     return out;
 }
 
-function buildBodyPenalties(game: any): string {
-	const { penalties } = organizePlaysByPeriod(game.plays);
+function buildBodyPenalties(game: NHLGame): string {
+    if (!game.plays || game.plays.length === 0) {
+        return "# PENALTIES\n\nNo penalties.";
+    }
 
-	if (Object.keys(penalties).length === 0) {
-		return "# PENALTIES\n\nNo penalties.";
-	}
+    const { penalties } = organizePlaysByPeriod(game.plays);
 
-	let out = `# PENALTIES\n\n`;
+    if (Object.keys(penalties).length === 0) {
+        return "# PENALTIES\n\nNo penalties.";
+    }
 
-	const periods = Object.keys(penalties).map(Number).sort((a, b) => a - b);
+    let out = `# PENALTIES\n\n`;
 
-	for (const period of periods) {
-		const plays = penalties[period];
-		if (!plays) continue;
+    const periods = Object.keys(penalties).map(Number).sort((a, b) => a - b);
 
-		out += `**Period ${period}**\n\n`;
-		out += makePenaltiesTableHeader();
+    for (const period of periods) {
+        const plays = penalties[period];
+        if (!plays) continue;
 
-		for (const play of plays) {
-			out += penaltyRowFromPlay(play, game);
-		}
+        out += `**Period ${period}**\n\n`;
+        out += makePenaltiesTableHeader();
 
-		out += `\n`;
-	}
+        for (const play of plays) {
+            out += penaltyRowFromPlay(play, game);
+        }
 
-	return out;
+        out += `\n`;
+    }
+
+    return out;
 }
 
 function buildBodyFooter(){
@@ -191,7 +197,7 @@ function makePenaltiesTableHeader() {
 `);
 }
 
-function goalRowFromPlay(play: any, game: any): string {
+function goalRowFromPlay(play: any, game: NHLGame): string {
     const d = play.details;
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
@@ -199,7 +205,7 @@ function goalRowFromPlay(play: any, game: any): string {
     const scorer = getPlayerInfo(game, d.scoringPlayerId)!;
 
     const shotType = (d.shotType ?? "Shot")
-        .replace("_", " ")
+        .replace("-", " ")
         .toLowerCase()
         .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
@@ -216,7 +222,7 @@ function goalRowFromPlay(play: any, game: any): string {
     return `${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType} | ${assistsStr}\n`;
 }
 
-function penaltyRowFromPlay(play: any, game: any): string {
+function penaltyRowFromPlay(play: any, game: NHLGame): string {
     const d = play.details;
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
@@ -232,19 +238,23 @@ function penaltyRowFromPlay(play: any, game: any): string {
         ? `#${drawn.number} ${drawn.name}`
         : "—";
 
-    const infraction = d.descKey ?? "Penalty";
+    const infraction = (d.descKey ?? "Penalty")
+        .replace("-", " ")
+        .toLowerCase()
+        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+    
     const minutes = d.duration ?? 0;
 
     return `${time} | ${team} | ${playerStr} | ${infraction} | ${againstStr} | ${minutes}\n`;
 }
 
-function getTeamById(game: any, teamId: number): string {
+function getTeamById(game: NHLGame, teamId: number): string {
     if (game.homeTeam.id === teamId) return game.homeTeam.abbrev;
     if (game.awayTeam.id === teamId) return game.awayTeam.abbrev;
     return "UNK";
 }
 
-function getPlayerInfo(game: any, playerId?: number) {
+function getPlayerInfo(game: NHLGame, playerId?: number) {
     if (!playerId) return null;
     const p = game.rosterSpots?.find((r: any) => r.playerId === playerId);
     if (!p) return { number: "00", name: "Unknown Player" };
@@ -257,7 +267,7 @@ function getPlayerInfo(game: any, playerId?: number) {
 function formatTime(t: string): string {
     if (!t || !t.includes(":")) return "00:00";
     const [m, s] = t.split(":").map(Number);
-    return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`; // FIX: m! and s! ? possibly undefined workaround
+    return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`;
 }
 
 function organizePlaysByPeriod(plays: any[]) {

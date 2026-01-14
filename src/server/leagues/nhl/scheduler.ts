@@ -27,7 +27,7 @@ export const createGameThread = (router: Router) => {
     const logger = await Logger.Create('Scheduler - Create Game Thread');
     
     try {
-      const { gameId } = _req.body;
+      const { gameId } = _req.body.data || {}; // NOTE: Ensure proper destructuring
       if (!gameId) throw new Error('gameId required');
       await createGameThreadJob(gameId, context.subredditName!);
       res.status(200).json({ status: 'success' });

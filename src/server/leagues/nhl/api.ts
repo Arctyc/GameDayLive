@@ -6,11 +6,19 @@ export interface NHLGame {
   venue: {
     default: string;
   };
+  venueLocation: {
+    default: string;
+  };
   startTimeUTC: string;
   easternUTCOffset: string;
   venueUTCOffset: string;
   gameState: string;
   gameScheduleState: string;
+  periodDescriptor?: {
+    number: number;
+    periodType: string;
+    maxRegulationPeriods: number;
+  };
   awayTeam: {
     id: number;
     abbrev: string;
@@ -21,8 +29,10 @@ export interface NHLGame {
     };
     commonName: {
       default: string;
+      fr?: string;
     };
     score?: number;
+    sog?: number;
   };
   homeTeam: {
     id: number;
@@ -36,56 +46,76 @@ export interface NHLGame {
       default: string;
     };
     score?: number;
+    sog?: number;
   };
-  period?: number;
-  periodDescriptor?: {
-    number: number;
-    periodType: string;
+  clock?: {
+    timeRemaining: string;
+    secondsRemaining: number;
+    running: boolean;
+    inIntermission: boolean;
   };
-  goals?: Array<{
-    period: number;
+  plays?: Array<{
+    eventId: number;
     periodDescriptor: {
       number: number;
       periodType: string;
+      maxRegulationPeriods: number;
     };
     timeInPeriod: string;
-    teamAbbrev: string;
-    name: {
-      default: string;
+    timeRemaining: string;
+    situationCode: string;
+    homeTeamDefendingSide: string;
+    typeCode: number;
+    typeDescKey: string;
+    sortOrder: number;
+    details?: {
+      eventOwnerTeamId?: number;
+      scoringPlayerId?: number;
+      scoringPlayerTotal?: number;
+      assist1PlayerId?: number;
+      assist1PlayerTotal?: number;
+      assist2PlayerId?: number;
+      assist2PlayerTotal?: number;
+      goalieInNetId?: number;
+      awayScore?: number;
+      homeScore?: number;
+      shotType?: string;
+      xCoord?: number;
+      yCoord?: number;
+      zoneCode?: string;
+      highlightClip?: number;
+      highlightClipFr?: number;
+      highlightClipSharingUrl?: string;
+      highlightClipSharingUrlFr?: string;
+      // Penalty details
+      typeCode?: string;
+      descKey?: string;
+      duration?: number;
+      committedByPlayerId?: number;
+      drawnByPlayerId?: number;
+      servedByPlayerId?: number;
     };
+  }>;
+  rosterSpots?: Array<{
+    teamId: number;
+    playerId: number;
     firstName: {
       default: string;
     };
     lastName: {
       default: string;
     };
+    sweaterNumber: number;
+    positionCode: string;
     headshot: string;
-    highlightClip?: number;
-    goalsToDate: number;
-    awayScore: number;
-    homeScore: number;
-    strength: string;
-    shotType: string;
-    assists?: Array<{
-      playerId: number;
-      name: {
-        default: string;
-      };
-      assistsToDate: number;
-    }>;
   }>;
-  summary?: {
-    penalties?: Array<{
-      period: number;
-      timeInPeriod: string;
-      teamAbbrev: string;
-      descKey: string;
-      duration: number;
-      type: string;
-      committedByPlayer: string;
-      drawnBy?: string;
-    }>;
+  shootoutInUse?: boolean;
+  otInUse?: boolean;
+  maxPeriods?: number;
+  gameOutcome?: {
+    lastPeriodType: string;
   };
+  summary?: any;
 }
 
 export interface NHLScheduleResponse {

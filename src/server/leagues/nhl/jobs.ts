@@ -19,7 +19,8 @@ export async function dailyGameCheckJob(subredditName: string) {
 
     const teamAbbrev = config.nhl.teamAbbreviation;
     const todayGames = await getTodaysSchedule(fetch);
-    logger.info(`Team: ${teamAbbrev}, Games: ${todayGames}`);
+    const todayGamesIds = todayGames.map(g => g.id).join(', ');
+    logger.info(`Team: ${teamAbbrev}, Games: ${todayGamesIds}`);
 
     // Filter by the subreddit's NHL team
     const game = todayGames.find(
@@ -37,8 +38,10 @@ export async function dailyGameCheckJob(subredditName: string) {
     // Determine pre-game thread creation time
     const startTime = new Date(game.startTimeUTC).getTime();
     const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
+    const gameId = game.id;
 
-    await scheduleCreateGameThread(subredditName, game.id, scheduleTime);
+    logger.debug(`Calling scheduleCreateGameThread with subreddit:${subredditName}, gameId: ${gameId}, time: ${scheduleTime.toISOString()}`);
+    await scheduleCreateGameThread(subredditName, gameId, scheduleTime);
     
     }
 

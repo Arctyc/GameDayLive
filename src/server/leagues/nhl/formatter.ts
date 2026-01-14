@@ -232,10 +232,15 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
     const scorer = getPlayerInfo(game, d.scoringPlayerId);
     if (!scorer) return "";
 
-    const shotType = (d.shotType ?? "Unknown")
-        .replace("-", " ")
+    let shotType: string = (d.shotType ?? "Unknown")
         .toLowerCase()
-        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        .replace(/\b\w/g, (c: string) => c.toUpperCase()
+    );
+
+    // Format shot type
+    if (shotType == "Slap" || shotType == "Snap" || shotType == "Wrist" ) {
+        shotType += " shot";
+    }
     
     // Add strength modifier (EV, PP, SH)
     const modifier = d.strength ? ` (${d.strength.toUpperCase()})` : "";

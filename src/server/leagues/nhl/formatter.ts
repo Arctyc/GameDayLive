@@ -55,7 +55,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     const awayScore = game.awayTeam.score ?? 0;
     
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
-    const period = game.periodDescriptor?.number ?? 0;
+    const period = game.periodDescriptor?.number ?? 0; 
     const periodType = game.periodDescriptor?.periodType ?? "";
     const inIntermission = game.clock?.inIntermission ?? false;
     const rawTimeRemaining = game.clock?.timeRemaining ?? "";
@@ -80,7 +80,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         : "None?";
 
     // Build game status text
-    let periodLabel = `Period ${period}`;
+    let periodLabel = `Period ${period}`; // FIX: If period 0, Upcoming
     if (periodType === "SO") {
         periodLabel = "Shootout";
     } else if (periodType === "OT") {

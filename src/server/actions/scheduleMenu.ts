@@ -2,6 +2,7 @@ import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Router } from 'express';
 import { Logger } from '../utils/Logger';
+import { tryCancelThreadJob } from '../threads';
 
 //DOCS: https://developers.reddit.com/docs/capabilities/server/scheduler#cancel-a-scheduled-job
 
@@ -17,7 +18,7 @@ export const menuAction = (router: Router): void => {
 
             // TODO: cancel job
 
-            //await scheduler.cancelJob(jobId);
+            // const result = await tryCancelThreadJob(jobId);
 
 
         } catch (error) {

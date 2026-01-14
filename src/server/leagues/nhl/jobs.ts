@@ -85,9 +85,17 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         // Store the post ID in Redis
         await redis.set(REDIS_KEYS.GAME_THREAD_ID(gameId), post.id);
 
-        // Schedule live updates if game is ongoing
+        // Schedule live updates
         if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF){
-            const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+            
+            // Game is upcoming
+            let updateTime = new Date(game.startTimeUTC);
+
+            if (game.gameState == GAME_STATES.LIVE || game.gameState == GAME_STATES.CRIT){
+                // Game is ongoing now, update at regular interval
+                updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+            }
+            
             await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
         }
     } else {

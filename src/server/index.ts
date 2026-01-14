@@ -5,6 +5,7 @@ import { menuAction } from './actions/configMenu';
 import { formAction } from './actions/submitForm';
 // TODO: Import scheduleMenu
 import { registerSchedulers } from './leagues/nhl/scheduler';
+import { jobCancelAction, jobMenuAction } from './actions/scheduleMenu';
 
 const app = express();
 const router = express.Router();
@@ -17,7 +18,8 @@ app.use(express.text());
 // Register bot functionality
 menuAction(router);
 formAction(router);
-// TODO: Register new stuff
+jobMenuAction(router);
+jobCancelAction(router);
 registerSchedulers(router);
 
 app.use(router);

@@ -34,7 +34,8 @@
     ]
   },
   "forms": {
-    "subredditConfigForm": "/internal/form/config-form"
+    "subredditConfigForm": "/internal/form/config-form",
+    "cancelJobForm": "/internal/form/cancel-job-form"
   },
   "scheduler": {
     "tasks": {

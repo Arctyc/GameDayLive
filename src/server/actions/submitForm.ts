@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { context } from '@devvit/web/server';
 import { SubredditConfig, NHLConfig } from '../types';
-import { setSubredditConfig, getSubredditConfig } from '../config';
+import { setSubredditConfig } from '../config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
 import { Logger } from '../utils/Logger';
 import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
@@ -50,7 +50,10 @@ export const formAction = (router: Router): void => {
                     return;
                 }
 
+                // ---- CONFIG ----
+
                 // Build subredditConfig object
+                // TODO:FIX: Use Devvit Web settings? https://developers.reddit.com/docs/capabilities/server/settings-and-secrets
                 const config: SubredditConfig = {
                     league: leagueValue,
                     enablePostgameThreads: !!enablePostgameThreadsValue,
@@ -61,18 +64,8 @@ export const formAction = (router: Router): void => {
                 logger.debug(`Attempting to store config for ${context.subredditName}`)
                 await setSubredditConfig(context.subredditName, config);
 
-                // DEBUG: Read back the config from Redis and log it
-                try {
-                    const savedConfig = await getSubredditConfig(context.subredditName!);
-                    if (savedConfig) {
-                        logger.info('Config retrieved from Redis after save:', savedConfig);
-                    } else {
-                        logger.warn('No config found in Redis after save!');
-                    }
-                } catch (err) {
-                    logger.error('Error retrieving config from Redis after save:', err);
-                }
-                
+                // ---- END CONFIG ----
+
                 // Run daily game check immediately
                 // TODO:FIX: Determine job to run based on league selection
                 logger.debug(`Attempting to run daily game check...`);

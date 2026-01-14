@@ -43,6 +43,8 @@ export const APPROVED_NHL_SUBREDDITS: string[] = [
   "gamedaylive_dev",
   "nhl",
   "hockey",
+  "FantasyHockey",
+
   "AnaheimDucks",
   "BostonBruins",
   "sabres",

@@ -1,9 +1,9 @@
-import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget, reddit } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
 import { getSubredditConfig } from '../../config';
-import { createThread, updateThread } from '../../threads';
+import { cleanupThread, createThread, updateThread } from '../../threads';
 import { Logger } from '../../utils/Logger';
 
 // --------------- Daily Game Check -----------------
@@ -199,6 +199,7 @@ export async function nextLiveUpdateJob(gameId: number) {
             await scheduleCreatePostgameThread(subredditName, gameId, scheduledTime);
         }       
         // Either way, drop the game from redis
+        await cleanupThread(postId as Post["id"]); // TODO: schedule this for later?
         await redis.del(REDIS_KEYS.GAME_THREAD_ID(gameId));
         await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
     }

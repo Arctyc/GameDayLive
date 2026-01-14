@@ -50,7 +50,7 @@ export const formAction = (router: Router): void => {
                 // Run daily game check immediately
                 // TODO:FIX: Determine job to run based on league selection
                 logger.debug(`Attempting to run daily game check...`);
-                await dailyGameCheckJob(context.subredditName!);
+                await dailyGameCheckJob();
 
                 // Send success toast
                 res.status(200).json({

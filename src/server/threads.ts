@@ -1,4 +1,4 @@
-import { reddit, type Post } from "@devvit/web/server";
+import { Post, reddit } from "@devvit/web/server";
 import { Logger } from './utils/Logger'; // TODO: Implement logging
 
 // Create new thread
@@ -73,4 +73,36 @@ export async function updateThread(
 			error: err instanceof Error ? err.message : String(err),
 		};
 	}
+}
+
+export async function cleanupThread(
+    postId: Post["id"]
+): Promise<{ success: boolean; postId?: string; error?: string }> {
+    const logger = await Logger.Create('Thread - Cleanup');
+
+    try {
+        const post = await reddit.getPostById(postId);
+        
+        if (!post) {
+            logger.error(`Cannot find post ${postId}`);
+            return { 
+                success: false, 
+                error: `Post ${postId} not found`,
+            };
+        }
+
+        // Cleanup actions
+        await post.unsticky();
+        //await post.lock(); TODO: Is this wanted?
+        
+        logger.info(`Post ${postId} successfully cleaned up (unstickied and locked).`);
+        return { success: true, postId };
+
+    } catch (err) {
+        logger.error(`Failed to cleanup post ${postId}:`, err);
+        return {
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+        };
+    }
 }

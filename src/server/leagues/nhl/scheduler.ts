@@ -9,7 +9,7 @@ export const dailyGameCheck = (router: Router) => {
     
     try {
       logger.info(`Running scheduled daily game check...`);
-      await dailyGameCheckJob(context.subredditName!);
+      await dailyGameCheckJob();
       res.status(200).json({ status: 'success' });
     } catch (error) {
       logger.error('Daily game check failed:', error);
@@ -50,7 +50,7 @@ export const nextLiveUpdate = (router: Router) => {
       const { gameId } = _req.body.data || {};
       if (!gameId) throw new Error('gameId required');
 
-      await nextLiveUpdateJob(context.subredditName!, gameId);
+      await nextLiveUpdateJob(gameId);
       res.status(200).json({ status: 'success' });
       
     } catch (error) {

@@ -1,24 +1,20 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "gamedaylive",
-
   "server": {
     "dir": "dist/server",
     "entry": "index.cjs"
   },
-
-  "permissions": 
-    {
-      "reddit": true,
-      "redis": true,
-      "http": {
-        "enable": true,
-        "domains": [
-          "api-web.nhle.com"
-        ]
-      }
-    },
-
+  "permissions": {
+    "reddit": true,
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": [
+        "api-web.nhle.com"
+      ]
+    }
+  },
   "menu": {
     "items": [
       {
@@ -30,11 +26,9 @@
       }
     ]
   },
-
   "forms": {
     "subredditConfigForm": "/internal/form/config-form"
   },
-
   "scheduler": {
     "tasks": {
       "daily-game-check": {
@@ -51,5 +45,8 @@
         "endpoint": "/internal/scheduler/next-live-update"
       }
     }
+  },
+  "dev": {
+    "subreddit": "gamedaylive_dev"
   }
 }

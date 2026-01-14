@@ -26,6 +26,7 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
     });
     
     // Build title based on game state
+    // HACK: Probably smarter to have a separate PGT function
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         return `PGT | ${awayTeam} @ ${homeTeam}`;
     } 

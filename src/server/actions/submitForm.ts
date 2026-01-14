@@ -4,6 +4,7 @@ import { SubredditConfig, NHLConfig } from '../types';
 import { setSubredditConfig, getSubredditConfig } from '../config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
 import { Logger } from '../utils/Logger';
+import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
 
 export const formAction = (router: Router): void => {
     router.post(
@@ -14,15 +15,39 @@ export const formAction = (router: Router): void => {
             try {
                 // Extract form data
                 const { league, team, enablePostgameThreads } = req.body;
-
-                // FIX: Don't allow N/A team or league
-                
+                                
                 // Convert arrays to single values if needed
                 const leagueValue = Array.isArray(league) ? league[0] : league;
                 const teamValue = Array.isArray(team) ? team[0] : team;
                 const enablePostgameThreadsValue = Array.isArray(enablePostgameThreads) 
                     ? enablePostgameThreads[0] 
                     : enablePostgameThreads;
+
+                // Don't allow empty selection for league or team
+                if (!leagueValue || !teamValue) {
+                    res.status(400).json({
+                        showToast: {
+                            appearance: 'error',
+                            text: 'League and team must be selected.'
+                        }
+                    });
+                    return;
+                }
+
+                // Don't allow unapproved subreddit to configure
+                const subreddit = context.subredditName?.toLowerCase();
+
+                if ( !subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit.toLowerCase())) {
+                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}`);
+
+                    res.status(403).json({
+                        showToast: {
+                            appearance: 'error',
+                            text: `Configuration denied - unauthorized subreddit. For more info: r/gamedaylive_dev`
+                        }
+                    });
+                    return;
+                }
 
                 // Build subredditConfig object
                 const config: SubredditConfig = {

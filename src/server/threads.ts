@@ -1,5 +1,7 @@
 import { Post, reddit } from "@devvit/web/server";
-import { Logger } from './utils/Logger'; // TODO: Implement logging
+import { Logger } from './utils/Logger';
+
+//TODO: Implement optional sticky status of both GDT and PGT
 
 // Create new thread
 export async function createThread(
@@ -19,7 +21,7 @@ export async function createThread(
 
 		logger.info(`Post created in ${context.subredditName} with title: "${title}"`);
 
-		// Attempt to sticky
+		// Attempt to sticky //TODO: only GDT?
 		try {
 			await post.sticky();
 			logger.info(`Post sticky succeeded for ${context.subredditName}`);

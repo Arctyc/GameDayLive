@@ -12,7 +12,7 @@ import { Logger } from '../../utils/Logger';
 export async function dailyGameCheckJob() {
     const logger = await Logger.Create('Jobs - Daily Game Check');
     logger.debug(`Running daily game check...`);
-    
+
     const config = await getSubredditConfig(context.subredditName);
     if (!config || !config.nhl) {
         logger.debug(`No subreddit config returned for ${context.subredditName}`);
@@ -153,7 +153,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         logger.error(`Failed to fetch game data for game ${gameId}: ${error instanceof Error ? error.message : String(error)}`);
         
         // Reschedule another attempt in case of transient error
-        const retryTime = new Date(Date.now() + 60000);
+        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
         logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
         await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
         return;
@@ -178,7 +178,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         // If intermission, delay update until nearly over
         if (game.clock?.inIntermission) {
             const intermissionRemaining = game.clock.secondsRemaining;
-            if (intermissionRemaining > 60) {
+            if (intermissionRemaining > (UPDATE_INTERVALS.INTERMISSION / 1000)) {
                 logger.debug(`Game is in intermission`);
                 updateTime = new Date(Date.now() + ((intermissionRemaining * 1000)-UPDATE_INTERVALS.INTERMISSION));
             }
@@ -253,7 +253,7 @@ async function scheduleCreatePostgameThread(subredditName: string, gameId: numbe
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
 
-    const jobId = `update-${gameId}-${Date.now()}`;
+    const jobId = `update-${gameId}`;
 
     const job: ScheduledJob = {
         id: jobId,

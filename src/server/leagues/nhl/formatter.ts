@@ -199,8 +199,8 @@ function buildBodyFooter(){
 
 function makeGoalsTableHeader() {
     return (
-`Time | Team | Player | Shot Type | Assists
----|---|---|---|---
+`Time | Team | Player | Shot Type | Assists | Clip
+---|---|---|---|---|---
 `);
 }
 
@@ -220,7 +220,7 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
     const scorer = getPlayerInfo(game, d.scoringPlayerId);
     if (!scorer) return "";
 
-    const shotType = (d.shotType ?? "Shot")
+    const shotType = (d.shotType ?? "Unknown")
         .replace("-", " ")
         .toLowerCase()
         .replace(/\b\w/g, (c: string) => c.toUpperCase());

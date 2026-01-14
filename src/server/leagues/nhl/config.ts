@@ -79,6 +79,11 @@ export const APPROVED_NHL_SUBREDDITS: string[] = [
   "caps",
 ]
 
+export function getTeamLabel(value: string): string | undefined {
+    const team = NHL_TEAMS.find(t => t.value === value);
+    return team?.label;
+}
+
 export function getTeamTimezone(teamAbbrev: string): string | undefined {
   return NHL_TEAMS.find(team => team.value === teamAbbrev)?.timezone;
 }

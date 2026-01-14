@@ -100,9 +100,18 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
 
     // Schedule next live update
     if (game.gameState !== GAME_STATES.FINAL) {
-        let nextUpdateDelay = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
-        // TODO: if intermission, adjust to INTERMISSION interval
-        await scheduleNextLiveUpdate(subredditName, postId, gameId, nextUpdateDelay);
+        // Set updateTime for now + default delay in seconds
+        let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+        // Set to update "INTERMISSION" (60) seconds before intermission ends.
+        if (game.clock?.inIntermission) {
+            const intermissionRemaining = game.clock.secondsRemaining;
+            if (intermissionRemaining > 60) {
+                updateTime = new Date(Date.now() + ((intermissionRemaining * 1000)-UPDATE_INTERVALS.INTERMISSION));
+            }
+        }
+        // Schedule
+        await scheduleNextLiveUpdate(subredditName, postId, gameId, updateTime);
+
     } else {
         // Game finished
         // TODO: schedule postgame thread if enabled
@@ -138,10 +147,9 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     }
 }
 
-async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, secondsFromNow: number) {
+async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
-    
-    const updateTime = new Date(Date.now() + (secondsFromNow * 1000));
+
     const jobId = `update-${gameId}-${Date.now()}`;
 
     const job: ScheduledJob = {
@@ -152,7 +160,7 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
     };
 
     try {
-        logger.info(`Attempting to schedule update ${jobId} in ${secondsFromNow}s (at ${updateTime.toISOString()})`);
+        logger.info(`Attempting to schedule update: ${jobId} at ${updateTime.toISOString()}`);
 
         // Check if scheduled time is future
         if (updateTime.getTime() < Date.now()) {

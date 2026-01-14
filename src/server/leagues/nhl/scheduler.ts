@@ -47,7 +47,7 @@ export const nextLiveUpdate = (router: Router) => {
     const logger = await Logger.Create('Scheduler - Next Live Update');
 
     try {
-      const { gameId } = _req.body.data;
+      const { gameId } = _req.body.data || {};
       if (!gameId) throw new Error('gameId required');
 
       await nextLiveUpdateJob(context.subredditName!, gameId);

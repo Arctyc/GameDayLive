@@ -6,6 +6,8 @@ import { getSubredditConfig } from '../../config';
 import { cleanupThread, createThread, updateThread } from '../../threads';
 import { Logger } from '../../utils/Logger';
 
+//TODO:FIX: Stop passing subredditName, just get from context.subredditName
+
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
     const logger = await Logger.Create('Jobs - Daily Game Check');
@@ -218,12 +220,7 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     };
 
     try {
-        logger.info(`Attempting to schedule job ${jobId} for ${scheduledTime.toISOString()}. (Current time: ${new Date().toISOString()})`);
-        
-        // Check if scheduled time is future
-        if (scheduledTime.getTime() < Date.now()) {
-            logger.warn(`Warning: scheduledTime ${scheduledTime.toISOString()} is in the past. Job may run immediately or fail.`);
-        }
+        logger.info(`Attempting to schedule job ${jobId} for ${scheduledTime.toISOString()}`);
 
         await scheduler.runJob(job);
         logger.info(`Successfully scheduled ${jobId}`);
@@ -245,11 +242,11 @@ async function scheduleCreatePostgameThread(subredditName: string, gameId: numbe
     };
 
     try {
-        logger.info(`Attempting to schedule post-game job ${jobId} at ${scheduledTime.toISOString()}`);
+        logger.info(`Attempting to schedule job ${jobId} at ${scheduledTime.toISOString()}`);
         await scheduler.runJob(job);
         logger.info(`Successfully scheduled ${jobId}`);
     } catch (error) {
-        logger.error(`Failed to schedule post-game job ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`Failed to schedule job ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 

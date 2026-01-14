@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { context } from '@devvit/web/server';
-import { dailyGameCheckJob, createGameThreadJob, nextLiveUpdateJob } from './jobs';
+import { dailyGameCheckJob, createGameThreadJob, createPostgameThreadJob, nextLiveUpdateJob } from './jobs';
 import { Logger } from '../../utils/Logger';
 
 export const dailyGameCheck = (router: Router) => {
@@ -36,6 +36,28 @@ export const createGameThread = (router: Router) => {
       res.status(400).json({ 
         status: 'error', 
         message: 'Create game thread failed',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+};
+
+export const createPostgameThread = (router: Router) => {
+  router.post('/internal/scheduler/create-postgame-thread', async (_req, res) => {
+    const logger = await Logger.Create('Scheduler - Create Postgame Thread');
+    
+    try {
+      const { gameId } = _req.body.data || {};
+      if (!gameId) throw new Error('gameId required');
+
+      await createPostgameThreadJob(gameId, context.subredditName!);
+      
+      res.status(200).json({ status: 'success' });
+    } catch (error) {
+      logger.error('Create postgame thread failed:', error);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Create postgame thread failed',
         error: error instanceof Error ? error.message : String(error)
       });
     }

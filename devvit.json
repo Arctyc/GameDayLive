@@ -44,6 +44,9 @@
       "create-game-thread": {
         "endpoint": "/internal/scheduler/create-game-thread"
       },
+      "create-postgame-thread": {
+        "endpoint": "/internal/scheduler/create-postgame-thread"
+      },
       "next-live-update": {
         "endpoint": "/internal/scheduler/next-live-update"
       }

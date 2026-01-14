@@ -140,19 +140,43 @@ function buildBodyGoals(game: NHLGame): string {
 
     let out = `# GOALS\n\n`;
 
-    for (const period of Object.keys(goals).map(Number).sort((a, b) => a - b)) {
+    // Sort periods numerically
+    const periods = Object.keys(goals).map(Number).sort((a, b) => a - b);
+
+    for (const period of periods) {
         const sortedPlays = goals[period]?.sort((a, b) => {
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
-        if (!sortedPlays || sortedPlays.length === 0) continue;
 
-        out += `**Period ${period}**\n\n`;
+        // Fallback: If there are no plays yet, default to "Period X"
+        let periodLabel = `Period ${period}`;
+
+        if (sortedPlays && sortedPlays.length > 0) {
+            const descriptor = sortedPlays[0].periodDescriptor;
+            const type = descriptor?.periodType;
+
+            if (type === "SO") {
+                periodLabel = "Shootout";
+            } else if (type === "OT") {
+                periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+            }
+        } else {
+            // Additional safety: If the game is in a shootout but has no goals yet
+            if (game.shootoutInUse && period === 5) periodLabel = "Shootout";
+            else if (game.otInUse && period >= 4) periodLabel = "Overtime";
+        }
+
+        out += `**${periodLabel}**\n\n`;
+        
+        if (!sortedPlays || sortedPlays.length === 0) {
+            out += "No goals scored in this period.\n\n";
+            continue;
+        }
+
         out += makeGoalsTableHeader();
-
         for (const play of sortedPlays) {
             out += goalRowFromPlay(play, game);
         }
-
         out += `\n`;
     }
 
@@ -242,6 +266,7 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
     const clip = play.highlightClipSharingUrl 
         ? `[nhl.com](${play.highlightClipSharingUrl})` 
         : "N/A";
+    console.log(`clip URL: ${play.highlightClipSharingUrl}`);
 
     return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }

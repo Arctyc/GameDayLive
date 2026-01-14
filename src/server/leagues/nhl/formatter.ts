@@ -85,23 +85,25 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     // Build game status text
     let statusText = gameState;
     if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
-        // Check if in intermission
         const inIntermission = game.clock?.inIntermission ?? false;
+        const timeRemaining = game.clock?.timeRemaining ?? "";
         
         if (inIntermission) {
-            if (period === 1) {
-                statusText = "First Intermission";
-            } else if (period === 2) {
-                statusText = "Second Intermission";
+            if (periodType === "REG") {
+                if (period === 1) statusText = "First Intermission";
+                else if (period === 2) statusText = "Second Intermission";
+                else statusText = `End of Period ${period}`;
+            } else if (periodType === "OT") {
+                statusText = period === 4 ? "Intermission (OT)" : `Intermission (${period - 3}OT)`;
             } else {
-                statusText = `Intermission`;
+                statusText = "Intermission";
             }
         } else {
             // Active play
-            const timeRemaining = game.clock?.timeRemaining ?? "";
-            
             if (periodType === "OT") {
-                statusText = `Overtime - ${timeRemaining}`;
+                // Period 4 is standard Overtime; 5+ are playoff overtimes (2OT, 3OT, etc.)
+                const otLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+                statusText = `${otLabel} - ${timeRemaining}`;
             } else if (periodType === "SO") {
                 statusText = "Shootout";
             } else {
@@ -109,7 +111,10 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
             }
         }
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        statusText = "Final";
+        // Handle final labels for OT/SO games
+        if (periodType === "OT") statusText = "Final (OT)";
+        else if (periodType === "SO") statusText = "Final (SO)";
+        else statusText = "Final";
     } else if (gameState === "FUT" || gameState === "PRE") {
         statusText = "Scheduled";
     }
@@ -266,7 +271,7 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
     const clip = d.highlightClipSharingUrl 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "N/A";
-    console.log(`clip URL: ${d.highlightClipSharingUrl}`);
+    console.debug(`clip URL: ${d.highlightClipSharingUrl}`);
 
     return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }

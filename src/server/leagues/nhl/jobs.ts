@@ -68,7 +68,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         logger.info(`Created post ID: ${post.id}`)
         await redis.set(`game:${gameId}:threadId`, post.id); // TODO: clear this at some point! (game in OFF state?)\
         // Schedule first live update 
-        const updateTime = UPDATE_INTERVALS.LIVE_GAME_DEFAULT;
+        const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
         await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
 
     } else {
@@ -84,7 +84,8 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
     if (!postId) {
         logger.error(`Invalid postId`);
         return;
-    } 
+    }
+    // FIX: Check that post is actually live on reddit somehow, if not, cancel and drop redis of game
 
     const { game, modified } = await getGameData(gameId, fetch, await redis.get(REDIS_KEYS.GAME_ETAG(gameId)));
 

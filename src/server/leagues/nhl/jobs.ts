@@ -211,11 +211,21 @@ export async function nextLiveUpdateJob(gameId: number) {
 }
 
 // --------------- Scheduling helpers -----------------
+
+// -------- Schedule Create Game Thread --------
 async function scheduleCreateGameThread(subredditName: string, gameId: number, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Game Thread');
-    
+
     // FIX: make jobTitle format "Game Thread: team @ team date"
-    const jobTitle = `Game Thread at ${scheduledTime.toISOString()} for game ${gameId}`; // TODO: Localize time
+    const jobTitle = `Game Thread-${gameId}`; // TODO: Localize time
+
+    // FIX: only schedule if no same job exists
+    const existingJob = await redis.get(`job:${jobTitle}`);
+    if (existingJob){
+        logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
+        return;
+    }
+
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
         id: `create-thread-${gameId}`,
@@ -232,18 +242,27 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
         const jobId = await scheduler.runJob(job);
         await redis.set(`job:${jobTitle}`, jobId);
 
-        logger.info(`Successfully scheduled ${jobId}`);
+        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 
     } catch (error) {
         logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
+// -------- Schedule Create Postgame Thread --------
 async function scheduleCreatePostgameThread(subredditName: string, gameId: number, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
     
     // FIX: make jobTitle format "Game Thread: team @ team date"
-    const jobTitle = `Postgame Thread at ${scheduledTime.toISOString()} for game ${gameId}`;
+    const jobTitle = `Postgame Thread-${gameId}`;
+
+    // FIX: only schedule if no same job exists
+    const existingJob = await redis.get(`job:${jobTitle}`);
+    if (existingJob){
+        logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
+        return;
+    }
+
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
         id: `create-postgame-${gameId}`,
@@ -252,22 +271,33 @@ async function scheduleCreatePostgameThread(subredditName: string, gameId: numbe
         runAt: scheduledTime,
     };
 
+    logger.debug(`Job data: ${JSON.stringify(jobData)}`);
+
     try {
         logger.info(`Attempting to schedule job ${jobTitle} at ${scheduledTime.toISOString()}`);
 
         const jobId = await scheduler.runJob(job);
         await redis.set(`job:${jobTitle}`, jobId);
 
-        logger.info(`Successfully scheduled ${jobId}`);
+        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
     } catch (error) {
         logger.error(`Failed to schedule job ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
+// -------- Schedule Next Live Update --------
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
 
-    const jobTitle = `Live update at ${updateTime.toISOString()} for game: ${gameId}`; // TODO: Localize time
+    const jobTitle = `Live update-${gameId}`; // TODO: Localize time
+
+    // FIX: only schedule if no same job exists
+    const existingJob = await redis.get(`job:${jobTitle}`);
+    if (existingJob){
+        logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
+        return;
+    }
+
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
@@ -276,6 +306,8 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         data: jobData,
         runAt: updateTime,
     };
+
+    logger.debug(`Job data: ${JSON.stringify(jobData)}`);
 
     try {
         logger.info(`Attempting to schedule update: ${jobTitle} at ${updateTime.toISOString()}`);
@@ -288,9 +320,13 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         const jobId = await scheduler.runJob(job);
         await redis.set(`job:${jobTitle}`, jobId);
 
-        logger.info(`Successfully scheduled ${jobId}`);
+        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 
     } catch (error) {
         logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
+
+// -------- Schedule Recurring Update --------
+// Schedule job with cron
+// cron: '*/15 * * * * *', // every 15 sec

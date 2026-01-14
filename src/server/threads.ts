@@ -2,6 +2,7 @@ import { Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
+import { createLogger } from "vite";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
@@ -135,7 +136,7 @@ export async function tryLockThread(){
 // TODO:
 
 export async function tryCancelThreadJob(jobTitle: string){ // TODO: Add post menu to devvit.json to cancel live updates from thread
-
+	const logger = await Logger.Create('Thread - Cancel Job');
 	// TODO: Look up job by jobId
 	try{
 
@@ -152,7 +153,7 @@ export async function tryCancelThreadJob(jobTitle: string){ // TODO: Add post me
 		// Clean up the stored job ID
 		await redis.del(`job:${jobTitle}`);
 
-	} catch {
-
+	} catch (err) {
+		logger.error(`Failed to cancel job`, err);
 	}
 }

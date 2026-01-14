@@ -1,4 +1,4 @@
-import { redis, context } from '@devvit/web/server';
+import { redis } from '@devvit/web/server';
 import { SubredditConfig } from './types';
 import { Logger } from './utils/Logger';
 

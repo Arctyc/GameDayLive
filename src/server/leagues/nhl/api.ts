@@ -1,6 +1,6 @@
 import { context } from "@devvit/web/server";
 import { getSubredditConfig } from "../../config";
-import { NHL_TEAMS, NHLTeam } from "./config";
+import { NHL_TEAMS } from "./config";
 
 export interface NHLGame {
   id: number;

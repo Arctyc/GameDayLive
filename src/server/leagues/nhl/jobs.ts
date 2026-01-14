@@ -1,11 +1,10 @@
-import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget, payments } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
 import { getSubredditConfig } from '../../config';
 import { createThread, updateThread } from '../../threads';
 import { Logger } from '../../utils/Logger';
-import { loadConfigFromFile } from 'vite';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob(subredditName: string) {

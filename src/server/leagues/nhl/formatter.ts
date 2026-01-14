@@ -3,7 +3,6 @@ import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
 import { Logger } from '../../utils/Logger';
-import { defaultAllowedOrigins } from "vite";
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
     const logger = await Logger.Create('Format - Thread Title'); // TODO: Implement logging

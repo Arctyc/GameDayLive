@@ -118,6 +118,7 @@ export async function createPostgameThreadJob(gameId: number, subredditName: str
         const post = result.post!;
         logger.info(`Created Post-game ID: ${post.id}`)
         await redis.set(REDIS_KEYS.POSTGAME_THREAD_ID(gameId), post.id);
+        // TODO: Schedule cleanup for 12 hours
     } else {
         logger.error(`Failed to create post-game thread:`, result.error);
     }
@@ -201,7 +202,7 @@ export async function nextLiveUpdateJob(gameId: number) {
             await scheduleCreatePostgameThread(subredditName, gameId, scheduledTime);
         }       
         // Either way, drop the game from redis
-        await cleanupThread(postId as Post["id"]); // TODO: schedule this for later?
+        await cleanupThread(postId as Post["id"]); // TODO: make scheduler to schedule this for later?
         await redis.del(REDIS_KEYS.GAME_THREAD_ID(gameId));
         await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
     }

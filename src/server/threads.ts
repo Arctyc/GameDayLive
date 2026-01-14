@@ -23,6 +23,7 @@ export async function createThread(
 
 		// Attempt to sticky //TODO: only GDT?
 		try {
+			// TODO: use tryStickyThread()
 			await post.sticky();
 			logger.info(`Post sticky succeeded for ${context.subredditName}`);
 		} catch (stickyErr) {
@@ -44,8 +45,8 @@ export async function updateThread(
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const logger = await Logger.Create('Thread - Update');
 
+	// Find thread
 	try {
-    // Find post on reddit
 		const post = await reddit.getPostById(postId);
     if (!post) {
       logger.error(`Cannot find post ${postId}`);
@@ -55,19 +56,19 @@ export async function updateThread(
       };
     }
 
-    // Submit post edit request
-		try {
-			await post.edit({ text: body });
-			logger.info(`Post ${postId} successfully updated.`);
-		} catch (editErr) {
-			logger.error(`Failed to edit post ${postId}:`, editErr);
-			return {
-				success: false,
-				error: editErr instanceof Error ? editErr.message : String(editErr),
-			};
-		}
+    // Submit edit request
+	try {
+		await post.edit({ text: body });
+		logger.info(`Post ${postId} successfully updated.`);
+	} catch (editErr) {
+		logger.error(`Failed to edit post ${postId}:`, editErr);
+		return {
+			success: false,
+			error: editErr instanceof Error ? editErr.message : String(editErr),
+		};
+	}
     
-		return { success: true, postId };
+	return { success: true, postId };
 
 	} catch (err) {
 		return {
@@ -94,10 +95,11 @@ export async function cleanupThread(
         }
 
         // Cleanup actions
+		// TODO: Use functions for trySticky tryUnsticky tryLock
         await post.unsticky();
-        //await post.lock(); TODO: Is this wanted?
+        //await post.lock(); TODO: Is this wanted? (add to config options?)
         
-        logger.info(`Post ${postId} successfully cleaned up (unstickied and locked).`);
+        logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };
 
     } catch (err) {
@@ -107,4 +109,19 @@ export async function cleanupThread(
             error: err instanceof Error ? err.message : String(err),
         };
     }
+}
+
+// TODO:
+export async function tryStickyThread(){
+
+}
+
+// TODO:
+export async function tryUnstickyThread(){
+
+}
+
+// TODO:
+export async function tryLockThread(){
+
 }

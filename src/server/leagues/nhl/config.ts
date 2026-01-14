@@ -40,6 +40,7 @@ export const NHL_TEAMS: NHLTeam[] = [
 ];
 
 export const APPROVED_NHL_SUBREDDITS: string[] = [
+  "gamedaylive_dev",
   "nhl",
   "hockey",
   "AnaheimDucks",

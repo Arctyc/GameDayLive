@@ -35,14 +35,15 @@ export const formAction = (router: Router): void => {
                 }
 
                 // Don't allow unapproved subreddit to configure
+                // HACK: Process this with some proper notification like modmail, don't rely on toast.
+                // TODO: In fact, there should be a modmail or something sent with confirmation of setup regardless.
                 const subreddit = context.subredditName?.toLowerCase();
 
                 if ( !subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit.toLowerCase())) {
                     logger.warn(`Unauthorized subreddit attempted config: ${subreddit}`);
 
-                    res.status(403).json({
+                    res.status(200).json({
                         showToast: {
-                            appearance: 'error',
                             text: `Configuration denied - unauthorized subreddit. For more info: r/gamedaylive_dev`
                         }
                     });

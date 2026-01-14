@@ -1,4 +1,4 @@
-import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget, payments } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
@@ -68,9 +68,13 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         const post = result.post!;
         logger.info(`Created post ID: ${post.id}`)
         await redis.set(`game:${gameId}:threadId`, post.id);
-        // Schedule first live update 
-        const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
-        await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
+
+        // Only schedule live updates if game is ongoing
+        if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF){
+            // Schedule first live update 
+            const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+            await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
+        } 
 
     } else {
         logger.error(`Failed to create post:`, result.error);
@@ -104,9 +108,11 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
 
     // Schedule next live update
     if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
+
         // Set updateTime for now + default delay in seconds
         let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
-        // Set to update "INTERMISSION" (60) seconds before intermission ends.
+
+        // If intermission, delay update until nearly over
         if (game.clock?.inIntermission) {
             const intermissionRemaining = game.clock.secondsRemaining;
             if (intermissionRemaining > 60) {
@@ -114,6 +120,12 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
                 updateTime = new Date(Date.now() + ((intermissionRemaining * 1000)-UPDATE_INTERVALS.INTERMISSION));
             }
         }
+        
+        // IF OT/SO use OT/SO interval
+        if (game.periodDescriptor?.periodType == "OT" || game.periodDescriptor?.periodType == "SO" ){
+            updateTime = new Date(Date.now() + (UPDATE_INTERVALS.OVERTIME_SHOOTOUT));
+        } 
+
         // Schedule
         await scheduleNextLiveUpdate(subredditName, postId, gameId, updateTime);
 

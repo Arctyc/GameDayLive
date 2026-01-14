@@ -62,6 +62,8 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
     const period = game.periodDescriptor?.number ?? 0;
     const periodType = game.periodDescriptor?.periodType ?? "";
+    const inIntermission = game.clock?.inIntermission ?? false;
+    const rawTimeRemaining = game.clock?.timeRemaining ?? "";
     
     // Determine time zone
     const config = await getSubredditConfig(subredditName);
@@ -83,47 +85,31 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         : "None?";
 
     // Build game status text
-    let statusText = gameState;
-    if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
-        const inIntermission = game.clock?.inIntermission ?? false;
-        const timeRemaining = game.clock?.timeRemaining ?? "";
-        
-        if (inIntermission) {
-            if (periodType === "REG") {
-                if (period === 1) statusText = "First Intermission";
-                else if (period === 2) statusText = "Second Intermission";
-                else statusText = `End of Period ${period}`;
-            } else if (periodType === "OT") {
-                statusText = period === 4 ? "Intermission (OT)" : `Intermission (${period - 3}OT)`;
-            } else {
-                statusText = "Intermission";
-            }
-        } else {
-            // Active play
-            if (periodType === "OT") {
-                // Period 4 is standard Overtime; 5+ are playoff overtimes (2OT, 3OT, etc.)
-                const otLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
-                statusText = `${otLabel} - ${timeRemaining} remaining`;
-            } else if (periodType === "SO") {
-                statusText = "Shootout";
-            } else {
-                statusText = `Period ${period} - ${timeRemaining} remaining`;
-            }
-        }
+    let periodLabel = `Period ${period}`;
+    if (periodType === "SO") {
+        periodLabel = "Shootout";
+    } else if (periodType === "OT") {
+        periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+    }
+
+    // 3. Determine the Time Remaining Display
+    let timeRemainingDisplay = rawTimeRemaining;
+    
+    if (inIntermission) {
+        timeRemainingDisplay = "Intermission";
+    } else if (periodType === "SO") {
+        timeRemainingDisplay = "In Progress";
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        // Handle final labels for OT/SO games
-        if (periodType === "OT") statusText = "Final (OT)";
-        else if (periodType === "SO") statusText = "Final (SO)";
-        else statusText = "Final";
-    } else if (gameState === "FUT" || gameState === "PRE") {
-        statusText = "Scheduled";
+        timeRemainingDisplay = "Final";
     }
     
-    const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}
 
-**Scoreboard:** ${awayTeamAbbrev} ${awayScore} | ${statusText} | ${homeScore} ${homeTeamAbbrev}  
+    const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
+
+**Period:** ${periodLabel}  
+**Scoreboard:** ${awayTeamAbbrev} ${awayScore} | ${timeRemainingDisplay} | ${homeScore} ${homeTeamAbbrev}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
-**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}  
+**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;
     
     return header;

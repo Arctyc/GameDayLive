@@ -3,6 +3,7 @@ import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
 import { Logger } from '../../utils/Logger';
+import { defaultAllowedOrigins } from "vite";
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
     const logger = await Logger.Create('Format - Thread Title'); // TODO: Implement logging
@@ -115,7 +116,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}
 
-**Networks:** ${networks}
+**Networks:** ${networks}  
 **Status:** ${statusText}  
 **Score:** ${awayTeamAbbrev} ${awayScore}, ${homeTeamAbbrev} ${homeScore}  
 **Start Time:** ${localTime}  
@@ -238,7 +239,11 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
 
     const assistsStr = assists.length ? assists.join(", ") : "Unassisted";
 
-    return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr}\n`;
+    const clip = play.highlightClipSharingUrl 
+        ? `[nhl.com](${play.highlightClipSharingUrl})` 
+        : "N/A";
+
+    return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame): string {

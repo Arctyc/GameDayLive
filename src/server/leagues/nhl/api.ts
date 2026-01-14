@@ -6,6 +6,7 @@ export interface NHLGame {
   id: number;
   season: number;
   gameType: number;
+  limitedScoring: boolean;
   gameDate: string;
   venue: {
     default: string;
@@ -16,6 +17,9 @@ export interface NHLGame {
   startTimeUTC: string;
   easternUTCOffset: string;
   venueUTCOffset: string;
+  tvBroadcasts?: Array<{
+    network: string;
+  }>;
   gameState: string;
   gameScheduleState: string;
   periodDescriptor?: {

@@ -88,16 +88,18 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
     // FIX: Check that post is actually live on reddit somehow, if not, cancel and drop redis of game
 
     const { game, modified } = await getGameData(gameId, fetch, await redis.get(REDIS_KEYS.GAME_ETAG(gameId)));
-    
+
     // Update the ETag in Redis
     if (modified) await redis.set(REDIS_KEYS.GAME_ETAG(gameId), game.id.toString());
 
-    // Format update text
-    const body = await formatThreadBody(game, subredditName);
-
-    // Update thread
-    const result = await updateThread( postId as Post["id"], body);
-    // TODO: Use result
+    // Only update if modified
+    if (modified){
+        // Format update text
+        const body = await formatThreadBody(game, subredditName);
+        // Update thread
+        const result = await updateThread( postId as Post["id"], body);
+        // TODO: Use result
+    }    
 
     // Schedule next live update
     if (game.gameState !== GAME_STATES.FINAL) {

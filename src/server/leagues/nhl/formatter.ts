@@ -76,6 +76,11 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         timeZoneName: 'short'
     });
     
+    // Extract Networks
+    const networks = game.tvBroadcasts && game.tvBroadcasts.length > 0
+        ? game.tvBroadcasts.map(b => b.network).join(", ")
+        : "None?";
+
     // Build game status text
     let statusText = gameState;
     if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
@@ -110,7 +115,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}
 
-**Networks:** Not implemented yet  
+**Networks:** ${networks}
 **Status:** ${statusText}  
 **Score:** ${awayTeamAbbrev} ${awayScore}, ${homeTeamAbbrev} ${homeScore}  
 **Start Time:** ${localTime}  

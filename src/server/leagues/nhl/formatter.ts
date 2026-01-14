@@ -103,11 +103,11 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
             if (periodType === "OT") {
                 // Period 4 is standard Overtime; 5+ are playoff overtimes (2OT, 3OT, etc.)
                 const otLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
-                statusText = `${otLabel} - ${timeRemaining}`;
+                statusText = `${otLabel} - ${timeRemaining} remaining`;
             } else if (periodType === "SO") {
                 statusText = "Shootout";
             } else {
-                statusText = `Period ${period} - ${timeRemaining}`;
+                statusText = `Period ${period} - ${timeRemaining} remaining`;
             }
         }
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {

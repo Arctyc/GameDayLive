@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { context } from '@devvit/web/server';
 import { SubredditConfig, NHLConfig } from '../types';
-import { setSubredditConfig } from '../config';
+import { getTeamLabel } from '../leagues/nhl/config';
+import { getSubredditConfig, setSubredditConfig } from '../config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
 import { Logger } from '../utils/Logger';
 import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
@@ -53,7 +54,6 @@ export const formAction = (router: Router): void => {
                 // ---- CONFIG ----
 
                 // Build subredditConfig object
-                // TODO:FIX: Use Devvit Web settings? https://developers.reddit.com/docs/capabilities/server/settings-and-secrets
                 const config: SubredditConfig = {
                     league: leagueValue,
                     enablePostgameThreads: !!enablePostgameThreadsValue,
@@ -64,6 +64,13 @@ export const formAction = (router: Router): void => {
                 logger.debug(`Attempting to store config for ${context.subredditName}`)
                 await setSubredditConfig(context.subredditName, config);
 
+                // Pull saved team name to confirm with toast
+                const savedConfig = await getSubredditConfig(context.subredditName)
+                let savedTeamValue = savedConfig?.nhl?.teamAbbreviation;
+                if (!savedTeamValue){
+                    logger.error(`Team did not save in config`);
+                    savedTeamValue = "N/A";
+                }
                 // ---- END CONFIG ----
 
                 // Run daily game check immediately
@@ -72,10 +79,11 @@ export const formAction = (router: Router): void => {
                 await dailyGameCheckJob();
 
                 // Send success toast
+                const teamName = getTeamLabel(savedTeamValue);
                 res.status(200).json({
                     showToast: {
                         appearance: 'success',
-                        text: `Configuration saved for team: ${teamValue || 'N/A'}`
+                        text: `Configuration saved for team: ${teamName}`
                     }
                 });
 

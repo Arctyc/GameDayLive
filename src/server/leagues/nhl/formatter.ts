@@ -2,10 +2,8 @@ import { getSubredditConfig } from "../../config";
 import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
-import { Logger } from '../../utils/Logger';
 
 export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
-    const logger = await Logger.Create('Format - Thread Title'); // TODO: Implement logging
     
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
@@ -34,7 +32,6 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
 }
 
 export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
-    const logger = await Logger.Create('Format - Thread Body'); // TODO: Implement logging
     
     const body = 
         await buildBodyHeader(game, subredditName) +
@@ -48,8 +45,6 @@ export async function formatThreadBody(game: NHLGame, subredditName: string): Pr
 }
 
 async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<string> {
-    const logger = await Logger.Create('Format - Body Header'); // TODO: Implement logging
-    
     const homeTeamAbbrev = game.homeTeam.abbrev;
     const awayTeamAbbrev = game.awayTeam.abbrev;
     const homeTeamPlace = game.homeTeam.placeName.default;

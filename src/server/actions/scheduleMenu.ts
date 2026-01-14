@@ -4,26 +4,26 @@ import { Router } from 'express';
 import { Logger } from '../utils/Logger';
 
 //DOCS: https://developers.reddit.com/docs/capabilities/server/scheduler#cancel-a-scheduled-job
-/* Temproarily disabled
 
 
-Router.post('/internal/menu/scheduled-jobs', async (req, res) => {
-    const logger = await Logger.Create('Menu - Scheduled Jobs');
+export const menuAction = (router: Router): void => {
+    router.post('/internal/menu/scheduled-jobs', async (req, res) => {
+        const logger = await Logger.Create('Menu - Scheduled Jobs');
 
-    try {
-        //TODO: Lookup all stored job IDs in redis list
+        try {
+            // TODO: Lookup all stored job IDs in redis list
 
-        // TODO: populate a select item with readable job names
+            // TODO: populate a select item with readable job names
 
-        // TODO: cancel job
+            // TODO: cancel job
 
-        //await scheduler.cancelJob(jobId);
+            //await scheduler.cancelJob(jobId);
 
 
-    } catch (error) {
+        } catch (error) {
         
+            // TODO: Catch error
     }
-})
 
-
-*/
+    })
+}

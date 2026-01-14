@@ -6,6 +6,7 @@ import { getSubredditConfig } from '../../config';
 import { cleanupThread, createThread, updateThread } from '../../threads';
 import { NewJobData, UpdateJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
+import { json } from 'express';
 
 //TODO:FIX: Stop passing subredditName, just get from context.subredditName
 
@@ -213,77 +214,83 @@ export async function nextLiveUpdateJob(gameId: number) {
 async function scheduleCreateGameThread(subredditName: string, gameId: number, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Game Thread');
     
-    const jobId = `create-thread-${gameId}`;
+    // FIX: make jobTitle format "Game Thread: team @ team date"
     const jobTitle = `Game Thread at ${scheduledTime.toISOString()} for game ${gameId}`; // TODO: Localize time
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
-        id: jobId,
+        id: `create-thread-${gameId}`,
         name: 'create-game-thread',
         data: jobData,
-        //data: { subredditName, gameId },
         runAt: scheduledTime,
     };
 
-    try {
-        logger.info(`Attempting to schedule job ${jobId} for ${scheduledTime.toISOString()}`);
+    logger.debug(`Job data: ${JSON.stringify(jobData)}`);
 
-        await scheduler.runJob(job);
+    try {
+        logger.info(`Attempting to schedule job ${jobTitle} for ${scheduledTime.toISOString()}`);
+
+        const jobId = await scheduler.runJob(job);
+        await redis.set(`job:${jobTitle}`, jobId);
+
         logger.info(`Successfully scheduled ${jobId}`);
 
     } catch (error) {
-        logger.error(`Failed to schedule ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
 async function scheduleCreatePostgameThread(subredditName: string, gameId: number, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
     
-    const jobId = `create-postgame-${gameId}`;
-    const jobTitle = `Postgame Thread at ${scheduledTime.toISOString()} for game ${gameId}`; // TODO: Localize time
+    // FIX: make jobTitle format "Game Thread: team @ team date"
+    const jobTitle = `Postgame Thread at ${scheduledTime.toISOString()} for game ${gameId}`;
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
-        id: jobId,
+        id: `create-postgame-${gameId}`,
         name: 'create-postgame-thread',
         data: jobData,
         runAt: scheduledTime,
     };
 
     try {
-        logger.info(`Attempting to schedule job ${jobId} at ${scheduledTime.toISOString()}`);
-        await scheduler.runJob(job);
+        logger.info(`Attempting to schedule job ${jobTitle} at ${scheduledTime.toISOString()}`);
+
+        const jobId = await scheduler.runJob(job);
+        await redis.set(`job:${jobTitle}`, jobId);
+
         logger.info(`Successfully scheduled ${jobId}`);
     } catch (error) {
-        logger.error(`Failed to schedule job ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`Failed to schedule job ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
 
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
 
-    const jobId = `update-${gameId}`;
     const jobTitle = `Live update at ${updateTime.toISOString()} for game: ${gameId}`; // TODO: Localize time
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
-        id: jobId,
+        id: `update-${gameId}`,
         name: 'next-live-update',
         data: jobData,
-        //data: { subredditName, gameId, postId, jobTitle },
         runAt: updateTime,
     };
 
     try {
-        logger.info(`Attempting to schedule update: ${jobId} at ${updateTime.toISOString()}`);
+        logger.info(`Attempting to schedule update: ${jobTitle} at ${updateTime.toISOString()}`);
 
         // Check if scheduled time is future
         if (updateTime.getTime() < Date.now()) {
             logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
         }
 
-        await scheduler.runJob(job);
+        const jobId = await scheduler.runJob(job);
+        await redis.set(`job:${jobTitle}`, jobId);
+
         logger.info(`Successfully scheduled ${jobId}`);
 
     } catch (error) {
-        logger.error(`Failed to schedule ${jobId}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }

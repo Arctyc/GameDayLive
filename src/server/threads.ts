@@ -1,4 +1,6 @@
 import { Post, reddit } from "@devvit/web/server";
+import { redis } from '@devvit/redis';
+import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
 
 //TODO: Implement optional sticky status of both GDT and PGT
@@ -128,4 +130,29 @@ export async function tryUnstickyThread(){
 // TODO:
 export async function tryLockThread(){
 
+}
+
+// TODO:
+
+export async function tryCancelThreadJob(jobTitle: string){ // TODO: Add post menu to devvit.json to cancel live updates from thread
+
+	// TODO: Look up job by jobId
+	try{
+
+		// Retrieve the job ID from Redis (should be stored when the job was created)
+		const jobId = await redis.get(`job:${jobTitle}`);
+		
+		if (!jobId){
+			throw new Error(`Job ${jobTitle} not found}`);
+		}
+
+		// Cancel the scheduled job
+		await scheduler.cancelJob(jobId);
+
+		// Clean up the stored job ID
+		await redis.del(`job:${jobTitle}`);
+
+	} catch {
+
+	}
 }

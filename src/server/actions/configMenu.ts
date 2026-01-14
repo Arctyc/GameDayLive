@@ -1,19 +1,43 @@
 import { Router } from 'express';
-import { LEAGUES } from '../types';
+import { LEAGUES, SubredditConfig } from '../types';
 import { NHL_TEAMS } from '../leagues/nhl/config';
+import { getTeamsForLeague } from '../leagues';
+import { getSubredditConfig } from '../config';
+import { context } from '@devvit/web/server';
+import { Logger } from '../utils/Logger';
 
 export const menuAction = (router: Router): void => {
     router.post(
         '/internal/menu/config-menu',
         async (_req, res): Promise<void> => {
-
-            // Build form
+            const logger = await Logger.Create('Menu - Config');
+              
             try {
+                // Try to retrieve existing settings
+                let config: SubredditConfig | undefined;
+                try {
+                    config = await getSubredditConfig(context.subredditName);
+
+                } catch (err) {
+                    logger.warn('Failed to fetch existing config', err);
+                }
+
+                // Determine defaults
+                const defaultLeague = config?.league ?? LEAGUES[0];
+                const teamsForLeague = getTeamsForLeague(defaultLeague) ?? [];
+                const defaultTeam = config?.nhl?.teamAbbreviation ?? teamsForLeague?.[0]?.value ?? '';
+
+                // Build form
                 res.json({
                     showForm: {
                         name: 'subredditConfigForm',
                         form: {
                             title: 'GameDayLive Configuration',
+                            initialValues: {
+                                league: defaultLeague,
+                                team: defaultTeam,
+                                enablePostgameThreads: config?.enablePostgameThreads ?? true,
+                            },
                             fields: [
                             {
                                 type: 'select',
@@ -23,7 +47,6 @@ export const menuAction = (router: Router): void => {
                                 label: l.toUpperCase(),
                                 value: l
                                 })),
-                                defaultValue: [LEAGUES[0]], // TODO: Default to subredditConfig value if exists
                                 onValueChanged: 'refresh',
                                 required: true,
                             },
@@ -31,8 +54,7 @@ export const menuAction = (router: Router): void => {
                                 type: 'select',
                                 name: 'team',
                                 label: 'Team',
-                                options: NHL_TEAMS, // FIX: Dynamic teams based on league
-                                defaultValue: [NHL_TEAMS[0]!.value], // TODO: Default to subredditConfig value if exists
+                                options: teamsForLeague,
                                 required: true,
                             },
                             {

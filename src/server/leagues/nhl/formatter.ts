@@ -263,10 +263,10 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
 
     const assistsStr = assists.length ? assists.join(", ") : "Unassisted";
 
-    const clip = play.highlightClipSharingUrl 
-        ? `[nhl.com](${play.highlightClipSharingUrl})` 
+    const clip = d.highlightClipSharingUrl 
+        ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "N/A";
-    console.log(`clip URL: ${play.highlightClipSharingUrl}`);
+    console.log(`clip URL: ${d.highlightClipSharingUrl}`);
 
     return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }

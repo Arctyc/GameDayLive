@@ -28,7 +28,7 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
     
     // Build title based on game state
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        return `PGT | ${awayTeam} @ ${homeTeam} | ${localTime}`;
+        return `PGT | ${awayTeam} @ ${homeTeam}`;
     } 
     else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${game.gameDate} ${localTime}`;
 }

@@ -5,6 +5,7 @@ import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
 import { getSubredditConfig } from '../../config';
 import { createThread, updateThread } from '../../threads';
 import { Logger } from '../../utils/Logger';
+import { loadConfigFromFile } from 'vite';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob(subredditName: string) {
@@ -66,7 +67,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
     if (result.success) {
         const post = result.post!;
         logger.info(`Created post ID: ${post.id}`)
-        await redis.set(`game:${gameId}:threadId`, post.id); // TODO: clear this at some point! (game in OFF state?)\
+        await redis.set(`game:${gameId}:threadId`, post.id);
         // Schedule first live update 
         const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
         await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
@@ -102,7 +103,7 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
     }    
 
     // Schedule next live update
-    if (game.gameState !== GAME_STATES.FINAL) {
+    if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
         // Set updateTime for now + default delay in seconds
         let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
         // Set to update "INTERMISSION" (60) seconds before intermission ends.
@@ -119,6 +120,12 @@ export async function nextLiveUpdateJob(subredditName: string, gameId: number) {
     } else {
         // Game finished
         // TODO: schedule postgame thread if enabled
+        const config = await getSubredditConfig(context.subredditName);
+        if (config?.enablePostgameThreads){
+            const scheduledTime = new Date(Date.now());
+            await scheduleCreateGameThread(subredditName, gameId, scheduledTime);
+        }       
+        // Either way, drop the game from redis
         redis.del(`game:${gameId}:threadId`);
     }
 }

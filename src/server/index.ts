@@ -1,11 +1,8 @@
 import express from 'express';
 import { createServer, getServerPort } from '@devvit/web/server';
-
-import { menuAction } from './actions/configMenu';
-import { formAction } from './actions/submitForm';
-// TODO: Import scheduleMenu
+import { menuAction, formAction } from './actions/configMenu';
 import { registerSchedulers } from './leagues/nhl/scheduler';
-import { jobCancelAction, jobMenuAction } from './actions/scheduleMenu';
+import { jobMenuAction, jobCancelAction } from './actions/scheduleMenu';
 
 const app = express();
 const router = express.Router();

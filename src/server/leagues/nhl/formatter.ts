@@ -130,6 +130,37 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     return header;
 }
 
+function getPeriodLabel(period: number, game: NHLGame, plays?: any[]): string {
+    let periodLabel = `Period ${period}`;
+    
+    if (plays && plays.length > 0) {
+        const descriptor = plays[0].periodDescriptor;
+        const type = descriptor?.periodType;
+        if (type === "SO") {
+            return "Shootout";
+        } else if (type === "OT") {
+            return period === 4 ? "Overtime" : `${period - 3}OT`;
+        }
+    } else {
+        // Check game state for period label when no plays exist
+        if (game.shootoutInUse && period === 5) {
+            return "Shootout";
+        } else if (game.otInUse && period >= 4) {
+            return period === 4 ? "Overtime" : `${period - 3}OT`;
+        }
+    }
+    
+    return periodLabel;
+}
+
+function isShootoutPeriod(period: number, game: NHLGame, plays?: any[]): boolean {
+    if (plays && plays.length > 0) {
+        const descriptor = plays[0].periodDescriptor;
+        return descriptor?.periodType === "SO";
+    }
+    return game.shootoutInUse && period === 5;
+}
+
 function buildBodyGoals(game: NHLGame): string {
     const currentPeriod = game.periodDescriptor?.number ?? 0;
     
@@ -140,27 +171,12 @@ function buildBodyGoals(game: NHLGame): string {
     const { goals } = organizePlaysByPeriod(game.plays || []);
     let out = `# GOALS\n\n`;
 
-    // Generate tables for all periods from 1 to current
     for (let period = 1; period <= currentPeriod; period++) {
         const sortedPlays = goals[period]?.sort((a, b) => {
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
 
-        // Determine period label
-        let periodLabel = `Period ${period}`;
-        if (sortedPlays && sortedPlays.length > 0) {
-            const descriptor = sortedPlays[0].periodDescriptor;
-            const type = descriptor?.periodType;
-            if (type === "SO") {
-                periodLabel = "Shootout";
-            } else if (type === "OT") {
-                periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
-            }
-        } else {
-            // Check game state for period label when no plays exist
-            if (game.shootoutInUse && period === 5) periodLabel = "Shootout";
-            else if (game.otInUse && period >= 4) periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
-        }
+        const periodLabel = getPeriodLabel(period, game, sortedPlays);
 
         out += `**${periodLabel}**\n\n`;
         out += makeGoalsTableHeader();
@@ -188,13 +204,17 @@ function buildBodyPenalties(game: NHLGame): string {
     const { penalties } = organizePlaysByPeriod(game.plays || []);
     let out = `# PENALTIES\n\n`;
 
-    // Generate tables for all periods from 1 to current
     for (let period = 1; period <= currentPeriod; period++) {
         const sortedPlays = penalties[period]?.sort((a, b) => {
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
 
-        out += `**Period ${period}**\n\n`;
+        // Skip shootout periods entirely for penalties
+        if (isShootoutPeriod(period, game, sortedPlays)) continue;
+
+        const periodLabel = getPeriodLabel(period, game, sortedPlays);
+
+        out += `**${periodLabel}**\n\n`;
         out += makePenaltiesTableHeader();
 
         if (!sortedPlays || sortedPlays.length === 0) {

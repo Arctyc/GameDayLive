@@ -2,7 +2,7 @@ import { redis } from '@devvit/redis';
 import { scheduler, ScheduledJob, ScheduledCronJob } from '@devvit/web/server';
 import { Router } from 'express';
 import { Logger } from '../utils/Logger';
-import { tryCancelThreadJob } from '../threads';
+import { tryCancelScheduledJob } from '../threads';
 
 //DOCS: https://developers.reddit.com/docs/capabilities/server/scheduler#cancel-a-scheduled-job
 
@@ -76,15 +76,22 @@ export const jobCancelAction = (router: Router): void => {
                return;
             }
 
+            // Cancel scheduled job
             logger.info(`Attempting to cancel job ${jobId}`);
-            await scheduler.cancelJob(jobId);
-
-            // Get job by title for redis
             const jobTitle = (job.data as { jobTitle?: string })?.jobTitle ?? job.id;
+            const result = await tryCancelScheduledJob(jobTitle);
+            if (!result.ok) {
+               logger.warn(`Thread cleanup failed for ${jobTitle}: ${result.reason}`);
 
-            // Drop from Redis
-            redis.del(`job:${jobTitle}`); // TODO: threads tryCancelJob method?
-
+               res.status(500).json({
+                  showToast: {
+                     appearance: 'error',
+                     text: 'Job cancelled, but thread cleanup failed.'
+                  }
+               });
+               return;
+            }
+            
             res.status(200).json({
                showToast: {
                   appearance: 'success',

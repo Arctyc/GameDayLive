@@ -1,15 +1,12 @@
 import { Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
-import { REDIS_KEYS } from "./leagues/nhl/constants";
 import { Logger } from './utils/Logger';
-import { createLogger } from "vite";
-import { resolve } from "node:dns";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
 // Create new thread
-export async function createThread(
+export async function tryCreateThread(
 	context: any,
 	title: string,
 	body: string
@@ -27,7 +24,7 @@ export async function createThread(
 		logger.info(`Post created in ${context.subredditName} with title: "${title}"`);
 
 		// HACK: Temporary comment - remove for v1.0
-		await addComment(
+		await tryAddComment(
 			post,
 `This thread was created by GameDayLive, an application that is in development. There may be bugs.  
 
@@ -60,7 +57,7 @@ For more information, including bug reports or to find out how to use this appli
 }
 
 // Update existing thread
-export async function updateThread(
+export async function tryUpdateThread(
 	postId: Post["id"],
 	body: string
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
@@ -100,7 +97,7 @@ export async function updateThread(
 	}
 }
 
-export async function cleanupThread(
+export async function tryCleanupThread(
     postId: Post["id"]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
     const logger = await Logger.Create('Thread - Cleanup');
@@ -145,7 +142,7 @@ export async function cleanupThread(
     }
 }
 
-export async function addComment(post: Post, comment: string){
+export async function tryAddComment(post: Post, comment: string){
 	const logger = await Logger.Create('Thread - Add comment');
 
 	try {
@@ -175,26 +172,24 @@ export async function tryLockThread(){
 }
 
 // TODO:
-
-export async function tryCancelThreadJob(jobTitle: string){ // TODO: Add post menu to devvit.json to cancel live updates from thread
+export async function tryCancelScheduledJob(jobTitle: string){ // TODO: Add post menu to devvit.json to cancel live updates from thread
 	const logger = await Logger.Create('Thread - Cancel Job');
-	// TODO: Look up job by jobId
-	try{
 
-		// Retrieve the job ID from Redis (should be stored when the job was created)
+	try{
 		const jobId = await redis.get(`job:${jobTitle}`);
 		
 		if (!jobId){
 			throw new Error(`Job ${jobTitle} not found}`);
 		}
 
-		// Cancel the scheduled job
 		await scheduler.cancelJob(jobId);
-
-		// Clean up the stored job ID
 		await redis.del(`job:${jobTitle}`);
 
+		logger.info(`Job: ${jobTitle} successfully canceled`);
+		return { ok: true };
+
 	} catch (err) {
-		logger.error(`Failed to cancel job`, err);
+		logger.error(`Failed to cancel job ${jobTitle}`, err);
+		return { ok: false, reason: (err as Error).message };
 	}
 }

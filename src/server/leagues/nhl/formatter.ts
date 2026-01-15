@@ -2,12 +2,14 @@ import { getSubredditConfig } from "../../config";
 import { getTeamTimezone } from "./config";
 import { GAME_STATES } from "./constants";
 import type { NHLGame } from "./api";
+import { context } from "@devvit/web/server";
 
-export async function formatThreadTitle(game: NHLGame, subredditName: string): Promise<string> {
+export async function formatThreadTitle(game: NHLGame): Promise<string> {
     
     const homeTeam = game.homeTeam.abbrev;
     const awayTeam = game.awayTeam.abbrev;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
+    const subredditName = context.subredditName;
     
     // Determine time zone
     const config = await getSubredditConfig(subredditName);
@@ -31,10 +33,10 @@ export async function formatThreadTitle(game: NHLGame, subredditName: string): P
     else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${game.gameDate} ${localTime}`;
 }
 
-export async function formatThreadBody(game: NHLGame, subredditName: string): Promise<string> {
+export async function formatThreadBody(game: NHLGame): Promise<string> {
     
     const body = 
-        await buildBodyHeader(game, subredditName) +
+        await buildBodyHeader(game, context.subredditName) +
         "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +

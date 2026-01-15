@@ -1,8 +1,10 @@
 import { Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
+import { REDIS_KEYS } from "./leagues/nhl/constants";
 import { Logger } from './utils/Logger';
 import { createLogger } from "vite";
+import { resolve } from "node:dns";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
@@ -103,6 +105,15 @@ export async function cleanupThread(
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
     const logger = await Logger.Create('Thread - Cleanup');
 
+	// Guard against undefined/null postId
+    if (!postId) {
+        logger.warn('No post ID provided, skipping cleanup');
+        return { 
+            success: false, 
+            error: 'No post ID provided',
+        };
+    }
+
     try {
         const post = await reddit.getPostById(postId);
         
@@ -114,19 +125,13 @@ export async function cleanupThread(
             };
         }
 
-		// Check if exists
-		const foundPost = await reddit.getPostById(postId);
-		// TODO: If yes/no? clear redis? clear schedule?
-
-
         // Cleanup actions
-		// TODO: Use functions for trySticky tryUnsticky tryLock
         await post.unsticky();
 		
 		// Lock post
         //await post.lock(); TODO: Is this wanted? (add to config options?)
 
-		// TODO: del res lock on original post
+		// TODO: delete redis jobs associated with post		
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };

@@ -304,6 +304,8 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
         scheduledTime = now;
     } else {
         logger.warn(`Tried to create thread with 3+ hour old game`)
+        // TODO: try to schedule PGT
+        await scheduleCreatePostgameThread(context.subredditName, gameId, now)
         return;
     }
 

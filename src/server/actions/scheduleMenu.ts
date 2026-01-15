@@ -1,4 +1,3 @@
-import { redis } from '@devvit/redis';
 import { scheduler, ScheduledJob, ScheduledCronJob } from '@devvit/web/server';
 import { Router } from 'express';
 import { Logger } from '../utils/Logger';
@@ -7,7 +6,7 @@ import { tryCancelScheduledJob } from '../threads';
 //DOCS: https://developers.reddit.com/docs/capabilities/server/scheduler#cancel-a-scheduled-job
 
 export const jobMenuAction = (router: Router): void => {
-   router.post('/internal/menu/scheduled-jobs', async (req, res) => {
+   router.post('/internal/menu/scheduled-jobs', async (_req, res) => {
       const logger = await Logger.Create('Menu - Scheduled Jobs');
 
       try {

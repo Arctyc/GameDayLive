@@ -79,6 +79,9 @@ export const formAction = (router: Router): void => {
                 logger.debug(`Attempting to run daily game check...`);
                 await dailyGameCheckJob();
 
+                // TODO:FIX: Check for existing scheduled Create Game Thread job (any game ID)
+                // If found, cancel the job and remove the redis lock, 1 sub = 1 thread
+
                 // Send success toast
                 const teamName = getTeamLabel(savedTeamValue);
                 res.status(200).json({

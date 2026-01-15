@@ -80,11 +80,16 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         : "None?";
 
     // Build game status text
-    let periodLabel = `Period ${period}`; // FIX: If period 0, Upcoming
-    if (periodType === "SO") {
+    let periodLabel;
+
+    if (period === 0) {
+        periodLabel = "Scheduled";
+    } else if (periodType === "SO") {
         periodLabel = "Shootout";
     } else if (periodType === "OT") {
         periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+    } else {
+        periodLabel = `Period ${period}`;
     }
 
     // 3. Determine the Time Remaining Display
@@ -101,7 +106,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
 
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
 
-**Period:** ${periodLabel}  
+**Status:** ${periodLabel}  
 **Scoreboard:** ${awayTeamAbbrev} ${awayScore} | ${timeRemainingDisplay} | ${homeScore} ${homeTeamAbbrev}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
@@ -276,10 +281,7 @@ function penaltyRowFromPlay(play: any, game: NHLGame): string {
         ? `#${drawn.number} ${drawn.name}`
         : "—";
 
-    const infraction = (d.descKey ?? "Penalty")
-        .split('-')
-        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+    const infraction = ((s) => s[0].toUpperCase() + s.slice(1))(d.descKey ?? "Penalty");
     
     const minutes = d.duration ?? 0;
 

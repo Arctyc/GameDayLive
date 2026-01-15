@@ -19,18 +19,25 @@ export async function createThread(
 		const post = await reddit.submitPost({
 			subredditName: context.subredditName,
 			title: title,
-			text: body,
+			text: body,	
 		});
 
 		logger.info(`Post created in ${context.subredditName} with title: "${title}"`);
 
+		// Attempt to sort by new
+		try {
+			await post.setSuggestedCommentSort("NEW");
+			logger.info(`Post sort by new succeeded for ${post.id}`)
+		} catch (sortNewErr) {
+			logger.warn(`Failed to sticky post in ${post.id}:`, sortNewErr);
+		}
+
 		// Attempt to sticky //TODO: only GDT?
 		try {
-			// TODO: use tryStickyThread()
 			await post.sticky();
-			logger.info(`Post sticky succeeded for ${context.subredditName}`);
+			logger.info(`Post sticky succeeded for ${post.id}`);
 		} catch (stickyErr) {
-			logger.warn(`Failed to sticky post in ${context.subredditName}:`, stickyErr);
+			logger.warn(`Failed to sticky post in ${post.id}:`, stickyErr);
 		}
 
 		return { success: true, post };

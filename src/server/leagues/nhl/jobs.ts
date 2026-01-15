@@ -42,7 +42,7 @@ export async function dailyGameCheckJob() {
 
     // Determine pre-game thread creation time
     const startTime = new Date(game.startTimeUTC).getTime(); //NOTE: could fail if API format changes?
-    const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
+    const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET); // TODO: Feature: Add subreddit specific modifier * 2 = 2 hours before
     const gameId = game.id;
 
     logger.debug(`Calling scheduleCreateGameThread with subreddit:${subredditName}, gameId: ${gameId}, time: ${scheduleTime.toISOString()}`);
@@ -239,7 +239,7 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     const existingJob = await redis.get(`job:${jobTitle}`);
     if (existingJob){
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
-        return;
+        // FIX:NOTE:HACK: TEMPORARILY DISABLED SKIPPING, THIS CAN CAUSE DIPLICATE THREADS return;
     }
 
     const jobData: NewJobData = { subredditName, gameId, jobTitle }

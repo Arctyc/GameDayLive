@@ -5,6 +5,8 @@ import { getSubredditConfig } from '../config';
 import { context } from '@devvit/web/server';
 import { Logger } from '../utils/Logger';
 
+// TODO: Combine configMenu.ts and submitForm.ts into one file
+
 export const menuAction = (router: Router): void => {
     router.post(
         '/internal/menu/config-menu',

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { context } from '@devvit/web/server';
+import { context, ScheduledJob, ScheduledCronJob, scheduler } from '@devvit/web/server';
 import { LEAGUES, SubredditConfig } from '../types';
 import { NHLConfig } from '../leagues/nhl/types';
 import { getTeamsForLeague } from '../leagues';
@@ -7,6 +7,7 @@ import { getSubredditConfig, setSubredditConfig } from '../config';
 import { getTeamLabel } from '../leagues/nhl/config';
 import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
+import { tryCancelScheduledJob } from '../threads';
 import { Logger } from '../utils/Logger';
 
 export const menuAction = (router: Router): void => {
@@ -120,7 +121,6 @@ export const formAction = (router: Router): void => {
                 }
 
                 // ---- CONFIG ----
-
                 // Build subredditConfig object
                 const config: SubredditConfig = {
                     league: leagueValue,
@@ -141,13 +141,37 @@ export const formAction = (router: Router): void => {
                 }
                 // ---- END CONFIG ----
 
-                // Run daily game check immediately
-                // TODO:FIX: Determine job to run based on league selection
-                //NOTE:logger.debug(`Attempting to run daily game check...`);
-                await dailyGameCheckJob();
+                // Check for existing scheduled Create Game Thread job (any game ID)
+                const prefix = `Game Day Thread`;
+                const jobs: (ScheduledJob | ScheduledCronJob)[] = await scheduler.listJobs();
+                const jobTitles = jobs.map(job => {
+                    const data = job.data as { jobTitle?: string };
 
-                // TODO:FIX: Check for existing scheduled Create Game Thread job (any game ID)
+                    return {
+                    label: data?.jobTitle ?? job.id,
+                    value: job.id
+                    };
+                });
+
+                const matchingJob = jobTitles.find(j => j.label.includes(prefix));
                 // If found, cancel the job and remove the redis lock, 1 sub = 1 thread
+                if (matchingJob) {
+                    const jobTitle = matchingJob.label; 
+                    const result = await tryCancelScheduledJob(jobTitle);
+
+                    if (result) {
+                        // Job was canceled
+                        logger.info(`Job: ${jobTitle} already exists. Overwriting...`);
+                    } else {
+                        // Duplicate thread may occur.
+                        logger.warn(`Existing pending job: ${jobTitle} found. Duplicate thread may occur.`);
+                    }
+                }
+                
+
+                // HACK:FIX: Determine job to run based on league selection
+                // Run daily game check immediately
+                await dailyGameCheckJob();           
 
                 // Send success toast
                 const teamName = getTeamLabel(savedTeamValue);

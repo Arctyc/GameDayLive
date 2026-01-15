@@ -95,7 +95,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
                 // Game is ongoing now, update at regular interval
                 updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
             }
-            
+
             await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
         }
     } else {
@@ -299,13 +299,6 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
 
     const jobTitle = `Live update-${gameId}`; // TODO: Localize time
 
-    // FIX: only schedule if no same job exists
-    const existingJob = await redis.get(`job:${jobTitle}`);
-    if (existingJob){
-        logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
-        return;
-    }
-
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
@@ -326,7 +319,6 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         }
 
         const jobId = await scheduler.runJob(job);
-        await redis.set(`job:${jobTitle}`, jobId);
 
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 

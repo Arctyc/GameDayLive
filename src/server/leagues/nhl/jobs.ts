@@ -153,7 +153,7 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     // Check for game data changes and update if modified
     const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
-    let game: NHLGame;
+    let game: NHLGame | undefined;
     let etag: string | undefined;
     let modified: boolean;
     

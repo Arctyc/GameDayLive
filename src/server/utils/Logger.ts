@@ -11,9 +11,7 @@ export enum LogLevel {
 export class Logger {
 
     #label: string;
-
     #logLevel: LogLevel;
-
     #traceName: string | undefined;
 
     public static async Create(label: string): Promise<Logger> {
@@ -23,7 +21,7 @@ export class Logger {
     public static async GetLogLevelSetting(): Promise<LogLevel> {
         const savedLvl = await settings.get<string[]>('logLevel');
         const key = savedLvl?.[0];
-        return (key ? LogLevel[key as keyof typeof LogLevel] : LogLevel.Trace) ?? LogLevel.Trace;
+        return (key ? LogLevel[key as keyof typeof LogLevel] : LogLevel.Info) ?? LogLevel.Info;
     }
 
     public constructor(label: string, logLevel?: LogLevel) {

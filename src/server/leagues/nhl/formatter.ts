@@ -254,7 +254,8 @@ function buildPenaltiesTableHeader() {
 `);
 }
 
-function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string { // TODO: bold sub team
+// TODO: bold sub team - get teamAbbrev from config, if team = teamAbbrev, team > `**${team}`
+function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string { 
     const d = play.details;
     if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);

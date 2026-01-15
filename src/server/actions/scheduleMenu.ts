@@ -10,7 +10,8 @@ export const jobMenuAction = (router: Router): void => {
       const logger = await Logger.Create('Menu - Scheduled Jobs');
 
       try {
-         // TODO: Lookup all stored job IDs in redis list
+         
+         // Look up all scheduled jobs
          const jobs: (ScheduledJob | ScheduledCronJob)[] = await scheduler.listJobs();
          const jobOptions = jobs.map(job => {
             const data = job.data as { jobTitle?: string };
@@ -23,7 +24,7 @@ export const jobMenuAction = (router: Router): void => {
 
          logger.info(`[LIST] Found ${jobs.length} scheduled jobs`);
 
-         // TODO: populate a form with readable job names
+         // Populate form with readable job names
          res.json({
             showForm: {
                name: 'cancelJobForm',

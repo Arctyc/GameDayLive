@@ -63,8 +63,7 @@ export async function tryUpdateThread(
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const logger = await Logger.Create('Thread - Update');
 
-	// TODO: if thread exists
-	// Find thread
+	// Ensure thread exists
 	try {
 		const post = await reddit.getPostById(postId);
     if (!post) {
@@ -172,10 +171,10 @@ export async function tryLockThread(){
 
 }
 
-// TODO: add function
-export async function tryCancelScheduledJob(jobTitle: string){ // TODO: Add post menu to devvit.json to cancel live updates from thread
+// TODO: Feature/option: Add thread menu to devvit.json to cancel live updates from thread
+export async function tryCancelScheduledJob(jobTitle: string){ 
 	const logger = await Logger.Create('Thread - Cancel Job');
-
+	
 	try{
 		const jobId = await redis.get(`job:${jobTitle}`);
 		

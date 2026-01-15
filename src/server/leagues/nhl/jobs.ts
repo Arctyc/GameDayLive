@@ -20,7 +20,7 @@ export async function dailyGameCheckJob() {
 
     const subredditName = context.subredditName;
     const teamAbbrev = config.nhl.teamAbbreviation;
-    const todayGames = await getTodaysSchedule(fetch); // FIX: Add try/catch
+    const todayGames = await getTodaysSchedule(fetch); // TODO:FIX: Add try/catch
     const todayGamesIds = todayGames.map(g => g.id).join(', ');
     logger.info(`Team: ${teamAbbrev}, Games: ${todayGamesIds}`);
 
@@ -92,7 +92,7 @@ export async function createGameThreadJob(gameId: number) {
                         // TODO: If game ended < X time ago
                         // Create PGT
                         logger.debug(`No PGT found, scheduling new.`);
-                        await scheduleCreatePostgameThread(context.subredditName, game, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+                        await scheduleCreatePostgameThread(game, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
                     }
                     return;
                 }
@@ -189,7 +189,7 @@ export async function createPostgameThreadJob(gameId: number) {
 
 // --------------- Next Live Update -----------------
 export async function nextLiveUpdateJob(gameId: number) {
-    const logger = await Logger.Create('Jobs - Next Live Update'); // TODO: Implement logging
+    const logger = await Logger.Create('Jobs - Next Live Update');
     
     const subredditName = context.subredditName;
     const postId = await redis.get(REDIS_KEYS.GAME_THREAD_ID(gameId));
@@ -275,12 +275,12 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     } else {
         // Game finished
-        // TODO:FIX: schedule postgame thread if enabled
+        // TODO:FIX: schedule postgame thread only if enabled (offload method?)
         const config = await getSubredditConfig(context.subredditName);
         if (config?.enablePostgameThreads){
             logger.info(`Game ended. Scheduling PGT.`);
             const scheduledTime = new Date(Date.now());
-            await scheduleCreatePostgameThread(subredditName, game, scheduledTime);
+            await scheduleCreatePostgameThread(game, scheduledTime);
         }       
         // Either way, drop the game from redis
         await tryCleanupThread(postId as Post["id"]); // TODO: make scheduler to schedule this for later?
@@ -312,7 +312,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         // Past AND more than 3 hours ago → abort
         else {
             logger.warn(`Tried to create thread with 3+ hour old game`);
-            await scheduleCreatePostgameThread(context.subredditName, game, now);
+            await scheduleCreatePostgameThread(game, now);
             return;
         }
     }
@@ -350,11 +350,14 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
 }
 
 // -------- Schedule Create Postgame Thread --------
-async function scheduleCreatePostgameThread(subredditName: string, game: NHLGame, scheduledTime: Date) {
+async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
     
     const gameId = game.id;
+    const subredditName = context.subredditName;
     const jobTitle = `${await formatThreadTitle(game)} - ${gameId}`;
+
+    // TODO: Verify enabled in settings
 
     // Only schedule if no same job exists
     const existingJob = await redis.get(`job:${jobTitle}`);

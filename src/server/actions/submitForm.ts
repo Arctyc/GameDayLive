@@ -62,7 +62,7 @@ export const formAction = (router: Router): void => {
                 };
 
                 // Store in redis using helper function
-                logger.debug(`Attempting to store config for ${context.subredditName}`)
+                //NOTE:logger.debug(`Attempting to store config for ${context.subredditName}`)
                 await setSubredditConfig(context.subredditName, config);
 
                 // Pull saved team name to confirm with toast
@@ -76,7 +76,7 @@ export const formAction = (router: Router): void => {
 
                 // Run daily game check immediately
                 // TODO:FIX: Determine job to run based on league selection
-                logger.debug(`Attempting to run daily game check...`);
+                //NOTE:logger.debug(`Attempting to run daily game check...`);
                 await dailyGameCheckJob();
 
                 // TODO:FIX: Check for existing scheduled Create Game Thread job (any game ID)

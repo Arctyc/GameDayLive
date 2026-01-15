@@ -7,6 +7,7 @@ import { cleanupThread, createThread, updateThread } from '../../threads';
 import { NewJobData, UpdateJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import e, { json } from 'express';
+import { postMessageToThread } from 'node:worker_threads';
 
 //TODO:FIX: Stop passing subredditName, just get from context.subredditName
 
@@ -63,6 +64,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         const existingThreadId = await redis.get(REDIS_KEYS.GAME_THREAD_ID(gameId));
         
         if (existingThreadId) {
+            logger.debug(`Found redis lock for game ${gameId}`);
             // Check for actual post on reddit
             const foundPost = await reddit.getPostById(existingThreadId as Post["id"]);
             
@@ -73,14 +75,28 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
                 // Continue to creation logic below
             } else {
                 // Thread exists on reddit
-                logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);
-                
+                logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);                
                 // Check if game is over
                 const gameIsOver = game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF;
                 
                 if (gameIsOver) {
-                    // Game is over, run cleanup, don't post new
+                    // Run cleanup, don't post new
+                    logger.debug(`Tried to create thread for game that's over. Cleaning up Redis...`);
                     await cleanupThread(existingThreadId as Post["id"]);
+                    
+                    // Check for PGT
+                    const pgt = await redis.get(REDIS_KEYS.POSTGAME_THREAD_ID(gameId))
+                    logger.debug(`Checking for Post-game thread...`);
+                    if (pgt) {
+                        // Clean up stale thread
+                        logger.debug(`PGT found, cleaning up Redis...`);
+                        await cleanupThread(pgt as Post["id"]);
+                    } else {
+                        // TODO: If game ended < X time ago
+                        // Create PGT
+                        logger.debug(`No PGT found, scheduling new.`);
+                        await scheduleCreatePostgameThread(context.subredditName, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+                    }
                     return;
                 }
 
@@ -160,11 +176,8 @@ export async function createPostgameThreadJob(gameId: number, subredditName: str
     const title = await formatThreadTitle(game, subredditName);
     const body = await formatThreadBody(game, subredditName);
 
-    const result = await createThread(
-        context,
-        title,
-        body
-    )
+    // Create thread on reddit
+    const result = await createThread(context, title, body)
 
     if (result.success) {
         const post = result.post!;
@@ -255,9 +268,10 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     } else {
         // Game finished
-        // TODO: schedule postgame thread if enabled
+        // TODO:FIX: schedule postgame thread if enabled
         const config = await getSubredditConfig(context.subredditName);
         if (config?.enablePostgameThreads){
+            logger.info(`Game ended. Scheduling PGT.`);
             const scheduledTime = new Date(Date.now());
             await scheduleCreatePostgameThread(subredditName, gameId, scheduledTime);
         }       
@@ -277,11 +291,16 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     // FIX: make jobTitle format "Game Thread: team @ team date"
     const jobTitle = `Game Thread-${gameId}`;
 
-    // FIX: only schedule if no same job exists
-    const existingJob = await redis.get(`job:${jobTitle}`);
+    // only schedule if no same job exists
+    const existingJob = await redis.get(`job:${jobTitle}`); // FIX: Is getting the title what is wanted here?
+
     if (existingJob){
-        logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
-        // FIX:NOTE:HACK: TEMPORARILY DISABLED SKIPPING, THIS CAN CAUSE DIPLICATE THREADS return;
+        logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`);
+        const postId = await redis.get(REDIS_KEYS.GAME_THREAD_ID(gameId));
+        await cleanupThread(postId as Post["id"]);
+        // HACK: Try again
+        await scheduleCreateGameThread(context.subredditName, gameId, new Date(Date.now()));
+        return;
     }
 
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
@@ -314,12 +333,15 @@ async function scheduleCreatePostgameThread(subredditName: string, gameId: numbe
     // FIX: make jobTitle format "Game Thread: team @ team date"
     const jobTitle = `Postgame Thread-${gameId}`;
 
-    // FIX: only schedule if no same job exists
+    // Only schedule if no same job exists
     const existingJob = await redis.get(`job:${jobTitle}`);
     if (existingJob){
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
         return;
     }
+
+    // TODO: only schedule if no same THREAD exists
+    //
 
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {

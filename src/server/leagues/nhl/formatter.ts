@@ -158,7 +158,7 @@ function isShootoutPeriod(period: number, game: NHLGame, plays?: any[]): boolean
         const descriptor = plays[0].periodDescriptor;
         return descriptor?.periodType === "SO";
     }
-    return game.shootoutInUse && period === 5;
+    return (game.shootoutInUse ?? false) && period === 5;
 }
 
 function buildBodyGoals(game: NHLGame): string {
@@ -169,28 +169,31 @@ function buildBodyGoals(game: NHLGame): string {
     }
 
     const { goals } = organizePlaysByPeriod(game.plays || []);
+    
     let out = `# GOALS\n\n`;
-
+    out += buildGoalsTableHeader();
+    
+    let hasAnyGoals = false;
+    
     for (let period = 1; period <= currentPeriod; period++) {
         const sortedPlays = goals[period]?.sort((a, b) => {
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
 
-        const periodLabel = getPeriodLabel(period, game, sortedPlays);
-
-        out += `**${periodLabel}**\n\n`;
-        out += makeGoalsTableHeader();
-        
-        if (!sortedPlays || sortedPlays.length === 0) {
-            out += `- | - | - | - | - | -\n`;
-        } else {
+        if (sortedPlays && sortedPlays.length > 0) {
+            hasAnyGoals = true;
+            const periodLabel = getPeriodLabel(period, game, sortedPlays);
             for (const play of sortedPlays) {
-                out += goalRowFromPlay(play, game);
+                out += goalRowFromPlay(play, game, periodLabel);
             }
         }
-        out += `\n`;
     }
-
+    
+    if (!hasAnyGoals) {
+        out += `- | - | - | - | - | - | -\n`;
+    }
+    
+    out += `\n`;
     return out;
 }
 
@@ -202,31 +205,34 @@ function buildBodyPenalties(game: NHLGame): string {
     }
 
     const { penalties } = organizePlaysByPeriod(game.plays || []);
+    
     let out = `# PENALTIES\n\n`;
-
+    out += buildPenaltiesTableHeader();
+    
+    let hasAnyPenalties = false;
+    
     for (let period = 1; period <= currentPeriod; period++) {
+        // Skip shootout periods entirely for penalties
+        if (isShootoutPeriod(period, game, penalties[period])) continue;
+        
         const sortedPlays = penalties[period]?.sort((a, b) => {
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
 
-        // Skip shootout periods entirely for penalties
-        if (isShootoutPeriod(period, game, sortedPlays)) continue;
-
-        const periodLabel = getPeriodLabel(period, game, sortedPlays);
-
-        out += `**${periodLabel}**\n\n`;
-        out += makePenaltiesTableHeader();
-
-        if (!sortedPlays || sortedPlays.length === 0) {
-            out += `- | - | - | - | - | -\n`;
-        } else {
+        if (sortedPlays && sortedPlays.length > 0) {
+            hasAnyPenalties = true;
+            const periodLabel = getPeriodLabel(period, game, sortedPlays);
             for (const play of sortedPlays) {
-                out += penaltyRowFromPlay(play, game);
+                out += penaltyRowFromPlay(play, game, periodLabel);
             }
         }
-        out += `\n`;
     }
-
+    
+    if (!hasAnyPenalties) {
+        out += `- | - | - | - | - | - | -\n`;
+    }
+    
+    out += `\n`;
     return out;
 }
 
@@ -234,21 +240,21 @@ function buildBodyFooter(){
     return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
 }
 
-function makeGoalsTableHeader() {
+function buildGoalsTableHeader() {
     return (
-`Time | Team | Player | Shot Type | Assists | Clip
----|---|---|---|---|---
+`Period | Time | Team | Player | Shot Type | Assists | Clip
+---|---|---|---|---|---|---
 `);
 }
 
-function makePenaltiesTableHeader() {
+function buildPenaltiesTableHeader() {
     return (
-`Time | Team | Player | Infraction | Against | Minutes
----|---|---|---|---|---
+`Period | Time | Team | Player | Infraction | Against | Minutes
+---|---|---|---|---|---|---
 `);
 }
 
-function goalRowFromPlay(play: any, game: NHLGame): string {
+function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {
     const d = play.details;
     if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);
@@ -283,12 +289,11 @@ function goalRowFromPlay(play: any, game: NHLGame): string {
     const clip = d.highlightClipSharingUrl 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "N/A";
-    //console.debug(`clip URL: ${d.highlightClipSharingUrl}`);
 
-    return `${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
+    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }
 
-function penaltyRowFromPlay(play: any, game: NHLGame): string {
+function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {
     const d = play.details;
     if (!d) return ""; // Skip plays with no penalties
     const time = formatTime(play.timeInPeriod);
@@ -309,7 +314,7 @@ function penaltyRowFromPlay(play: any, game: NHLGame): string {
     
     const minutes = d.duration ?? 0;
 
-    return `${time} | ${team} | ${playerStr} | ${infraction} | ${againstStr} | ${minutes}\n`;
+    return `${periodLabel} | ${time} | ${team} | ${playerStr} | ${infraction} | ${againstStr} | ${minutes}\n`;
 }
 
 function getTeamById(game: NHLGame, teamId: number): string {

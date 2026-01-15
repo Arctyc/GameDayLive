@@ -80,24 +80,40 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         : "None?";
 
     // Build game status text
-    let periodLabel;
+    let periodLabel: string;
 
-    if (period === 0) {
-        periodLabel = "Scheduled";
-    } else if (periodType === "SO") {
-        periodLabel = "Shootout";
-    } else if (periodType === "OT") {
-        periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+    if (inIntermission) {
+        switch (period) {
+            case 1:
+                periodLabel = "1st Intermission";
+                break;
+            case 2:
+                periodLabel = "2nd Intermission";
+                break;
+            default:
+                periodLabel = "Intermission";
+                break;
+        }
     } else {
-        periodLabel = `Period ${period}`;
+        switch (true) {
+            case period === 0:
+                periodLabel = "Scheduled";
+                break;
+            case periodType === "SO":
+                periodLabel = "Shootout";
+                break;
+            case periodType === "OT":
+                periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+                break;
+            default:
+                periodLabel = `Period ${period}`;
+        }
     }
 
     // 3. Determine the Time Remaining Display
     let timeRemainingDisplay = rawTimeRemaining;
     
-    if (inIntermission) {
-        timeRemainingDisplay = "Intermission";
-    } else if (periodType === "SO") {
+    if (periodType === "SO") {
         timeRemainingDisplay = "In Progress";
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         timeRemainingDisplay = "Final";
@@ -107,7 +123,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
 
 **Status:** ${periodLabel}  
-**Scoreboard:** ${awayTeamAbbrev} ${awayScore} | ${timeRemainingDisplay} | ${homeScore} ${homeTeamAbbrev}  
+**Scoreboard:** ${awayTeamAbbrev} **${awayScore}** | ${timeRemainingDisplay} | **${homeScore}** ${homeTeamAbbrev}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;

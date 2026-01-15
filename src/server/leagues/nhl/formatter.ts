@@ -240,7 +240,7 @@ function buildBodyFooter(){
 
 function buildGoalsTableHeader() {
     return (
-`Period | Time | Team | Player | Shot Type | Assists | Clip
+`Period | Time | Team |Player | Shot Type | Assists | Clip
 ---|---|---|---|---|---|---
 `);
 }
@@ -252,7 +252,7 @@ function buildPenaltiesTableHeader() {
 `);
 }
 
-function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {
+function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string { // TODO: bold sub team
     const d = play.details;
     if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);
@@ -286,9 +286,9 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
 
     const clip = d.highlightClipSharingUrl 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
-        : "N/A";
+        : "-";
 
-    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name}${modifier} | ${shotType} | ${assistsStr} | ${clip}\n`;
+    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${modifier} ${shotType} | ${assistsStr} | ${clip}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {

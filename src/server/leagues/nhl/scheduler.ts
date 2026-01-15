@@ -89,5 +89,6 @@ export const nextLiveUpdate = (router: Router) => {
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createGameThread(router);
+  createPostgameThread(router)
   nextLiveUpdate(router);
 };

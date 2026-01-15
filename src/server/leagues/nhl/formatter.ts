@@ -166,7 +166,7 @@ function buildBodyGoals(game: NHLGame): string {
         out += makeGoalsTableHeader();
         
         if (!sortedPlays || sortedPlays.length === 0) {
-            out += "*No goals scored in this period.*\n";
+            out += `- | - | - | - | - | -\n`;
         } else {
             for (const play of sortedPlays) {
                 out += goalRowFromPlay(play, game);
@@ -198,7 +198,7 @@ function buildBodyPenalties(game: NHLGame): string {
         out += makePenaltiesTableHeader();
 
         if (!sortedPlays || sortedPlays.length === 0) {
-            out += "*No penalties in this period.*\n";
+            out += `- | - | - | - | - | -\n`;
         } else {
             for (const play of sortedPlays) {
                 out += penaltyRowFromPlay(play, game);

@@ -126,9 +126,10 @@ export async function tryCleanupThread(
         await post.unsticky();
 		
 		// Lock post
-        //await post.lock(); TODO: Is this wanted? (add to config options?)
+        //await post.lock(); NOTE: Is this wanted? (add to config options?)
 
 		// TODO: delete redis jobs associated with post		
+		// NOTE: Find any redis with jobTitle that includes gameId in string
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };
@@ -156,22 +157,22 @@ export async function tryAddComment(post: Post, comment: string){
 	}
 }
 
-// TODO:
+// TODO: add function
 export async function tryStickyThread(){
 
 }
 
-// TODO:
+// TODO: add function
 export async function tryUnstickyThread(){
 
 }
 
-// TODO:
+// TODO: add function
 export async function tryLockThread(){
 
 }
 
-// TODO:
+// TODO: add function
 export async function tryCancelScheduledJob(jobTitle: string){ // TODO: Add post menu to devvit.json to cancel live updates from thread
 	const logger = await Logger.Create('Thread - Cancel Job');
 

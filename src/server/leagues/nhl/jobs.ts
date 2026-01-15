@@ -247,7 +247,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         // Format and update thread
         const body = await formatThreadBody(game, subredditName);
         const result = await updateThread(postId as Post["id"], body);
-        // TODO: Use result
+        // TODO:FIX: Use result
     }
 
     // Schedule next live update
@@ -299,7 +299,8 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
 
     // Clean scheduled time
     const now = new Date();
-    const threeHoursAgo = (3 * 60 * 60 * 60 * 1000 ) // FIX: Constants are imported, but it can't find them?
+    
+    const threeHoursAgo = ( UPDATE_INTERVALS.PREGAME_THREAD_OFFSET * 3 ) // FIX: Constants are imported, but it can't find them?
     if (scheduledTime < now && now.getTime() - scheduledTime.getTime() < (threeHoursAgo)){
         scheduledTime = now;
     } else {

@@ -76,6 +76,7 @@ export const jobCancelAction = (router: Router): void => {
         logger.info(`Attempting to cancel job ${jobId}`);
 
         await scheduler.cancelJob(jobId);
+        //await redis.del(`job:${jobTitle}`); TODO:Get job title
         // TODO: threads tryCancelJob method?
 
         res.status(200).json({

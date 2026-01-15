@@ -41,6 +41,9 @@
     "tasks": {
       "daily-game-check": {
         "endpoint": "/internal/scheduler/daily-game-check",
+        "data": {
+          "jobTitle": "Daily game check - Requires reinstall to restart"
+        },
         "cron": "0 8 * * * "
       },
       "create-game-thread": {

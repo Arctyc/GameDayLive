@@ -64,8 +64,10 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);
         
         // Still need to ensure updates are scheduled if game is live
-        if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
+        if (!game.gameState || game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
+
             const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+
             await scheduleNextLiveUpdate(subredditName, existingThreadId, game.id, updateTime);
         }
         return;
@@ -86,7 +88,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         await redis.set(REDIS_KEYS.GAME_THREAD_ID(gameId), post.id);
 
         // Schedule live updates
-        if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF){
+        if (!game.gameState || game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF){
             
             // Game is upcoming
             let updateTime = new Date(game.startTimeUTC);
@@ -181,7 +183,7 @@ export async function nextLiveUpdateJob(gameId: number) {
     }
 
     // Schedule next live update
-    if (game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
+    if (!game.gameState || game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
 
         // Set updateTime for now + default delay in seconds
         let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
@@ -225,7 +227,7 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     const logger = await Logger.Create('Jobs - Schedule Create Game Thread');
 
     // FIX: make jobTitle format "Game Thread: team @ team date"
-    const jobTitle = `Game Thread-${gameId}`; // TODO: Localize time
+    const jobTitle = `Game Thread-${gameId}`;
 
     // FIX: only schedule if no same job exists
     const existingJob = await redis.get(`job:${jobTitle}`);
@@ -295,7 +297,7 @@ async function scheduleCreatePostgameThread(subredditName: string, gameId: numbe
 
 // -------- Schedule Next Live Update --------
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
-    const logger = await Logger.Create('Jobs - Schedule Update Game Thread');
+    const logger = await Logger.Create('Jobs - Schedule Live Update');
 
     const jobTitle = `Live update-${gameId}`; // TODO: Localize time
 
@@ -326,7 +328,3 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
-
-// -------- Schedule Recurring Update --------
-// Schedule job with cron
-// cron: '*/15 * * * * *', // every 15 sec

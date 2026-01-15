@@ -143,7 +143,7 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         // Clear scheduled job from Redis
         const jobTitle = `Game Thread-${gameId}`;
         await redis.del(`job:${jobTitle}`);
-        
+
         // Store the post ID in Redis
         await redis.set(REDIS_KEYS.GAME_THREAD_ID(gameId), post.id);
 
@@ -186,8 +186,13 @@ export async function createPostgameThreadJob(gameId: number, subredditName: str
     if (result.success) {
         const post = result.post!;
         logger.info(`Created Post-game ID: ${post.id}`)
+
+        // Clear redis scheduled job
+        const jobTitle = `Postgame Thread-${gameId}`;
+        await redis.del(`job:${jobTitle}`);
         await redis.set(REDIS_KEYS.POSTGAME_THREAD_ID(gameId), post.id);
-        // TODO: devhedule cleanup for 12 hours
+        // TODO: schedule cleanup for 12 hours
+        
     } else {
         logger.error(`Failed to create post-game thread:`, result.error);
     }
@@ -321,7 +326,7 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
         const jobId = await scheduler.runJob(job);
         await redis.set(`job:${jobTitle}`, jobId);
 
-        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
+        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle} | time: ${scheduledTime.toISOString()}`);
 
     } catch (error) {
         logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);

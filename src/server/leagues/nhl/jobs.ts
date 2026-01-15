@@ -1,4 +1,4 @@
-import { redis, context, scheduler, ScheduledJob, Post, PostFlairWidget, reddit } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, ScheduledCronJob, Post, PostFlairWidget, reddit } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
@@ -6,7 +6,7 @@ import { getSubredditConfig } from '../../config';
 import { cleanupThread, createThread, updateThread } from '../../threads';
 import { NewJobData, UpdateJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
-import { json } from 'express';
+import e, { json } from 'express';
 
 //TODO:FIX: Stop passing subredditName, just get from context.subredditName
 
@@ -57,21 +57,61 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
     // Fetch game data
     const { game } = await getGameData(gameId, fetch);
     
-    // Check if thread already exists for this game
-    const existingThreadId = await redis.get(REDIS_KEYS.GAME_THREAD_ID(gameId));
-    
-    if (existingThreadId) {
-        logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);
+    // Ensure no existing thread for game
+    try {
+        // Check redis for game thread lock
+        const existingThreadId = await redis.get(REDIS_KEYS.GAME_THREAD_ID(gameId));
         
-        // Still need to ensure updates are scheduled if game is live
-        if (!game.gameState || game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
+        if (existingThreadId) {
+            // Check for actual post on reddit
+            const foundPost = await reddit.getPostById(existingThreadId as Post["id"]);
+            
+            if (!foundPost) {
+                // Thread not found on reddit, cleanup stale reference and recreate
+                logger.warn(`Thread ${existingThreadId} in Redis but not on Reddit. Cleaning up.`);
+                await cleanupThread(existingThreadId as Post["id"]);
+                // Continue to creation logic below
+            } else {
+                // Thread exists on reddit
+                logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);
+                
+                // Check if game is over
+                const gameIsOver = game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF;
+                
+                if (gameIsOver) {
+                    // Game is over, run cleanup, don't post new
+                    await cleanupThread(existingThreadId as Post["id"]);
+                    return;
+                }
 
-            const updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+                // Game is still ongoing - check for live update jobs
+                const jobs = await scheduler.listJobs();
+                const thisGameJobs = jobs.filter(job => 
+                    job.data?.gameId === gameId && 
+                    job.name === 'next-live-update'
+                );
 
-            await scheduleNextLiveUpdate(subredditName, existingThreadId, game.id, updateTime);
+                if (thisGameJobs.length > 0) {
+                    // Live update job already exists for this game
+                    logger.info(`Live update job already scheduled for game ${gameId}`);
+                    return;
+                }
+
+                // Game is ongoing but no live update jobs exist - schedule one
+                const updateTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+                await scheduleNextLiveUpdate(subredditName, existingThreadId as Post["id"], game.id, updateTime);
+                return;
+            }
         }
-        return;
+
+        // No existing thread found, or cleaned up stale reference - proceed with creation below
+
+    } catch (err) {
+        logger.error(`Error checking existing thread. Proceeding with creation - duplicate may occur.`, err);
+        // Fall through to creation logic
     }
+
+// Thread creation logic continues here...
 
     // Format title & body
     const title = await formatThreadTitle(game, subredditName);
@@ -130,7 +170,7 @@ export async function createPostgameThreadJob(gameId: number, subredditName: str
         const post = result.post!;
         logger.info(`Created Post-game ID: ${post.id}`)
         await redis.set(REDIS_KEYS.POSTGAME_THREAD_ID(gameId), post.id);
-        // TODO: Schedule cleanup for 12 hours
+        // TODO: devhedule cleanup for 12 hours
     } else {
         logger.error(`Failed to create post-game thread:`, result.error);
     }

@@ -64,6 +64,7 @@ export async function updateThread(
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const logger = await Logger.Create('Thread - Update');
 
+	// TODO: if thread exists
 	// Find thread
 	try {
 		const post = await reddit.getPostById(postId);
@@ -113,6 +114,11 @@ export async function cleanupThread(
             };
         }
 
+		// Check if exists
+		const foundPost = await reddit.getPostById(postId);
+		// TODO: If yes/no? clear redis? clear schedule?
+
+
         // Cleanup actions
 		// TODO: Use functions for trySticky tryUnsticky tryLock
         await post.unsticky();
@@ -133,8 +139,6 @@ export async function cleanupThread(
         };
     }
 }
-
-// TODO:
 
 export async function addComment(post: Post, comment: string){
 	const logger = await Logger.Create('Thread - Add comment');

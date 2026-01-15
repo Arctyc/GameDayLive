@@ -1,4 +1,4 @@
-import { redis, context, scheduler, ScheduledJob, ScheduledCronJob, Post, PostFlairWidget, reddit } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';

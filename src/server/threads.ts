@@ -14,7 +14,7 @@ export async function tryCreateThread(
 	const logger = await Logger.Create('Thread - Create');
 
 	try {
-    // Submit post create request
+    	// Submit post create request
 		const post = await reddit.submitPost({
 			subredditName: context.subredditName,
 			title: title,

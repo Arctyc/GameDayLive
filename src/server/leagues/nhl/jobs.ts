@@ -132,10 +132,6 @@ export async function createGameThreadJob(gameId: number) {
     if (result.success) {
         const post = result.post!;
         logger.info(`Created post ID: ${post.id}`);
-        
-        // Clear scheduled job from Redis
-        const jobTitle = `Game Thread-${gameId}`;
-        await redis.del(`job:${jobTitle}`);
 
         // Store the post ID in Redis
         await redis.set(REDIS_KEYS.GAME_THREAD_ID(gameId), post.id);
@@ -202,7 +198,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         return;
     }
 
-    // FIX: Check that post is actually live on reddit somehow, 
+    // FIX: Check that post is actually live on reddit, 
     // if not, cancel and drop redis of game
     // daily check will fix if necessary
 
@@ -240,7 +236,16 @@ export async function nextLiveUpdateJob(gameId: number) {
         // Format and update thread
         const body = await formatThreadBody(game);
         const result = await tryUpdateThread(postId as Post["id"], body);
-        // TODO:FIX: Use result
+        if (!result.success) {
+            logger.error(`Thread update failed for post ${postId}: ${result.error}`);
+
+            // Reschedule another attempt in case of transient Reddit/API error
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
+            await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
+            return;
+        }
+
     }
 
     // Schedule next live update
@@ -249,8 +254,8 @@ export async function nextLiveUpdateJob(gameId: number) {
         // Set updateTime for now + default delay in seconds
         let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
 
+        /* NOTE: Disabled, Keep intermission time remaining on thread unless
         // If intermission, delay update until nearly over
-        /* NOTE: Disabled
         if (game.clock?.inIntermission) {
             const intermissionRemaining = game.clock.secondsRemaining;
             if (intermissionRemaining > (UPDATE_INTERVALS.INTERMISSION / 1000)) {
@@ -260,7 +265,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         }
         */
         
-        // IF OT/SO use OT/SO interval
+        // IF OT/SO use quicker interval
         if (game.periodDescriptor?.periodType == "OT" || game.periodDescriptor?.periodType == "SO" ){
             updateTime = new Date(Date.now() + (UPDATE_INTERVALS.OVERTIME_SHOOTOUT));
         } 

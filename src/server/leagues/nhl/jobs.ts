@@ -297,6 +297,16 @@ export async function nextLiveUpdateJob(gameId: number) {
 async function scheduleCreateGameThread(subredditName: string, gameId: number, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Game Thread');
 
+    // Clean scheduled time
+    const now = new Date();
+    const threeHoursAgo = (3 * 60 * 60 * 60 * 1000 ) // FIX: Constants are imported, but it can't find them?
+    if (scheduledTime < now && now.getTime() - scheduledTime.getTime() < (threeHoursAgo)){
+        scheduledTime = now;
+    } else {
+        logger.warn(`Tried to create thread with 3+ hour old game`)
+        return;
+    }
+
     // FIX: make jobTitle format "Game Thread: team @ team date"
     const jobTitle = `Game Thread-${gameId}`;
 
@@ -325,8 +335,8 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
 
         const jobId = await scheduler.runJob(job);
         await redis.set(`job:${jobTitle}`, jobId);
-
-        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle} | time: ${scheduledTime.toISOString()}`);
+        logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
+        logger.debug(`time: ${scheduledTime.toISOString()} | now: ${new Date(Date.now()).toISOString()}`);
 
     } catch (error) {
         logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
@@ -337,7 +347,7 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
 async function scheduleCreatePostgameThread(subredditName: string, gameId: number, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
     
-    // FIX: make jobTitle format "Game Thread: team @ team date"
+    // FIX: make jobTitle format "Post-game Thread: team @ team date"
     const jobTitle = `Postgame Thread-${gameId}`;
 
     // Only schedule if no same job exists

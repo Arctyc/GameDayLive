@@ -1,4 +1,4 @@
-import { Post, reddit } from "@devvit/web/server";
+import { context, Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
@@ -191,5 +191,24 @@ export async function tryCancelScheduledJob(jobTitle: string){
 	} catch (err) {
 		logger.error(`Failed to cancel job ${jobTitle}`, err);
 		return { ok: false, reason: (err as Error).message };
+	}
+}
+
+export async function findRecentThreadByName(threadTitle: string): Promise<Post | undefined > {
+	const logger = await Logger.Create(`Thread - Find By Name`);
+
+	const recentThreads = await reddit.getNewPosts({
+		subredditName: context.subredditName,
+		limit: 500,
+	})
+
+	const post = recentThreads.children?.find(t => t.title === threadTitle);
+	
+	if (post){
+		logger.info(`Found post: ${post?.id}`);
+		return post
+	} else {
+		logger.warn(`No recent post matching name ${threadTitle}`);
+		return undefined;
 	}
 }

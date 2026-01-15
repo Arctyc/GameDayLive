@@ -131,26 +131,24 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
 }
 
 function getPeriodLabel(period: number, game: NHLGame, plays?: any[]): string {
-    let periodLabel = `Period ${period}`;
-    
     if (plays && plays.length > 0) {
         const descriptor = plays[0].periodDescriptor;
         const type = descriptor?.periodType;
         if (type === "SO") {
-            return "Shootout";
+            return "SO";
         } else if (type === "OT") {
-            return period === 4 ? "Overtime" : `${period - 3}OT`;
+            return period === 4 ? "OT" : `${period - 3}OT`;
         }
     } else {
         // Check game state for period label when no plays exist
         if (game.shootoutInUse && period === 5) {
-            return "Shootout";
+            return "SO";
         } else if (game.otInUse && period >= 4) {
-            return period === 4 ? "Overtime" : `${period - 3}OT`;
+            return period === 4 ? "OT" : `${period - 3}OT`;
         }
     }
     
-    return periodLabel;
+    return String(period);
 }
 
 function isShootoutPeriod(period: number, game: NHLGame, plays?: any[]): boolean {
@@ -165,12 +163,12 @@ function buildBodyGoals(game: NHLGame): string {
     const currentPeriod = game.periodDescriptor?.number ?? 0;
     
     if (currentPeriod === 0) {
-        return "# GOALS\n\nNo goals scored yet.";
+        return "";
     }
 
     const { goals } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `# GOALS\n\n`;
+    let out = `**GOALS**\n\n`;
     out += buildGoalsTableHeader();
     
     let hasAnyGoals = false;
@@ -201,12 +199,12 @@ function buildBodyPenalties(game: NHLGame): string {
     const currentPeriod = game.periodDescriptor?.number ?? 0;
     
     if (currentPeriod === 0) {
-        return "# PENALTIES\n\nNo penalties.";
+        return "";
     }
 
     const { penalties } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `# PENALTIES\n\n`;
+    let out = `**PENALTIES**\n\n`;
     out += buildPenaltiesTableHeader();
     
     let hasAnyPenalties = false;

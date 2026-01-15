@@ -112,7 +112,6 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
 
     // 3. Determine the Time Remaining Display
     let timeRemainingDisplay = rawTimeRemaining;
-    
     if (periodType === "SO") {
         timeRemainingDisplay = "In Progress";
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
@@ -132,54 +131,46 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
 }
 
 function buildBodyGoals(game: NHLGame): string {
-    if (!game.plays || game.plays.length === 0) {
+    const currentPeriod = game.periodDescriptor?.number ?? 0;
+    
+    if (currentPeriod === 0) {
         return "# GOALS\n\nNo goals scored yet.";
     }
 
-    const { goals } = organizePlaysByPeriod(game.plays);
-
-    if (Object.keys(goals).length === 0) {
-        return "# GOALS\n\nNo goals scored yet.";
-    }
-
+    const { goals } = organizePlaysByPeriod(game.plays || []);
     let out = `# GOALS\n\n`;
 
-    // Sort periods numerically
-    const periods = Object.keys(goals).map(Number).sort((a, b) => a - b);
-
-    for (const period of periods) {
+    // Generate tables for all periods from 1 to current
+    for (let period = 1; period <= currentPeriod; period++) {
         const sortedPlays = goals[period]?.sort((a, b) => {
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
 
-        // Fallback: If there are no plays yet, default to "Period X"
+        // Determine period label
         let periodLabel = `Period ${period}`;
-
         if (sortedPlays && sortedPlays.length > 0) {
             const descriptor = sortedPlays[0].periodDescriptor;
             const type = descriptor?.periodType;
-
             if (type === "SO") {
                 periodLabel = "Shootout";
             } else if (type === "OT") {
                 periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
             }
         } else {
-            // Additional safety: If the game is in a shootout but has no goals yet
+            // Check game state for period label when no plays exist
             if (game.shootoutInUse && period === 5) periodLabel = "Shootout";
-            else if (game.otInUse && period >= 4) periodLabel = "Overtime";
+            else if (game.otInUse && period >= 4) periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
         }
 
         out += `**${periodLabel}**\n\n`;
+        out += makeGoalsTableHeader();
         
         if (!sortedPlays || sortedPlays.length === 0) {
-            out += "No goals scored in this period.\n\n";
-            continue;
-        }
-
-        out += makeGoalsTableHeader();
-        for (const play of sortedPlays) {
-            out += goalRowFromPlay(play, game);
+            out += "*No goals scored in this period.*\n";
+        } else {
+            for (const play of sortedPlays) {
+                out += goalRowFromPlay(play, game);
+            }
         }
         out += `\n`;
     }
@@ -188,34 +179,31 @@ function buildBodyGoals(game: NHLGame): string {
 }
 
 function buildBodyPenalties(game: NHLGame): string {
-    if (!game.plays || game.plays.length === 0) {
+    const currentPeriod = game.periodDescriptor?.number ?? 0;
+    
+    if (currentPeriod === 0) {
         return "# PENALTIES\n\nNo penalties.";
     }
 
-    const { penalties } = organizePlaysByPeriod(game.plays);
-
-    if (Object.keys(penalties).length === 0) {
-        return "# PENALTIES\n\nNo penalties.";
-    }
-
+    const { penalties } = organizePlaysByPeriod(game.plays || []);
     let out = `# PENALTIES\n\n`;
 
-    const periods = Object.keys(penalties).map(Number).sort((a, b) => a - b);
-
-    for (const period of periods) {
+    // Generate tables for all periods from 1 to current
+    for (let period = 1; period <= currentPeriod; period++) {
         const sortedPlays = penalties[period]?.sort((a, b) => {
-            // Sort chronologically
             return a.timeInPeriod.localeCompare(b.timeInPeriod);
         });
-        if (!sortedPlays || sortedPlays.length === 0) continue;
 
         out += `**Period ${period}**\n\n`;
         out += makePenaltiesTableHeader();
 
-        for (const play of sortedPlays) {
-            out += penaltyRowFromPlay(play, game);
+        if (!sortedPlays || sortedPlays.length === 0) {
+            out += "*No penalties in this period.*\n";
+        } else {
+            for (const play of sortedPlays) {
+                out += penaltyRowFromPlay(play, game);
+            }
         }
-
         out += `\n`;
     }
 

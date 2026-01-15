@@ -140,6 +140,10 @@ export async function createGameThreadJob(gameId: number, subredditName: string)
         const post = result.post!;
         logger.info(`Created post ID: ${post.id}`);
         
+        // Clear scheduled job from Redis
+        const jobTitle = `Game Thread-${gameId}`;
+        await redis.del(`job:${jobTitle}`);
+        
         // Store the post ID in Redis
         await redis.set(REDIS_KEYS.GAME_THREAD_ID(gameId), post.id);
 
@@ -292,14 +296,12 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     const jobTitle = `Game Thread-${gameId}`;
 
     // only schedule if no same job exists
-    const existingJob = await redis.get(`job:${jobTitle}`); // FIX: Is getting the title what is wanted here?
+    const existingJob = await redis.get(`job:${jobTitle}`);
 
     if (existingJob){
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`);
         const postId = await redis.get(REDIS_KEYS.GAME_THREAD_ID(gameId));
         await cleanupThread(postId as Post["id"]);
-        // HACK: Try again
-        await scheduleCreateGameThread(context.subredditName, gameId, new Date(Date.now()));
         return;
     }
 

@@ -317,7 +317,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         }
     }
 
-    const jobTitle = `${formatThreadTitle(game)} - ${game.id}`;
+    const jobTitle = `${await formatThreadTitle(game)} - ${game.id}`;
 
     // only schedule if no same job exists
     const existingJob = await redis.get(`job:${jobTitle}`);
@@ -354,7 +354,7 @@ async function scheduleCreatePostgameThread(subredditName: string, game: NHLGame
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
     
     const gameId = game.id;
-    const jobTitle = `${formatThreadTitle(game)} - ${gameId}`;
+    const jobTitle = `${await formatThreadTitle(game)} - ${gameId}`;
 
     // Only schedule if no same job exists
     const existingJob = await redis.get(`job:${jobTitle}`);

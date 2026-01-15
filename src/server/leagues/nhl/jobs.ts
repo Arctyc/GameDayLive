@@ -235,6 +235,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
 
         // If intermission, delay update until nearly over
+        /* NOTE: Disabled
         if (game.clock?.inIntermission) {
             const intermissionRemaining = game.clock.secondsRemaining;
             if (intermissionRemaining > (UPDATE_INTERVALS.INTERMISSION / 1000)) {
@@ -242,6 +243,7 @@ export async function nextLiveUpdateJob(gameId: number) {
                 updateTime = new Date(Date.now() + ((intermissionRemaining * 1000)-UPDATE_INTERVALS.INTERMISSION));
             }
         }
+        */
         
         // IF OT/SO use OT/SO interval
         if (game.periodDescriptor?.periodType == "OT" || game.periodDescriptor?.periodType == "SO" ){

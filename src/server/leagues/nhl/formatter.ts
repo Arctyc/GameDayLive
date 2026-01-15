@@ -122,8 +122,8 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
 
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
 
-**Status:** ${periodLabel}  
-**Scoreboard:** ${awayTeamAbbrev} **${awayScore}** | ${timeRemainingDisplay} | **${homeScore}** ${homeTeamAbbrev}  
+**Status:** ${periodLabel} - ${timeRemainingDisplay} Remaining  
+**Scoreboard:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;

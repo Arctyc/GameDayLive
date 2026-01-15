@@ -104,7 +104,7 @@ export async function cleanupThread(
 		// Lock post
         //await post.lock(); TODO: Is this wanted? (add to config options?)
 
-		//
+		// TODO: del res lock on original post
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };

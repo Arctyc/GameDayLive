@@ -172,6 +172,12 @@ export async function nextLiveUpdateJob(gameId: number) {
         return;
     }
 
+    if (!game) {
+        logger.error(`Game data is null. Game: ${gameId}`);
+        await scheduleNextLiveUpdate(subredditName, postId, gameId, new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT * 2)));
+        return;
+    }
+
     if (modified) {
         // Store new etag
         if (etag) await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);

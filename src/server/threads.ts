@@ -24,6 +24,15 @@ export async function createThread(
 
 		logger.info(`Post created in ${context.subredditName} with title: "${title}"`);
 
+		// HACK: Temporary comment - remove for v1.0
+		await addComment(
+			post,
+`This thread was created by GameDayLive, an application that is in development. There may be bugs.  
+
+For more information, including bug reports or to find out how to use this application on your subreddit, even for other sports, visit [the github page](https://github.com/Arctyc/GameDayLive).`
+		);
+		// -------- END TEMPORT COMMENT --------
+
 		// Attempt to sort by new
 		try {
 			await post.setSuggestedCommentSort("NEW");
@@ -123,6 +132,22 @@ export async function cleanupThread(
             error: err instanceof Error ? err.message : String(err),
         };
     }
+}
+
+// TODO:
+
+export async function addComment(post: Post, comment: string){
+	const logger = await Logger.Create('Thread - Add comment');
+
+	try {
+		await post.addComment({
+			text: comment
+		});
+
+		logger.info(`Post comment added to post ${post.id}`);
+	} catch (stickyErr) {
+		logger.warn(`Failed to add comment to post ${post.id}:`, stickyErr);
+	}
 }
 
 // TODO:

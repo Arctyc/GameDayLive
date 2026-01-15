@@ -300,14 +300,21 @@ async function scheduleCreateGameThread(subredditName: string, gameId: number, s
     // Clean scheduled time
     const now = new Date();
     
-    const threeHoursAgo = ( UPDATE_INTERVALS.PREGAME_THREAD_OFFSET * 3 ) // FIX: Constants are imported, but it can't find them?
-    if (scheduledTime < now && now.getTime() - scheduledTime.getTime() < (threeHoursAgo)){
-        scheduledTime = now;
-    } else {
-        logger.warn(`Tried to create thread with 3+ hour old game`)
-        // TODO: try to schedule PGT
-        await scheduleCreatePostgameThread(context.subredditName, gameId, now)
-        return;
+    const THREE_HOURS_MS = UPDATE_INTERVALS.PREGAME_THREAD_OFFSET * 3;
+
+    if (scheduledTime < now) {
+        const ageMs = now.getTime() - scheduledTime.getTime();
+
+        // Past, but not more than 3 hours ago → snap to now
+        if (ageMs <= THREE_HOURS_MS) {
+            scheduledTime = now;
+        }
+        // Past AND more than 3 hours ago → abort
+        else {
+            logger.warn(`Tried to create thread with 3+ hour old game`);
+            await scheduleCreatePostgameThread(context.subredditName, gameId, now);
+            return;
+        }
     }
 
     // FIX: make jobTitle format "Game Thread: team @ team date"

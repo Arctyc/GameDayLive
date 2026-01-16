@@ -40,9 +40,7 @@ export async function formatThreadBody(game: NHLGame): Promise<string> {
         "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
-        buildBodyPenalties(game) +
-        "\n\n---\n\n" +
-        buildBodyFooter(); // TODO: Investigate appending a footer in threads.ts for global standardization
+        buildBodyPenalties(game)
     return body;
 }
 
@@ -239,10 +237,6 @@ function buildBodyPenalties(game: NHLGame): string {
     
     out += `\n`;
     return out;
-}
-
-function buildBodyFooter(){
-    return "[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.";
 }
 
 function buildGoalsTableHeader() {

@@ -14,12 +14,14 @@ export async function tryCreateThread(
 ): Promise<{ success: boolean; post?: Post; error?: string }> {
 	const logger = await Logger.Create('Thread - Create');
 
+	const bodyWithFooter = appendFooter(body);
+
 	try {
     	// Submit post create request
 		const post = await reddit.submitPost({
 			subredditName: context.subredditName,
 			title: title,
-			text: body,	
+			text: bodyWithFooter,
 		});
 
 		logger.info(`Post created in ${context.subredditName} with title: "${title}"`);
@@ -67,6 +69,8 @@ export async function tryUpdateThread(
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const logger = await Logger.Create('Thread - Update');
 
+  	const bodyWithFooter = appendFooter(body);
+
 	// Ensure thread exists
 	try {
 		const post = await reddit.getPostById(postId);
@@ -80,7 +84,7 @@ export async function tryUpdateThread(
 
     // Submit edit request
 	try {
-		await post.edit({ text: body });
+		await post.edit({ text: bodyWithFooter });
 		logger.info(`Post ${postId} successfully updated.`);
 	} catch (err) {
 		logger.error(`Failed to edit post ${postId}:`, err);
@@ -98,6 +102,10 @@ export async function tryUpdateThread(
 			error: err instanceof Error ? err.message : String(err),
 		};
 	}
+}
+
+export function appendFooter(body: string) {
+	return body += `\n\n---\n\n[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.`;
 }
 
 export async function tryAddComment(post: Post, comment: string){

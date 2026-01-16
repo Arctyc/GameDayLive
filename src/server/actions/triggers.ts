@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Logger } from '../utils/Logger';
-import { tryCancelScheduledJob, tryCleanupThread } from '../threads';
+import { tryCleanupThread } from '../threads';
 
 export const onAppInstallAction = (router: Router): void => {
     router.post('/internal/triggers/install', async (_req, res) => {

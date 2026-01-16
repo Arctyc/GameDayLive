@@ -44,7 +44,7 @@ export const jobMenuAction = (router: Router): void => {
             }
          });
 
-      } catch (error) {
+      } catch (err) {
 
          // TODO: Catch error
       }
@@ -99,8 +99,8 @@ export const jobCancelAction = (router: Router): void => {
                }
             });
 
-         } catch (error) {
-            logger.error('Error cancelling job:', error);
+         } catch (err) {
+            logger.error('Error cancelling job:', err);
 
             res.status(400).json({
                showToast: {

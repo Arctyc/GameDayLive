@@ -218,8 +218,8 @@ export async function nextLiveUpdateJob(gameId: number) {
         game = result.game;
         etag = result.etag;
         modified = result.modified;
-    } catch (error) {
-        logger.error(`Failed to fetch game data for game ${gameId}: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err) {
+        logger.error(`Failed to fetch game data for game ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
         
         // Reschedule another attempt in case of transient error
         const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
@@ -349,8 +349,8 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
         logger.debug(`time: ${scheduledTime.toISOString()} | now: ${new Date(Date.now()).toISOString()}`);
 
-    } catch (error) {
-        logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err) {
+        logger.error(`Failed to schedule ${jobTitle}: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 
@@ -396,8 +396,8 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
         await redis.set(`job:${jobTitle}`, jobId);
 
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
-    } catch (error) {
-        logger.error(`Failed to schedule job ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err) {
+        logger.error(`Failed to schedule job ${jobTitle}: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 
@@ -430,8 +430,8 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
 
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 
-    } catch (error) {
-        logger.error(`Failed to schedule ${jobTitle}: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err) {
+        logger.error(`Failed to schedule ${jobTitle}: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 
@@ -460,8 +460,8 @@ async function cleanup(postId: string, gameId: number){
     try {
         logger.info(`Cleaning up thread: ${postId}...`);
         await tryCleanupThread(postId as Post["id"]);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
         logger.error(`tryCleanupThread failed: ${message}`);
         return; 
     }
@@ -472,8 +472,8 @@ async function cleanup(postId: string, gameId: number){
             REDIS_KEYS.GAME_THREAD_ID(gameId),
             REDIS_KEYS.GAME_ETAG(gameId)
         );
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
         logger.error(`Redis deletion failed for game ${gameId}: ${message}`);
     }
 }

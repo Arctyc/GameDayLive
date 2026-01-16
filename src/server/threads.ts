@@ -81,11 +81,11 @@ export async function tryUpdateThread(
 	try {
 		await post.edit({ text: body });
 		logger.info(`Post ${postId} successfully updated.`);
-	} catch (editErr) {
-		logger.error(`Failed to edit post ${postId}:`, editErr);
+	} catch (err) {
+		logger.error(`Failed to edit post ${postId}:`, err);
 		return {
 			success: false,
-			error: editErr instanceof Error ? editErr.message : String(editErr),
+			error: err instanceof Error ? err.message : String(err),
 		};
 	}
     

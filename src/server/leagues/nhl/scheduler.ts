@@ -10,12 +10,12 @@ export const dailyGameCheck = (router: Router) => {
       logger.info(`Running scheduled daily game check...`);
       await dailyGameCheckJob();
       res.status(200).json({ status: 'success' });
-    } catch (error) {
-      logger.error('Daily game check failed:', error);
+    } catch (err) {
+      logger.error('Daily game check failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Daily check failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -30,12 +30,12 @@ export const createGameThread = (router: Router) => {
       if (!gameId) throw new Error('gameId required');
       await createGameThreadJob(gameId);
       res.status(200).json({ status: 'success' });
-    } catch (error) {
-      logger.error('Create game thread failed:', error);
+    } catch (err) {
+      logger.error('Create game thread failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Create game thread failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -52,12 +52,12 @@ export const createPostgameThread = (router: Router) => {
       await createPostgameThreadJob(gameId);
       
       res.status(200).json({ status: 'success' });
-    } catch (error) {
-      logger.error('Create postgame thread failed:', error);
+    } catch (err) {
+      logger.error('Create postgame thread failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Create postgame thread failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -74,12 +74,12 @@ export const nextLiveUpdate = (router: Router) => {
       await nextLiveUpdateJob(gameId);
       res.status(200).json({ status: 'success' });
       
-    } catch (error) {
-      logger.error('Next live update failed:', error);
+    } catch (err) {
+      logger.error('Next live update failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Next live update failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });

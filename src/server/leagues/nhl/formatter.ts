@@ -318,8 +318,8 @@ function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): stri
 
     let infraction = ((s) => s[0].toUpperCase() + s.slice(1))(d.descKey ?? "Penalty");
 
-    if (infraction === `Too-many-men-on-the-ice`) {
-        infraction = `Too many men`
+    if (infraction.toLowerCase().startsWith("too")) {
+        infraction = "Too many men";
     }
     
     const minutes = d.duration ?? 0;

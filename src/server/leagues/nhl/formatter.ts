@@ -42,7 +42,7 @@ export async function formatThreadBody(game: NHLGame): Promise<string> {
         "\n\n---\n\n" +
         buildBodyPenalties(game) +
         "\n\n---\n\n" +
-        buildBodyFooter();
+        buildBodyFooter(); // TODO: Investigate appending a footer in threads.ts for global standardization
     return body;
 }
 
@@ -118,13 +118,15 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         timeRemainingDisplay = "In Progress";
     } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         timeRemainingDisplay = "Final";
+    } else if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT ) {
+        timeRemainingDisplay += " Remaining";
     }
     
 
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
 
-**Status:** ${periodLabel} - ${timeRemainingDisplay} Remaining  
 **Scoreboard:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
+**Status:** ${periodLabel} - ${timeRemainingDisplay}
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;

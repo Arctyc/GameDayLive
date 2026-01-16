@@ -130,8 +130,10 @@ export async function tryCleanupThread(
 		// Lock post
         //await post.lock(); NOTE: Is this wanted? (add to config options?)
 
-		// TODO: delete redis jobs associated with post		
+		// TODO: delete redis storage associated with post		
 		// NOTE: Find any redis with jobTitle that includes gameId in string
+		
+		
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };
@@ -175,24 +177,19 @@ export async function tryLockThread(){
 }
 
 // TODO: Feature/option: Add thread menu to devvit.json to cancel live updates from thread
-export async function tryCancelScheduledJob(jobTitle: string){ 
+export async function tryCancelScheduledJob(jobId: string){ 
 	const logger = await Logger.Create('Thread - Cancel Job');
 	
 	try{
-		const jobId = await redis.get(`job:${jobTitle}`);
 		
-		if (!jobId){
-			throw new Error(`Job ${jobTitle} not found}`);
-		}
-
 		await scheduler.cancelJob(jobId);
-		await redis.del(`job:${jobTitle}`);
+		await redis.del(`job:${jobId}`);
 
-		logger.info(`Job: ${jobTitle} successfully canceled`);
+		logger.info(`Job: ${jobId} successfully canceled`);
 		return { ok: true };
 
 	} catch (err) {
-		logger.error(`Failed to cancel job ${jobTitle}`, err);
+		logger.error(`Failed to cancel job ${jobId}`, err);
 		return { ok: false, reason: (err as Error).message };
 	}
 }

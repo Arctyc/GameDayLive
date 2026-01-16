@@ -10,9 +10,11 @@ export const UPDATE_INTERVALS = {
 // Redis key prefixes
 export const REDIS_KEYS = {
   GAME_ETAG: (gameId: number) => `game:${gameId}:etag`,
-  GAME_STATE: (gameId: number) => `game:${gameId}:state`,
+  GAME_STATE: (gameId: number) => `game:${gameId}:state`, // Unused
   GAME_THREAD_ID: (gameId: number) => `game:${gameId}:threadId`,
   POSTGAME_THREAD_ID: (gameId: number) => `game:${gameId}:postgameThreadId`,
+  SCHEDULED_JOB_ID: (gameId: number) => `game:${gameId}:scheduledJob`,
+  
 } as const;
 
 // Game states

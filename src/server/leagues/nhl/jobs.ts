@@ -79,7 +79,7 @@ export async function createGameThreadJob(gameId: number) {
                 
                 if (gameIsOver) {
                     // Run cleanup, don't post new
-                    logger.debug(`Tried to create thread for game that's over. Cleaning up Redis...`);
+                    logger.debug(`Tried to create thread for game that's over.`);
                     await cleanup(existingThreadId, game.id);
                     
                     // Check for PGT
@@ -134,7 +134,7 @@ export async function createGameThreadJob(gameId: number) {
         const post = result.post!;
         logger.info(`Created post ID: ${post.id}`);
 
-        // Store the post ID in Redis
+        // Store postId in Redis
         await redis.set(REDIS_KEYS.GAME_THREAD_ID(gameId), post.id);
 
         // Schedule live updates
@@ -177,9 +177,7 @@ export async function createPostgameThreadJob(gameId: number) {
         const post = result.post!;
         logger.info(`Created Post-game ID: ${post.id}`)
 
-        // Clear redis scheduled job
-        const jobTitle = `Postgame Thread-${gameId}`;
-        await redis.del(`job:${jobTitle}`);
+        // Store postId in Redis
         await redis.set(REDIS_KEYS.POSTGAME_THREAD_ID(gameId), post.id);
         // TODO: schedule cleanup for 12 hours
         
@@ -301,7 +299,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     const now = new Date();
     const gameId = game.id;
     const threadTitle = await formatThreadTitle(game);
-    const jobTitle = `${threadTitle} - ${game.id}`;
+    const jobTitle = `GDT-${game.id}`;
 
     const staleGameAge = UPDATE_INTERVALS.LATE_SCHEDULE_THRESHOLD;
 
@@ -345,7 +343,8 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         logger.info(`Attempting to schedule job ${jobTitle} for ${scheduledTime.toISOString()}`);
 
         const jobId = await scheduler.runJob(job);
-        await redis.set(`job:${jobTitle}`, jobId);
+        // Store jobId in Redis
+        await redis.set(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), jobId);
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
         logger.debug(`time: ${scheduledTime.toISOString()} | now: ${new Date(Date.now()).toISOString()}`);
 
@@ -361,7 +360,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     const gameId = game.id;
     const subredditName = context.subredditName;
     const threadTitle = await formatThreadTitle(game);
-    const jobTitle = `${threadTitle} - ${gameId}`;
+    const jobTitle = `PGT-${gameId}`;
 
     // TODO: Verify enabled in settings
 
@@ -393,7 +392,8 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
         logger.info(`Attempting to schedule job ${jobTitle} at ${scheduledTime.toISOString()}`);
 
         const jobId = await scheduler.runJob(job);
-        await redis.set(`job:${jobTitle}`, jobId);
+        // Store jobId in Redis
+        await redis.set(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), jobId);
 
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
     } catch (err) {
@@ -405,7 +405,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Live Update');
 
-    const jobTitle = `Live update-${gameId}`; // TODO: Localize time
+    const jobTitle = `Update-${gameId}`;
 
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
@@ -427,7 +427,8 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         }
 
         const jobId = await scheduler.runJob(job);
-
+        // Store jobId in Redis
+        await redis.set(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), jobId);
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 
     } catch (err) {

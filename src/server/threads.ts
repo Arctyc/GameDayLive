@@ -26,9 +26,12 @@ export async function tryCreateThread(
 		// HACK: Temporary comment - remove for v1.0
 		await tryAddComment(
 			post,
-`This thread was created by GameDayLive, an application that is in development. There may be bugs.  
+`This thread was created by GameDayLive, an application that is in active development.  
+GameDayLive is currently testing its features and performance in this subreddit. We appreciate your patience in the event of any issues.  
 
-For more information, including bug reports or to find out how to use this application on your subreddit, even for other sports, visit [the github page](https://github.com/Arctyc/GameDayLive).`
+To see more, report a bug, or contribute to the project, please visit [the github page](https://github.com/Arctyc/GameDayLive).  
+To request authorization for a subreddit you moderate, please join [the discord server](https://discord.gg/JjNUv3nsSc).  
+All NHL team subreddits are pre-approved.`
 		);
 		// -------- END TEMPORT COMMENT --------
 

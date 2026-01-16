@@ -13,7 +13,7 @@ export const jobMenuAction = (router: Router): void => {
          
          // Look up all scheduled jobs
          const jobs: (ScheduledJob | ScheduledCronJob)[] = await scheduler.listJobs();
-         const jobOptions = jobs.map(job => {
+         const jobTitles = jobs.map(job => {
             const data = job.data as { jobTitle?: string };
 
             return {
@@ -35,7 +35,7 @@ export const jobMenuAction = (router: Router): void => {
                         type: 'select',
                         name: 'jobs',
                         label: 'Jobs',
-                        options: jobOptions,
+                        options: jobTitles,
                         required: true,
                      }
                   ],

@@ -57,6 +57,11 @@
       }
     }
   },
+  "triggers": {
+    "onAppInstall": "/internal/triggers/install",
+    "onAppUpgrade": "/internal/triggers/upgrade",
+    "onPostDelete": "/internal/triggers/delete-post"
+  },
   "dev": {
     "subreddit": "gamedaylive_dev"
   }

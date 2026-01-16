@@ -18,6 +18,7 @@ formAction(router);
 jobMenuAction(router);
 jobCancelAction(router);
 registerSchedulers(router);
+//TODO: Register triggers
 
 app.use(router);
 

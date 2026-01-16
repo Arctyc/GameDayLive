@@ -111,7 +111,7 @@ src/
 2. Update `src/server/types.ts`, `src/server/actions/configMenu.ts`, `src/server/leagues/index.ts`
 
 4. Register scheduler in `src/server/index.ts` Note: Schedule execution and league-specific jobs need to be decoupled, (e.g.):
-    - Current   `/internal/scheduler/daily-game-check -> nhl/jobs.ts`
+    - Current:  `/internal/scheduler/daily-game-check -> nhl/jobs.ts`
     - Fix:      `/internal/scheduler/daily-game-check -> leagues/index.ts -> {league}/jobs.ts`
 
 ## Roadmap

@@ -69,7 +69,7 @@ export const menuAction = (router: Router): void => {
                         }
                     }
                 });
-            } catch (error){
+            } catch (err) {
                 // TODO: handle error
             }
         }
@@ -107,6 +107,7 @@ export const formAction = (router: Router): void => {
                 // Don't allow unapproved subreddit to configure
                 // HACK: Process this with some proper notification like modmail, don't rely on toast.
                 // TODO: In fact, there should be a modmail or something sent with confirmation of setup regardless.
+                // DOCS: modmail instructions https://discord.com/channels/1050224141732687912/1461467837548986389/1461468906253451396
                 const subreddit = context.subredditName?.toLowerCase();
 
                 if ( !subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit.toLowerCase())) {
@@ -120,7 +121,7 @@ export const formAction = (router: Router): void => {
                     return;
                 }
 
-                // ---- CONFIG ----
+                // -------- CONFIG --------
                 // Build subredditConfig object
                 const config: SubredditConfig = {
                     league: leagueValue,
@@ -139,36 +140,42 @@ export const formAction = (router: Router): void => {
                     logger.error(`Team did not save in config`);
                     savedTeamValue = "N/A";
                 }
-                // ---- END CONFIG ----
 
+                // -------- DUPLICATE CHECKING --------
                 // Check for existing scheduled Create Game Thread job (any game ID)
-                const prefix = `Game Day Thread`;
-                const jobs: (ScheduledJob | ScheduledCronJob)[] = await scheduler.listJobs();
-                const jobTitles = jobs.map(job => {
-                    const data = job.data as { jobTitle?: string };
 
-                    return {
-                    label: data?.jobTitle ?? job.id,
-                    value: job.id
-                    };
-                });
+                try {
+                    const prefix = `Game Day Thread`;
+                    const jobs: (ScheduledJob | ScheduledCronJob)[] = await scheduler.listJobs();
+                    const jobTitles = jobs.map(job => {
+                        const data = job.data as { jobTitle?: string };
 
-                const matchingJob = jobTitles.find(j => j.label.includes(prefix));
-                // If found, cancel the job and remove the redis lock, 1 sub = 1 thread
-                if (matchingJob) {
-                    const jobTitle = matchingJob.label; 
-                    const result = await tryCancelScheduledJob(jobTitle);
+                        return {
+                        label: data?.jobTitle ?? job.id,
+                        value: job.id
+                        };
+                    });
 
-                    if (result) {
-                        // Job was canceled
-                        logger.info(`Job: ${jobTitle} already exists. Overwriting...`);
-                    } else {
-                        // Duplicate thread may occur.
-                        logger.warn(`Existing pending job: ${jobTitle} found. Duplicate thread may occur.`);
+                    const matchingJob = jobTitles.find(j => j.label.includes(prefix));
+                    // If found, cancel the job and remove the redis lock, 1 sub = 1 thread
+                    if (matchingJob) {
+                        const jobTitle = matchingJob.label; 
+                        const result = await tryCancelScheduledJob(jobTitle);
+
+                        if (result) {
+                            // Job was canceled
+                            logger.info(`Job: ${jobTitle} already exists. Overwriting...`);
+                        } else {
+                            // Duplicate thread may occur.
+                            logger.warn(`Existing pending job: ${jobTitle} found. Duplicate thread may occur.`);
+                        }
                     }
+                } catch (err) {
+                    logger.error(`Error during duplication check`, err);
                 }
                 
-
+                
+                // -------- Daily game scheduler --------
                 // HACK:FIX: Determine job to run based on league selection
                 // Run daily game check immediately
                 await dailyGameCheckJob();           
@@ -182,8 +189,8 @@ export const formAction = (router: Router): void => {
                     }
                 });
 
-            } catch (error) {
-                logger.error('Error saving subreddit config:', error);
+            } catch (err) {
+                logger.error('Error saving subreddit config:', err);
                 res.status(400).json({
                     showToast: {
                         appearance: 'error',

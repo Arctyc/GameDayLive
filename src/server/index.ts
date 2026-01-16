@@ -3,6 +3,7 @@ import { createServer, getServerPort } from '@devvit/web/server';
 import { menuAction, formAction } from './actions/configMenu';
 import { registerSchedulers } from './leagues/nhl/scheduler';
 import { jobMenuAction, jobCancelAction } from './actions/scheduleMenu';
+import { registerTriggers } from './actions/triggers';
 
 const app = express();
 const router = express.Router();
@@ -18,7 +19,7 @@ formAction(router);
 jobMenuAction(router);
 jobCancelAction(router);
 registerSchedulers(router);
-//TODO: Register triggers
+registerTriggers(router);
 
 app.use(router);
 

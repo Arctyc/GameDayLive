@@ -242,7 +242,7 @@ function buildBodyPenalties(game: NHLGame): string {
 }
 
 function buildBodyFooter(){
-    return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
+    return "[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.";
 }
 
 function buildGoalsTableHeader() {

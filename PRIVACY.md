@@ -27,7 +27,7 @@ The app does **not** collect, process, or store any user information, including:
 
 The app does not share any data outside of Reddit. While the operator may access application logs for maintenance and debugging purposes, these logs do not contain any user information, in accordance with the information collection policy outlined above.
 
-The app fetches public sports statistics from the following sources:
+For the purpose of displaying sports match statistics in Reddit threads, the app fetches public sports statistics from the following sources:
 
 - nhle.com (National Hockey League Enterprises)
 

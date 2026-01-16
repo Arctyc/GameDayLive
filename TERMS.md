@@ -10,21 +10,21 @@ By installing or using GameDayLive ("the app"), you agree to these Terms and Con
 
 The app provides automated game day threads and live score updates for sports teams by fetching publicly available data from sports APIs.
 
-While the app can be installed in any subreddit, it maintains a list of authorized subreddits for which it will actively provide data and updates. This authorization system is necessary to help maintain operations due to API rate limits imposed by data providers. Subreddit moderators may request authorization by contacting the app operator.
+While the app can be installed in any subreddit, it maintains a list of authorized subreddits in which it will create threads and provide updates. This authorization system is necessary to help maintain operations due to API rate limits imposed by data providers. Moderators of subreddits may request authorization by contacting the app operator or submitting an issue or pull request on Github.
 
 ## Permitted Use
 
-This app is provided "as is" for non-commercial, informational purposes only. The app does not make any guarantees of:
-
-- Continuous availability or uptime
-- Accuracy or timeliness of information
-- Freedom from errors or interruptions
-
-Users may not use this app to engage in spam, harassment, or any activity that violates the Reddit User Agreement.
+This app is provided "as-is" for non-commercial, informational purposes only. Users may not use this app to engage in spam, harassment, or any activity that violates the Reddit User Agreement.
 
 ## Data Source & Accuracy
 
 Data is provided "as-is" from public APIs. While we strive for accuracy, the app is not responsible for delays, errors, or omissions in the game data.
+
+The app does not make any guarantees of:
+
+- Continuous availability or uptime
+- Accuracy or timeliness of information
+- Freedom from errors or interruptions
 
 ## Reddit's Terms
 

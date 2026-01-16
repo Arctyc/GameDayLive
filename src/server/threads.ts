@@ -2,6 +2,7 @@ import { context, Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
+import { REDIS_KEYS } from "./leagues/nhl/constants";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
@@ -99,6 +100,35 @@ export async function tryUpdateThread(
 	}
 }
 
+export async function tryAddComment(post: Post, comment: string){
+	const logger = await Logger.Create('Thread - Add comment');
+
+	try {
+		await post.addComment({
+			text: comment
+		});
+
+		logger.info(`Post comment added to post ${post.id}`);
+	} catch (stickyErr) {
+		logger.warn(`Failed to add comment to post ${post.id}:`, stickyErr);
+	}
+}
+
+// TODO: add function
+export async function tryStickyThread(){
+
+}
+
+// TODO: add function
+export async function tryUnstickyThread(){
+
+}
+
+// TODO: add function
+export async function tryLockThread(){
+
+}
+
 export async function tryCleanupThread(
     postId: Post["id"]
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
@@ -130,8 +160,31 @@ export async function tryCleanupThread(
 		// Lock post
         //await post.lock(); NOTE: Is this wanted? (add to config options?)
 
-		// TODO: delete redis jobs associated with post		
-		// NOTE: Find any redis with jobTitle that includes gameId in string
+		// Delete redis storage associated with post
+		// Check if Game Day Thread
+		const normalGameIdStr = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+		if (normalGameIdStr) {
+			const gameId = Number(normalGameIdStr);
+			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+			await redis.del(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
+			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+		}
+
+		// Check if Post-game Thread
+		const postGameIdStr = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+		if (postGameIdStr) {
+			const gameId = Number(postGameIdStr);
+
+			// This is a postgame thread
+			await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+			await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+		}
+
+		// Neither found
+		logger.warn(`No Redis found for post: ${postId}`);
+
+		// Cancel scheduled jobs related to post
+		await tryCancelScheduledJob(postId);
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };
@@ -145,54 +198,20 @@ export async function tryCleanupThread(
     }
 }
 
-export async function tryAddComment(post: Post, comment: string){
-	const logger = await Logger.Create('Thread - Add comment');
-
-	try {
-		await post.addComment({
-			text: comment
-		});
-
-		logger.info(`Post comment added to post ${post.id}`);
-	} catch (stickyErr) {
-		logger.warn(`Failed to add comment to post ${post.id}:`, stickyErr);
-	}
-}
-
-// TODO: add function
-export async function tryStickyThread(){
-
-}
-
-// TODO: add function
-export async function tryUnstickyThread(){
-
-}
-
-// TODO: add function
-export async function tryLockThread(){
-
-}
-
 // TODO: Feature/option: Add thread menu to devvit.json to cancel live updates from thread
-export async function tryCancelScheduledJob(jobTitle: string){ 
+export async function tryCancelScheduledJob(jobId: string){ 
 	const logger = await Logger.Create('Thread - Cancel Job');
 	
 	try{
-		const jobId = await redis.get(`job:${jobTitle}`);
 		
-		if (!jobId){
-			throw new Error(`Job ${jobTitle} not found}`);
-		}
-
 		await scheduler.cancelJob(jobId);
-		await redis.del(`job:${jobTitle}`);
+		await redis.del(`job:${jobId}`);
 
-		logger.info(`Job: ${jobTitle} successfully canceled`);
+		logger.info(`Job: ${jobId} successfully canceled`);
 		return { ok: true };
 
 	} catch (err) {
-		logger.error(`Failed to cancel job ${jobTitle}`, err);
+		logger.error(`Failed to cancel job ${jobId}`, err);
 		return { ok: false, reason: (err as Error).message };
 	}
 }

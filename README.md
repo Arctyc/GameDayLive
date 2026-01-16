@@ -45,7 +45,7 @@ The app will now automatically create game day and (optionally) post-game thread
 
 ## Maintenance
 
-- A scheduled job menu is available to view and cancel any scheduled action (i.e. A future game thread post or live update)
+- A GameDayLive schedule menu is available to view and cancel any scheduled action (i.e. A future game thread post or live update)
 - If necessary, uninstalling and reinstalling the app will clear your settings and scheduled jobs.
 
 ## Development - WARNING: Nerd stuff below this point!

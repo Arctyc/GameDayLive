@@ -77,11 +77,10 @@ export const jobCancelAction = (router: Router): void => {
             }
 
             // Cancel scheduled job
-            logger.info(`Attempting to cancel job ${jobId}`);
-            const jobTitle = (job.data as { jobTitle?: string })?.jobTitle ?? job.id;
-            const result = await tryCancelScheduledJob(jobTitle);
+            logger.debug(`Attempting to cancel job ${jobId}`);
+            const result = await tryCancelScheduledJob(jobId);
             if (!result.ok) {
-               logger.warn(`Thread cleanup failed for ${jobTitle}: ${result.reason}`);
+               logger.warn(`Thread cleanup failed for ${jobId}: ${result.reason}`);
 
                res.status(500).json({
                   showToast: {

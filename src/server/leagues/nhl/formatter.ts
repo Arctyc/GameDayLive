@@ -118,7 +118,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
         timeRemainingDisplay = (periodType === "SO")
             ? "In Progress"
-            : `${rawTimeRemaining} Remaining`;
+            : rawTimeRemaining;
     }
 
     // Combine safely
@@ -242,7 +242,7 @@ function buildBodyPenalties(game: NHLGame): string {
 }
 
 function buildBodyFooter(){
-    return "[GameDayLive](https://github.com/Arctyc/GameDayLive) is an open source project.";
+    return "[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.";
 }
 
 function buildGoalsTableHeader() {
@@ -318,8 +318,8 @@ function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): stri
 
     let infraction = ((s) => s[0].toUpperCase() + s.slice(1))(d.descKey ?? "Penalty");
 
-    if (infraction === `Too-many-men-on-the-ice`) {
-        infraction = `Too many men`
+    if (infraction.toLowerCase().startsWith("too")) {
+        infraction = "Too many men";
     }
     
     const minutes = d.duration ?? 0;

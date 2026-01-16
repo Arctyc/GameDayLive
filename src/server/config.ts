@@ -1,6 +1,7 @@
 import { redis } from '@devvit/web/server';
 import { SubredditConfig } from './types';
 import { Logger } from './utils/Logger';
+import { REDIS_KEYS } from './leagues/nhl/constants';
 
 const keyFor = (subreddit: string) => `subreddit:${subreddit}`;
 
@@ -10,6 +11,7 @@ export async function setSubredditConfig(subredditName: string, config: Subreddi
   
   const key = keyFor(subredditName);
   await redis.set(key, JSON.stringify(config));
+  await redis.expire(key, REDIS_KEYS.EXPIRY);
   logger.info(`Saved config for ${subredditName}:`, config);
 }
 

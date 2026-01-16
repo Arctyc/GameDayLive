@@ -84,7 +84,13 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     // Build game status text
     let periodLabel: string;
 
-    if (inIntermission) {
+    if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
+        periodLabel = "Final";
+    }
+    else if (period === 0) {
+        periodLabel = "Scheduled";
+    }
+    else if (inIntermission) {
         switch (period) {
             case 1:
                 periodLabel = "1st Intermission";
@@ -94,39 +100,36 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
                 break;
             default:
                 periodLabel = "Intermission";
-                break;
         }
-    } else {
-        switch (true) {
-            case period === 0:
-                periodLabel = "Scheduled";
-                break;
-            case periodType === "SO":
-                periodLabel = "Shootout";
-                break;
-            case periodType === "OT":
-                periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
-                break;
-            default:
-                periodLabel = `Period ${period}`;
-        }
+    }
+    else if (periodType === "SO") {
+        periodLabel = "Shootout";
+    }
+    else if (periodType === "OT") {
+        periodLabel = period === 4 ? "Overtime" : `${period - 3}OT`;
+    }
+    else {
+        periodLabel = `Period ${period}`;
     }
 
-    // 3. Determine the Time Remaining Display
-    let timeRemainingDisplay = rawTimeRemaining;
-    if (periodType === "SO") {
-        timeRemainingDisplay = "In Progress";
-    } else if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        timeRemainingDisplay = "Final";
-    } else if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT ) {
-        timeRemainingDisplay += " Remaining";
+    // Time remaining text
+    let timeRemainingDisplay = "";
+
+    if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
+        timeRemainingDisplay = (periodType === "SO")
+            ? "In Progress"
+            : `${rawTimeRemaining} Remaining`;
     }
-    
+
+    // Combine safely
+    const combinedStatusText = timeRemainingDisplay
+        ? `${periodLabel} - ${timeRemainingDisplay}`
+        : periodLabel;
 
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
 
 **Scoreboard:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
-**Status:** ${periodLabel} - ${timeRemainingDisplay}  
+**Status:** ${combinedStatusText}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;

@@ -310,7 +310,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     const now = new Date();
     const gameId = game.id;
     const threadTitle = await formatThreadTitle(game);
-    const shortTitle = `${game.awayTeam.abbrev} @ ${game.homeTeam.abbrev}`;
+    const shortTitle = `${game.awayTeam.abbrev}@${game.homeTeam.abbrev}`;
     const jobTitle = `GDT-${shortTitle}-${game.id}`;
 
     const staleGameAge = UPDATE_INTERVALS.LATE_SCHEDULE_THRESHOLD;
@@ -373,7 +373,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     const gameId = game.id;
     const subredditName = context.subredditName;
     const threadTitle = await formatThreadTitle(game);
-    const shortTitle = `${game.awayTeam.abbrev} @ ${game.homeTeam.abbrev}`;
+    const shortTitle = `${game.awayTeam.abbrev}@${game.homeTeam.abbrev}`;
     const jobTitle = `PGT-${shortTitle}-${gameId}`;
 
     // TODO: Verify enabled in settings

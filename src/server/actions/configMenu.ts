@@ -157,7 +157,7 @@ export const formAction = (router: Router): void => {
                     });
 
                     const matchingJob = jobTitles.find(j => j.label.includes(prefix));
-                    // If found, cancel the job and remove the redis lock, 1 sub = 1 thread
+                    // If found, cancel the job and remove the redis lock, 1 sub = 1 thread FIX: (currently per game, future = any)
                     if (matchingJob) {
                         const jobTitle = matchingJob.label; 
                         const result = await tryCancelScheduledJob(jobTitle);

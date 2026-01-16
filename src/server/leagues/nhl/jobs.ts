@@ -419,7 +419,7 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
     logger.debug(`Job data: ${JSON.stringify(jobData)}`);
 
     try {
-        logger.info(`Attempting to schedule update: ${jobTitle} at ${updateTime.toISOString()}`);
+        logger.debug(`Attempting to schedule update: ${jobTitle} at ${updateTime.toISOString()}`);
 
         // Check if scheduled time is future
         if (updateTime.getTime() < Date.now()) {

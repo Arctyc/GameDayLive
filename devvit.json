@@ -23,16 +23,27 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/config-menu"
+      },
+      {
+        "label": "GameDayLive Schedule",
+        "description": "View/cancel scheduled jobs",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/scheduled-jobs"
       }
     ]
   },
   "forms": {
-    "subredditConfigForm": "/internal/form/config-form"
+    "subredditConfigForm": "/internal/form/config-form",
+    "cancelJobForm": "/internal/form/cancel-job-form"
   },
   "scheduler": {
     "tasks": {
       "daily-game-check": {
         "endpoint": "/internal/scheduler/daily-game-check",
+        "data": {
+          "jobTitle": "Daily Game Check (reinstall to restart)"
+        },
         "cron": "0 8 * * * "
       },
       "create-game-thread": {

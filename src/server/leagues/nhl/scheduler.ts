@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { context } from '@devvit/web/server';
 import { dailyGameCheckJob, createGameThreadJob, createPostgameThreadJob, nextLiveUpdateJob } from './jobs';
 import { Logger } from '../../utils/Logger';
 
@@ -11,12 +10,12 @@ export const dailyGameCheck = (router: Router) => {
       logger.info(`Running scheduled daily game check...`);
       await dailyGameCheckJob();
       res.status(200).json({ status: 'success' });
-    } catch (error) {
-      logger.error('Daily game check failed:', error);
+    } catch (err) {
+      logger.error('Daily game check failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Daily check failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -29,14 +28,14 @@ export const createGameThread = (router: Router) => {
     try {
       const { gameId } = _req.body.data || {}; // NOTE: Ensure proper destructuring
       if (!gameId) throw new Error('gameId required');
-      await createGameThreadJob(gameId, context.subredditName!);
+      await createGameThreadJob(gameId);
       res.status(200).json({ status: 'success' });
-    } catch (error) {
-      logger.error('Create game thread failed:', error);
+    } catch (err) {
+      logger.error('Create game thread failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Create game thread failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -50,15 +49,15 @@ export const createPostgameThread = (router: Router) => {
       const { gameId } = _req.body.data || {};
       if (!gameId) throw new Error('gameId required');
 
-      await createPostgameThreadJob(gameId, context.subredditName!);
+      await createPostgameThreadJob(gameId);
       
       res.status(200).json({ status: 'success' });
-    } catch (error) {
-      logger.error('Create postgame thread failed:', error);
+    } catch (err) {
+      logger.error('Create postgame thread failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Create postgame thread failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -75,12 +74,12 @@ export const nextLiveUpdate = (router: Router) => {
       await nextLiveUpdateJob(gameId);
       res.status(200).json({ status: 'success' });
       
-    } catch (error) {
-      logger.error('Next live update failed:', error);
+    } catch (err) {
+      logger.error('Next live update failed:', err);
       res.status(400).json({ 
         status: 'error', 
         message: 'Next live update failed',
-        error: error instanceof Error ? error.message : String(error)
+        error: err instanceof Error ? err.message : String(err)
       });
     }
   });
@@ -89,5 +88,6 @@ export const nextLiveUpdate = (router: Router) => {
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createGameThread(router);
+  createPostgameThread(router)
   nextLiveUpdate(router);
 };

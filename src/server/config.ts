@@ -21,11 +21,11 @@ export async function getSubredditConfig(subredditName: string): Promise<Subredd
   const data = await redis.get(key);
 
   if (!data) {
-    logger.info(`No config found for ${subredditName}`);
+    logger.warn(`No config found for ${subredditName}`);
     return undefined;
   }
   
   const config = JSON.parse(data) as SubredditConfig;
-  logger.info(`Retrieved config for ${subredditName}:`, config);
+  logger.debug(`Retrieved config for ${subredditName}:`, config);
   return config;
 }

@@ -156,6 +156,7 @@ export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
 	}).format(new Date()); 
 	// en-CA → YYYY-MM-DD
 
+  // TODO: Try/catch here
   const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
   
   if (!response.ok) {

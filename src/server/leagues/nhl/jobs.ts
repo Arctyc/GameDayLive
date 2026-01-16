@@ -203,7 +203,7 @@ export async function nextLiveUpdateJob(gameId: number) {
     // if not, cancel and drop redis of game
     // daily check will fix if necessary
     const existingPost = await reddit.getPostById(postId as Post["id"])
-    if (existingPost) {
+    if (!existingPost) {
         await cleanup(postId as Post["id"], gameId);
     }
 

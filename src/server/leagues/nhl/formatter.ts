@@ -118,7 +118,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     if (gameState === GAME_STATES.LIVE || gameState === GAME_STATES.CRIT) {
         timeRemainingDisplay = (periodType === "SO")
             ? "In Progress"
-            : `${rawTimeRemaining} Remaining`;
+            : rawTimeRemaining;
     }
 
     // Combine safely

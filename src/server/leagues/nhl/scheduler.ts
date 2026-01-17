@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { dailyGameCheckJob, createGameThreadJob, createPostgameThreadJob, nextLiveUpdateJob } from './jobs';
+import { dailyGameCheckJob, createGameThreadJob, createPostgameThreadJob, nextLiveUpdateJob, nextPGTUpdateJob } from './jobs';
 import { Logger } from '../../utils/Logger';
 
 export const dailyGameCheck = (router: Router) => {
@@ -79,6 +79,28 @@ export const nextLiveUpdate = (router: Router) => {
       res.status(400).json({ 
         status: 'error', 
         message: 'Next live update failed',
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+};
+
+export const nextPGTUpdate = (router: Router) => {
+  router.post('/internal/scheduler/next-pgt-update', async (_req, res) => {
+    const logger = await Logger.Create('Scheduler - Next PGT Update');
+
+    try {
+      const { gameId } = _req.body.data || {};
+      if (!gameId) throw new Error('gameId required');
+
+      await nextPGTUpdateJob(gameId);
+      res.status(200).json({ status: 'success' });
+      
+    } catch (err) {
+      logger.error('Next live update failed:', err);
+      res.status(400).json({ 
+        status: 'error', 
+        message: 'Next PGT update failed',
         error: err instanceof Error ? err.message : String(err)
       });
     }

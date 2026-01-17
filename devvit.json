@@ -54,6 +54,9 @@
       },
       "next-live-update": {
         "endpoint": "/internal/scheduler/next-live-update"
+      },
+      "next-pgt-update": {
+        "endpoint": "/internal/scheduler/next-pgt-update"
       }
     }
   },

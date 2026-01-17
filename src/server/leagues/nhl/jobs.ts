@@ -187,6 +187,10 @@ export async function createPostgameThreadJob(gameId: number) {
         await redis.set(REDIS_KEYS.PGT_TO_GAME_ID(post.id), gameId.toString());
         await redis.expire(REDIS_KEYS.PGT_TO_GAME_ID(post.id), REDIS_KEYS.EXPIRY);
         // TODO: schedule cleanup for 12 hours
+
+        // Clean up game day thread here
+        const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+        await cleanup(existingGDT as Post["id"], gameId);
         
     } else {
         logger.error(`Failed to create post-game thread:`, result.error);
@@ -298,9 +302,10 @@ export async function nextLiveUpdateJob(gameId: number) {
             logger.info(`Game ended. Scheduling PGT.`);
             const scheduledTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
             await scheduleCreatePostgameThread(game, scheduledTime);
-        }       
-        // Either way, drop the game
-        await cleanup(postId, game.id);
+        } else {
+            // PGT not enabled, cleanup game thread immediately
+            await cleanup(postId, game.id);
+        }
     }
 }
 

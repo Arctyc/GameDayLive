@@ -173,7 +173,7 @@ function buildBodyGoals(game: NHLGame): string {
 
     const { goals } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `**GOALS** (← swipe →)\n\n`;
+    let out = `**GOALS** ←swipe→\n\n`;
     out += buildGoalsTableHeader();
     
     let hasAnyGoals = false;
@@ -209,7 +209,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
     const { penalties } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `**PENALTIES** (← swipe →)\n\n`;
+    let out = `**PENALTIES** ←swipe→\n\n`;
     out += buildPenaltiesTableHeader();
     
     let hasAnyPenalties = false;

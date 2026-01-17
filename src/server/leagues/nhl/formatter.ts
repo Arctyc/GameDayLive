@@ -241,7 +241,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`Per. | Time | Team |Player | Shot | Assists | Clip
+`Per. | Time | Team | Player | Shot | Assists | Clip
 ---|---|---|---|---|---|---
 `);
 }

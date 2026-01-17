@@ -280,7 +280,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
     } else {
         scoringTeam = 'away';
     }
-    const modifier = getStrength(d.situationCode, scoringTeam);
+    const modifier = getStrength(play.situationCode, scoringTeam);
 
     const assists: string[] = [];
 

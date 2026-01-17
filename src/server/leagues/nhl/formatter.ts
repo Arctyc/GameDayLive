@@ -395,9 +395,6 @@ function formatInfraction(descKey: string | undefined): string {
     const s = descKey ?? "Penalty";
 
     switch (s) {
-        case "high-sticking":
-        return "High-sticking"
-
         case "too-many-men-on-the-ice":
         return "Too many men";
 

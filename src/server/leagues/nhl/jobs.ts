@@ -428,12 +428,12 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Live Update');
 
-    const jobTitle = `Update-${gameId}`;
+    const jobTitle = `Thread-Update-${gameId}`;
 
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
-        id: `update-${gameId}`,
+        id: `Thread-update-${gameId}`,
         name: JOB_NAMES.NEXT_LIVE_UPDATE,
         data: jobData,
         runAt: updateTime,

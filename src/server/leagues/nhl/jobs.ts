@@ -338,7 +338,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     }
 
     // only schedule if no same job exists // TODO: Move to own function with thread check
-    const existingJobId = await redis.get(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
+    const existingJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
     const existingJob = existingJobId ? await getJobData(existingJobId) : undefined;
 
     if (existingJob?.data?.jobTitle === jobTitle) {
@@ -367,8 +367,8 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis
-        await redis.set(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), jobId);
-        await redis.expire(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), REDIS_KEYS.EXPIRY);
+        await redis.set(REDIS_KEYS.JOB_CREATE(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_CREATE(gameId), REDIS_KEYS.EXPIRY);
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
         logger.debug(`time: ${scheduledTime.toISOString()} | now: ${new Date(Date.now()).toISOString()}`);
 
@@ -398,7 +398,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     }
 
     // Only schedule if no same scheduled job exists
-    const existingJobId = await redis.get(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
+    const existingJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
     const existingJob = existingJobId ? await getJobData(existingJobId) : undefined;
 
     if (existingJob?.data?.jobTitle === jobTitle) {
@@ -428,8 +428,8 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis
-        await redis.set(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), jobId);
-        await redis.expire(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), REDIS_KEYS.EXPIRY);
+        await redis.set(REDIS_KEYS.JOB_POSTGAME(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_POSTGAME(gameId), REDIS_KEYS.EXPIRY);
 
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
     } catch (err) {
@@ -464,8 +464,8 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis
-        await redis.set(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), jobId);
-        await redis.expire(REDIS_KEYS.SCHEDULED_JOB_ID(gameId), REDIS_KEYS.EXPIRY);
+        await redis.set(REDIS_KEYS.JOB_UPDATE(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_UPDATE(gameId), REDIS_KEYS.EXPIRY);
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 
     } catch (err) {

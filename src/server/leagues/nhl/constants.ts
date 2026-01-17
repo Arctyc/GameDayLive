@@ -15,7 +15,9 @@ export const REDIS_KEYS = {
   THREAD_TO_GAME_ID: (postId: string) => `threadId:${postId}:gameId`,
   GAME_TO_PGT_ID: (gameId: number) => `game:${gameId}:postgameThreadId`,
   PGT_TO_GAME_ID: (postId: string) => `postgameThreadId:${postId}:gameId`,
-  SCHEDULED_JOB_ID: (gameId: number) => `game:${gameId}:scheduledJob`,
+  JOB_CREATE: (gameId: number) => `job:create:${gameId}`,
+  JOB_UPDATE: (gameId: number) => `job:update:${gameId}`,
+  JOB_POSTGAME: (gameId: number) => `job:pgt:${gameId}`,
   EXPIRY: 86400, // 24 hours
 } as const;
 

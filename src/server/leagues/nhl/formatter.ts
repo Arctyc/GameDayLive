@@ -241,7 +241,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`Per. | Time | Team |Player | Shot type | Assists | Clip
+`Per. | Time | Team |Player | Shot | Assists | Clip
 ---|---|---|---|---|---|---
 `);
 }
@@ -391,6 +391,7 @@ function getStrength(
     return "";
 }
 
+// Manually override any annoyingly long strings, or calls that should have spaces instead of hyphens
 function formatInfraction(descKey: string | undefined): string {
     const s = descKey ?? "Penalty";
 
@@ -407,10 +408,7 @@ function formatInfraction(descKey: string | undefined): string {
         case "abuse-of-officials":
             return "Abuse of officials"
         
-        
-        
-        default:
-            if (!s) return "Penalty";
+        default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);
     }
 }

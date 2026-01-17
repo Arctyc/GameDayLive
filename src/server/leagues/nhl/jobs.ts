@@ -4,7 +4,7 @@ import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
 import { getSubredditConfig } from '../../config';
 import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName } from '../../threads';
-import { NewJobData, UpdateJobData } from '../../types';
+import { NewJobData, SubredditConfig, UpdateJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 
 // --------------- Daily Game Check -----------------
@@ -329,7 +329,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     }
 
     // only schedule if no same job exists // TODO: Move to own function with thread check
-    const existingJob = await redis.get(`job:${jobTitle}`);
+    const existingJob = await redis.get(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
     if (existingJob){
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`);
         return;
@@ -376,10 +376,18 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     const shortTitle = `${game.awayTeam.abbrev}@${game.homeTeam.abbrev}`;
     const jobTitle = `PGT-${shortTitle}-${gameId}`;
 
-    // TODO: Verify enabled in settings
+    // Only schedule if enabled in subredditConfig
+    const config: SubredditConfig | undefined = await getSubredditConfig(subredditName);
+    if (!config) {
+        // Should never happen, but if so, send mod mail?
+    }
+    if (!config?.enablePostgameThreads) {
+        logger.info(`Post-game threads disabled in subreddit ${subredditName}`);
+        return;
+    }
 
-    // Only schedule if no same job exists
-    const existingJob = await redis.get(`job:${jobTitle}`);
+    // Only schedule if no same scheduled job exists
+    const existingJob = await redis.get(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
     if (existingJob){
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`)
         return;

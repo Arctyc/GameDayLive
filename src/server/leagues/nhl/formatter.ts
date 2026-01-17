@@ -383,11 +383,13 @@ function getStrength(
     const teamSkaters = scoringIsHome ? homeSkaters : awaySkaters;
     const oppSkaters  = scoringIsHome ? awaySkaters : homeSkaters;
 
-    const oppGoalieInNet = scoringIsHome ? awayGoalie : homeGoalie;
+    const teamGoalieInNet = scoringIsHome ? homeGoalie : awayGoalie;
+    const oppGoalieInNet  = scoringIsHome ? awayGoalie : homeGoalie;
 
     if (oppGoalieInNet === 0) return "ENG";
     if (teamSkaters > oppSkaters) return "PP";
     if (teamSkaters < oppSkaters) return "SHG";
+    if (teamSkaters > oppSkaters && !teamGoalieInNet) return "EA";
     return "";
 }
 

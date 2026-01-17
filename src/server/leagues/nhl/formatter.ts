@@ -274,7 +274,13 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
     }
     
     // Add strength modifier (EV, PP, SH)
-    const modifier = d.strength ? ` (${d.strength.toUpperCase()})` : "";
+    let scoringTeam: 'home' | 'away';
+    if (team === game.homeTeam.abbrev) {
+        scoringTeam = 'home';
+    } else {
+        scoringTeam = 'away';
+    }
+    const modifier = getStrength(d.situationCode, scoringTeam);
 
     const assists: string[] = [];
 
@@ -363,4 +369,27 @@ function organizePlaysByPeriod(plays: any[]) {
     }
 
     return { goals, penalties };
+}
+
+function getStrength(
+  situationCode: string,
+  scoringTeam: 'home' | 'away'
+): string {
+
+  if (!/^\d{4}$/.test(situationCode)) return "";
+
+  const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
+    situationCode.split("").map(Number) as [number, number, number, number];
+
+  const scoringIsHome = scoringTeam === 'home';
+
+  const teamSkaters = scoringIsHome ? homeSkaters : awaySkaters;
+  const oppSkaters  = scoringIsHome ? awaySkaters : homeSkaters;
+
+  const oppGoalieInNet = scoringIsHome ? awayGoalie : homeGoalie;
+
+  if (oppGoalieInNet === 0) return "ENG";
+  if (teamSkaters > oppSkaters) return "PP";
+  if (teamSkaters < oppSkaters) return "SHG";
+  return "";
 }

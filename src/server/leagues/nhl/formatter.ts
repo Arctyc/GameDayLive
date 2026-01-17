@@ -40,9 +40,7 @@ export async function formatThreadBody(game: NHLGame): Promise<string> {
         "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
-        buildBodyPenalties(game) +
-        "\n\n---\n\n" +
-        buildBodyFooter(); // TODO: Investigate appending a footer in threads.ts for global standardization
+        buildBodyPenalties(game)
     return body;
 }
 
@@ -128,7 +126,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
 
     const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
 
-**Scoreboard:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
+**Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
@@ -175,7 +173,7 @@ function buildBodyGoals(game: NHLGame): string {
 
     const { goals } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `**GOALS**\n\n`;
+    let out = `**GOALS** swipe→\n\n`;
     out += buildGoalsTableHeader();
     
     let hasAnyGoals = false;
@@ -211,7 +209,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
     const { penalties } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `**PENALTIES**\n\n`;
+    let out = `**PENALTIES** swipe→\n\n`;
     out += buildPenaltiesTableHeader();
     
     let hasAnyPenalties = false;
@@ -241,20 +239,16 @@ function buildBodyPenalties(game: NHLGame): string {
     return out;
 }
 
-function buildBodyFooter(){
-    return "[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.";
-}
-
 function buildGoalsTableHeader() {
     return (
-`Period | Time | Team |Player | Shot Type | Assists | Clip
+`Per. | Time | Team | Player | Shot | Assists | Clip
 ---|---|---|---|---|---|---
 `);
 }
 
 function buildPenaltiesTableHeader() {
     return (
-`Period | Time | Team | Player | Infraction | Against | Minutes
+`Per. | Time | Team | Player | Infraction | Against | Min.
 ---|---|---|---|---|---|---
 `);
 }
@@ -280,7 +274,13 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
     }
     
     // Add strength modifier (EV, PP, SH)
-    const modifier = d.strength ? ` (${d.strength.toUpperCase()})` : "";
+    let scoringTeam: 'home' | 'away';
+    if (team === game.homeTeam.abbrev) {
+        scoringTeam = 'home';
+    } else {
+        scoringTeam = 'away';
+    }
+    const modifier = getStrength(play.situationCode, scoringTeam);
 
     const assists: string[] = [];
 
@@ -301,7 +301,8 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {
     const d = play.details;
-    if (!d) return ""; // Skip plays with no penalties
+    if (!d || play.typeDescKey !== 'penalty') return "";
+
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
 
@@ -316,11 +317,7 @@ function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): stri
         ? `#${drawn.number} ${drawn.name}`
         : "—";
 
-    let infraction = ((s) => s[0].toUpperCase() + s.slice(1))(d.descKey ?? "Penalty");
-
-    if (infraction.toLowerCase().startsWith("too")) {
-        infraction = "Too many men";
-    }
+    const infraction = formatInfraction(d.descKey);    
     
     const minutes = d.duration ?? 0;
 
@@ -369,4 +366,49 @@ function organizePlaysByPeriod(plays: any[]) {
     }
 
     return { goals, penalties };
+}
+
+function getStrength(
+    situationCode: string,
+    scoringTeam: 'home' | 'away'
+): string {
+
+    if (!/^\d{4}$/.test(situationCode)) return "";
+
+    const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
+        situationCode.split("").map(Number) as [number, number, number, number];
+
+    const scoringIsHome = scoringTeam === 'home';
+
+    const teamSkaters = scoringIsHome ? homeSkaters : awaySkaters;
+    const oppSkaters  = scoringIsHome ? awaySkaters : homeSkaters;
+
+    const oppGoalieInNet = scoringIsHome ? awayGoalie : homeGoalie;
+
+    if (oppGoalieInNet === 0) return "ENG";
+    if (teamSkaters > oppSkaters) return "PP";
+    if (teamSkaters < oppSkaters) return "SHG";
+    return "";
+}
+
+// Manually override any annoyingly long strings, or calls that should have spaces instead of hyphens
+function formatInfraction(descKey: string | undefined): string {
+    const s = descKey ?? "Penalty";
+
+    switch (s) {
+        case "too-many-men-on-the-ice":
+        return "Too many men";
+
+        case "delaying-game-puck-over-glass":
+        return "DoG Puck over glass"
+
+        case "delaying-game-unsuccessful-challenge":
+            return "DoG Unsuccessful challenge"
+        
+        case "abuse-of-officials":
+            return "Abuse of officials"
+        
+        default: // Returns capitalized first letter
+            return s.charAt(0).toUpperCase() + s.slice(1);
+    }
 }

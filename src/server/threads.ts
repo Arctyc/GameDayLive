@@ -14,12 +14,14 @@ export async function tryCreateThread(
 ): Promise<{ success: boolean; post?: Post; error?: string }> {
 	const logger = await Logger.Create('Thread - Create');
 
+	const bodyWithFooter = appendFooter(body);
+
 	try {
     	// Submit post create request
 		const post = await reddit.submitPost({
 			subredditName: context.subredditName,
 			title: title,
-			text: body,	
+			text: bodyWithFooter,
 		});
 
 		logger.info(`Post created in ${context.subredditName} with title: "${title}"`);
@@ -67,6 +69,8 @@ export async function tryUpdateThread(
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const logger = await Logger.Create('Thread - Update');
 
+  	const bodyWithFooter = appendFooter(body);
+
 	// Ensure thread exists
 	try {
 		const post = await reddit.getPostById(postId);
@@ -80,7 +84,7 @@ export async function tryUpdateThread(
 
     // Submit edit request
 	try {
-		await post.edit({ text: body });
+		await post.edit({ text: bodyWithFooter });
 		logger.info(`Post ${postId} successfully updated.`);
 	} catch (err) {
 		logger.error(`Failed to edit post ${postId}:`, err);
@@ -98,6 +102,10 @@ export async function tryUpdateThread(
 			error: err instanceof Error ? err.message : String(err),
 		};
 	}
+}
+
+export function appendFooter(body: string) {
+	return body += `\n\n---\n\n[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.`;
 }
 
 export async function tryAddComment(post: Post, comment: string){
@@ -168,6 +176,7 @@ export async function tryCleanupThread(
 			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
 			await redis.del(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
 			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+			await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
 		}
 
 		// Check if Post-game Thread
@@ -230,7 +239,7 @@ export async function findRecentThreadByName(threadTitle: string): Promise<Post 
 		logger.info(`Found post: ${post?.id}`);
 		return post
 	} else {
-		logger.warn(`No recent post matching name ${threadTitle}`);
+		logger.info(`No recent post matching name ${threadTitle}`);
 		return undefined;
 	}
 }

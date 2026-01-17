@@ -176,6 +176,7 @@ export async function tryCleanupThread(
 			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
 			await redis.del(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
 			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+			await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
 		}
 
 		// Check if Post-game Thread

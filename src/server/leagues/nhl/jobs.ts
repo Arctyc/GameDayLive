@@ -70,7 +70,7 @@ export async function createGameThreadJob(gameId: number) {
             if (!foundPost) {
                 // Thread not found on reddit, cleanup stale reference and recreate
                 logger.warn(`Thread ${existingThreadId} in Redis but not on Reddit. Cleaning up.`);
-                await cleanup(existingThreadId, game.id);
+                await tryCleanupThread(existingThreadId as Post["id"]);
                 // Continue to creation logic below
             } else {
                 // Thread exists on reddit
@@ -81,15 +81,15 @@ export async function createGameThreadJob(gameId: number) {
                 if (gameIsOver) {
                     // Run cleanup, don't post new
                     logger.debug(`Tried to create thread for game that's over.`);
-                    await cleanup(existingThreadId, game.id);
+                    await tryCleanupThread(existingThreadId as Post["id"]);
                     
                     // Check for PGT
-                    const pgt = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId))
+                    const existingPostgameThreadId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId))
                     logger.debug(`Checking for Post-game thread...`);
-                    if (pgt) {
+                    if (existingPostgameThreadId) {
                         // Clean up stale thread
                         logger.debug(`PGT found, cleaning up Redis...`);
-                        await cleanup(pgt, game.id);
+                        await tryCleanupThread(existingPostgameThreadId as Post["id"]);
                     } else {
                         // TODO: If game ended < X time ago
                         // Create PGT
@@ -191,7 +191,7 @@ export async function createPostgameThreadJob(gameId: number) {
 
         // Clean up game day thread
         const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-        await cleanup(existingGDT as Post["id"], gameId);
+        await tryCleanupThread(existingGDT as Post["id"]);
         
     } else {
         logger.error(`Failed to create post-game thread:`, result.error);
@@ -214,7 +214,7 @@ export async function nextLiveUpdateJob(gameId: number) {
     // daily check will fix if necessary
     const existingPost = await reddit.getPostById(postId as Post["id"])
     if (!existingPost) {
-        await cleanup(postId as Post["id"], gameId);
+        await tryCleanupThread(postId as Post["id"]);
     }
 
     // Check for game data changes and update if modified
@@ -305,7 +305,7 @@ export async function nextLiveUpdateJob(gameId: number) {
             await scheduleCreatePostgameThread(game, scheduledTime);
         } else {
             // PGT not enabled, cleanup game thread immediately
-            await cleanup(postId, game.id);
+            await tryCleanupThread(postId as Post["id"]);
         }
     }
 }
@@ -470,29 +470,5 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
 
     } catch (err) {
         logger.error(`Failed to schedule ${jobTitle}: ${err instanceof Error ? err.message : String(err)}`);
-    }
-}
-
-async function cleanup(postId: string, gameId: number){
-    const logger = await Logger.Create(`Jobs - Cleanup`);
-
-    try {
-        logger.info(`Cleaning up thread: ${postId}...`);
-        await tryCleanupThread(postId as Post["id"]);
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        logger.error(`tryCleanupThread failed: ${message}`);
-        return; 
-    }
-
-    try {
-        logger.info(`Cleaning up Redis keys...`);
-        await redis.del(
-            REDIS_KEYS.GAME_TO_THREAD_ID(gameId),
-            REDIS_KEYS.GAME_ETAG(gameId)
-        );
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        logger.error(`Redis deletion failed for game ${gameId}: ${message}`);
     }
 }

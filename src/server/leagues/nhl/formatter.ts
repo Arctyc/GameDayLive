@@ -173,7 +173,7 @@ function buildBodyGoals(game: NHLGame): string {
 
     const { goals } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `**GOALS**\n\n`;
+    let out = `**GOALS** (← swipe →)\n\n`;
     out += buildGoalsTableHeader();
     
     let hasAnyGoals = false;
@@ -209,7 +209,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
     const { penalties } = organizePlaysByPeriod(game.plays || []);
     
-    let out = `**PENALTIES**\n\n`;
+    let out = `**PENALTIES** (← swipe →)\n\n`;
     out += buildPenaltiesTableHeader();
     
     let hasAnyPenalties = false;
@@ -241,14 +241,14 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`Period | Time | Team |Player | Shot Type | Assists | Clip
+`Per. | Time | Team |Player | Shot | Assists | Clip
 ---|---|---|---|---|---|---
 `);
 }
 
 function buildPenaltiesTableHeader() {
     return (
-`Period | Time | Team | Player | Infraction | Against | Minutes
+`Per. | Time | Team | Player | Infraction | Against | Min.
 ---|---|---|---|---|---|---
 `);
 }

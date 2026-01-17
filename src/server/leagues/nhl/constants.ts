@@ -20,6 +20,8 @@ export const REDIS_KEYS = {
 } as const;
 
 export const JOB_NAMES = {
+  CREATE_GAME_THREAD: `create-game-thread`,
+  CREATE_POSTGAME_THREAD: `create-postgame-thread`,
   NEXT_LIVE_UPDATE: `next-live-update`,
 }
 

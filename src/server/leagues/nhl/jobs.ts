@@ -344,7 +344,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
         id: `create-thread-${gameId}`,
-        name: 'create-game-thread',
+        name: JOB_NAMES.CREATE_GAME_THREAD,
         data: jobData,
         runAt: scheduledTime,
     };
@@ -403,7 +403,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     const jobData: NewJobData = { subredditName, gameId, jobTitle }
     const job: ScheduledJob = {
         id: `create-postgame-${gameId}`,
-        name: 'create-postgame-thread',
+        name: JOB_NAMES.CREATE_POSTGAME_THREAD,
         data: jobData,
         runAt: scheduledTime,
     };

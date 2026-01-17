@@ -169,37 +169,53 @@ export async function tryCleanupThread(
         //await post.lock(); NOTE: Is this wanted? (add to config options?)
 
 		// Get scheduled job ID 
-		const gameIdStr = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId)) || 
-                         await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+        const gameIdForPGT = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
 
-        if (gameIdStr) {
-            const gameId = Number(gameIdStr);
-            const jobId = await redis.get(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
+        // Handle Game Day Thread Cleanup
+        if (gameIdForGDT) {
+            const gameId = Number(gameIdForGDT);
             
-            if (jobId) {
-                await tryCancelScheduledJob(jobId);
+            // Cancel the update loop for this thread
+            const updateJobId = await redis.get(REDIS_KEYS.JOB_UPDATE(gameId));
+            if (updateJobId) {
+                await tryCancelScheduledJob(updateJobId);
+                await redis.del(REDIS_KEYS.JOB_UPDATE(gameId));
             }
 
-            // Clean up Redis
+            // Wipe Redis
             await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-            await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-            await redis.del(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
             await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-            await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
             await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
-        } else {
+            
+            logger.info(`GDT ${postId} cleaned up.`);
+        } 
+        
+        // Handle Post-Game Thread Cleanup
+        else if (gameIdForPGT) {
+            const gameId = Number(gameIdForPGT);
+            
+            // Cancel any updates
+            const pgtJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
+            if (pgtJobId) {
+                await tryCancelScheduledJob(pgtJobId);
+                await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
+            }
+
+            // Wipe Redis
+            await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+            await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+            
+            logger.info(`PGT ${postId} cleaned up.`);
+        } 
+        else {
             logger.warn(`No Redis mapping found for post: ${postId}`);
         }
-        
-        logger.info(`Post ${postId} cleaned up.`);
-        return { success: true, postId };
 
+        return { success: true, postId };
     } catch (err) {
         logger.error(`Failed to clean up post ${postId}:`, err);
-        return {
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
-        };
+        return { success: false, error: String(err) };
     }
 }
 

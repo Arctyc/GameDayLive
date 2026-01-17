@@ -111,7 +111,7 @@ export async function createGameThreadJob(gameId: number) {
                     return;
                 }
 
-                // Game is ongoing but no live update jobs exist - schedule one
+                // Game is ongoing, and thread already exists but no live update jobs exist - schedule one
                 const updateTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
                 await scheduleNextLiveUpdate(subredditName, existingThreadId as Post["id"], game.id, updateTime);
                 return;
@@ -148,7 +148,7 @@ export async function createGameThreadJob(gameId: number) {
             let updateTime = new Date(game.startTimeUTC);
 
             if (game.gameState == GAME_STATES.LIVE || game.gameState == GAME_STATES.CRIT){
-                // Game is ongoing now, update at regular interval
+                // Game is ongoing, update at regular interval
                 updateTime = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
             }
 
@@ -227,6 +227,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         logger.error(`Failed to fetch game data for game ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
         
         // Reschedule another attempt in case of transient error
+        // TODO: Set num retries in redis, stop retrying and clear after a certain amount, remember to clear redis
         const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
         logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
         await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
@@ -235,6 +236,7 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     if (!game) {
         logger.error(`Game data is null. Game: ${gameId}`);
+        // TODO: set up a retry system like above
         await scheduleNextLiveUpdate(subredditName, postId, gameId, new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT * 2)));
         return;
     }
@@ -254,6 +256,7 @@ export async function nextLiveUpdateJob(gameId: number) {
             logger.error(`Thread update failed for post ${postId}: ${result.error}`);
 
             // Reschedule another attempt in case of transient Reddit/API error
+            // Set up a retry counting system
             const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
             logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
             await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
@@ -266,9 +269,9 @@ export async function nextLiveUpdateJob(gameId: number) {
     if (game.gameState && game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
 
         // Set updateTime for now + default delay in seconds
-        let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+        let updateTime: Date = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
 
-        /* NOTE: Disabled, Keep intermission time remaining on thread unless
+        /* NOTE: Disabled to keep intermission time remaining on thread
         // If intermission, delay update until nearly over
         if (game.clock?.inIntermission) {
             const intermissionRemaining = game.clock.secondsRemaining;
@@ -293,7 +296,7 @@ export async function nextLiveUpdateJob(gameId: number) {
         const config = await getSubredditConfig(context.subredditName);
         if (config?.enablePostgameThreads){
             logger.info(`Game ended. Scheduling PGT.`);
-            const scheduledTime = new Date(Date.now());
+            const scheduledTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
             await scheduleCreatePostgameThread(game, scheduledTime);
         }       
         // Either way, drop the game

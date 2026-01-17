@@ -263,7 +263,7 @@ export async function nextLiveUpdateJob(gameId: number) {
     }
 
     // Schedule next live update
-    if (!game.gameState || game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
+    if (game.gameState && game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
 
         // Set updateTime for now + default delay in seconds
         let updateTime: Date = new Date(Date.now() + (UPDATE_INTERVALS.LIVE_GAME_DEFAULT));

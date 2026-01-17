@@ -312,7 +312,6 @@ export async function nextLiveUpdateJob(gameId: number) {
 
 export async function nextPGTUpdateJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Next PGT Update');
-    const subredditName = context.subredditName;
 
     // Retrieve the PGT ID from Redis
     const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
@@ -531,7 +530,7 @@ async function scheduleNextPostgameUpdate(postId: string, gameId: number, update
 
     try {
         const jobId = await scheduler.runJob(job);
-        
+
         await redis.set(REDIS_KEYS.JOB_PGT_UPDATE(gameId), jobId);
         await redis.expire(REDIS_KEYS.JOB_PGT_UPDATE(gameId), REDIS_KEYS.EXPIRY);
         logger.info(`Scheduled PGT update ID: ${jobId} for game ${gameId}`);

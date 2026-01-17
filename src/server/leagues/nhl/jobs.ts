@@ -1,7 +1,7 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
-import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS } from './constants';
+import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES } from './constants';
 import { getSubredditConfig } from '../../config';
 import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName } from '../../threads';
 import { NewJobData, SubredditConfig, UpdateJobData } from '../../types';
@@ -58,14 +58,14 @@ export async function createGameThreadJob(gameId: number) {
     
     // Ensure no existing thread for game
     try {
+
         // Check redis for game thread lock
         const existingThreadId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-        
         if (existingThreadId) {
             logger.debug(`Found redis lock for game ${gameId}`);
+            
             // Check for actual post on reddit
             const foundPost = await reddit.getPostById(existingThreadId as Post["id"]);
-            
             if (!foundPost) {
                 // Thread not found on reddit, cleanup stale reference and recreate
                 logger.warn(`Thread ${existingThreadId} in Redis but not on Reddit. Cleaning up.`);
@@ -74,9 +74,9 @@ export async function createGameThreadJob(gameId: number) {
             } else {
                 // Thread exists on reddit
                 logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);                
-                // Check if game is over
-                const gameIsOver = game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF;
                 
+                // Check if game is over
+                const gameIsOver = game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF; 
                 if (gameIsOver) {
                     // Run cleanup, don't post new
                     logger.debug(`Tried to create thread for game that's over.`);
@@ -102,7 +102,7 @@ export async function createGameThreadJob(gameId: number) {
                 const jobs = await scheduler.listJobs();
                 const thisGameJobs = jobs.filter(job => 
                     job.data?.gameId === gameId && 
-                    job.name === 'next-live-update'
+                    job.name === JOB_NAMES.NEXT_LIVE_UPDATE,
                 );
 
                 if (thisGameJobs.length > 0) {
@@ -434,7 +434,7 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
 
     const job: ScheduledJob = {
         id: `update-${gameId}`,
-        name: 'next-live-update',
+        name: JOB_NAMES.NEXT_LIVE_UPDATE,
         data: jobData,
         runAt: updateTime,
     };

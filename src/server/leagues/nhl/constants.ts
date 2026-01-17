@@ -19,6 +19,10 @@ export const REDIS_KEYS = {
   EXPIRY: 86400, // 24 hours
 } as const;
 
+export const JOB_NAMES = {
+  NEXT_LIVE_UPDATE: `next-live-update`,
+}
+
 // Game states
 export const GAME_STATES = {
   FUT: 'FUT',

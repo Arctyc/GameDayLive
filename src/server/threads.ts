@@ -177,10 +177,10 @@ export async function tryCleanupThread(
             const gameId = Number(gameIdForGDT);
             
             // Cancel the update loop for this thread
-            const updateJobId = await redis.get(REDIS_KEYS.JOB_UPDATE(gameId));
+            const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
             if (updateJobId) {
                 await tryCancelScheduledJob(updateJobId);
-                await redis.del(REDIS_KEYS.JOB_UPDATE(gameId));
+                await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
             }
 
             // Wipe Redis

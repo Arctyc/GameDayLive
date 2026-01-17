@@ -16,8 +16,9 @@ export const REDIS_KEYS = {
   GAME_TO_PGT_ID: (gameId: number) => `game:${gameId}:postgameThreadId`,
   PGT_TO_GAME_ID: (postId: string) => `postgameThreadId:${postId}:gameId`,
   JOB_CREATE: (gameId: number) => `job:create:${gameId}`,
-  JOB_UPDATE: (gameId: number) => `job:update:${gameId}`,
+  JOB_GDT_UPDATE: (gameId: number) => `job:gdt:update:${gameId}`,
   JOB_POSTGAME: (gameId: number) => `job:pgt:${gameId}`,
+  JOB_PGT_UPDATE: (gameId: number) => `job:pgt:update:${gameId}`,
   EXPIRY: 86400, // 24 hours
 } as const;
 
@@ -25,6 +26,7 @@ export const JOB_NAMES = {
   CREATE_GAME_THREAD: `create-game-thread`,
   CREATE_POSTGAME_THREAD: `create-postgame-thread`,
   NEXT_LIVE_UPDATE: `next-live-update`,
+  NEXT_PGT_UPDATE: `next-pgt-update`,
 }
 
 // Game states

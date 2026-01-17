@@ -310,6 +310,47 @@ export async function nextLiveUpdateJob(gameId: number) {
     }
 }
 
+export async function nextPGTUpdateJob(gameId: number) {
+    const logger = await Logger.Create('Jobs - Next PGT Update');
+    const subredditName = context.subredditName;
+
+    // Retrieve the PGT ID from Redis
+    const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+    if (!postId) {
+        logger.error(`No PGT postId found for game ${gameId}`);
+        return;
+    }
+
+    // Fetch game data
+    const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
+    const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
+
+    if (!game) {
+        logger.error(`Could not fetch game data for PGT update: ${gameId}`);
+        return;
+    }
+
+    // Update the thread if the API data has changed
+    if (modified) {
+        if (etag) {
+            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+        }
+
+        const body = await formatThreadBody(game);
+        await tryUpdateThread(postId as Post["id"], body);
+    }
+
+    // Schedule next update if state is not OFF
+    if (game.gameState !== GAME_STATES.OFF) {
+        const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+        await scheduleNextPostgameUpdate(postId as string, gameId, nextUpdate);
+    } else {
+        logger.info(`Game ${gameId} is officially OFF. Ending PGT updates.`);
+    }
+    
+}
+
 // --------------- Scheduling helpers -----------------
 
 // -------- Schedule Create Game Thread --------
@@ -464,11 +505,37 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis
-        await redis.set(REDIS_KEYS.JOB_UPDATE(gameId), jobId);
-        await redis.expire(REDIS_KEYS.JOB_UPDATE(gameId), REDIS_KEYS.EXPIRY);
+        await redis.set(REDIS_KEYS.JOB_GDT_UPDATE(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_GDT_UPDATE(gameId), REDIS_KEYS.EXPIRY);
         logger.info(`Successfully scheduled job ID: ${jobId} | title: ${jobTitle}`);
 
     } catch (err) {
         logger.error(`Failed to schedule ${jobTitle}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
+async function scheduleNextPostgameUpdate(postId: string, gameId: number, updateTime: Date) {
+    const logger = await Logger.Create('Jobs - Schedule PGT Update');
+
+    const subredditName = context.subredditName;
+    const jobTitle = `PGT-Update-${gameId}`;
+
+    const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
+
+    const job: ScheduledJob = {
+        id: `PGT-update-${gameId}`,
+        name: JOB_NAMES.NEXT_PGT_UPDATE,
+        data: jobData,
+        runAt: updateTime,
+    };
+
+    try {
+        const jobId = await scheduler.runJob(job);
+        
+        await redis.set(REDIS_KEYS.JOB_PGT_UPDATE(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_PGT_UPDATE(gameId), REDIS_KEYS.EXPIRY);
+        logger.info(`Scheduled PGT update ID: ${jobId} for game ${gameId}`);
+    } catch (err) {
+        logger.error(`Failed to schedule PGT update: ${err instanceof Error ? err.message : String(err)}`);
     }
 }

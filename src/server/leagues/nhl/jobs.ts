@@ -363,7 +363,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     logger.debug(`Job data: ${JSON.stringify(jobData)}`);
 
     try {
-        logger.info(`Attempting to schedule job ${jobTitle} for ${scheduledTime.toISOString()}`);
+        logger.debug(`Attempting to schedule job ${jobTitle} at ${scheduledTime.toISOString()}`);
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis
@@ -424,7 +424,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     logger.debug(`Job data: ${JSON.stringify(jobData)}`);
 
     try {
-        logger.info(`Attempting to schedule job ${jobTitle} at ${scheduledTime.toISOString()}`);
+        logger.debug(`Attempting to schedule job: ${jobTitle} at ${scheduledTime.toISOString()}`);
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis

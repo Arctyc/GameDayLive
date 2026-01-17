@@ -238,7 +238,7 @@ export async function findRecentThreadByName(threadTitle: string): Promise<Post 
 		logger.info(`Found post: ${post?.id}`);
 		return post
 	} else {
-		logger.warn(`No recent post matching name ${threadTitle}`);
+		logger.info(`No recent post matching name ${threadTitle}`);
 		return undefined;
 	}
 }

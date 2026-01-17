@@ -301,7 +301,8 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {
     const d = play.details;
-    if (!d) return ""; // Skip plays with no penalties
+    if (!d || play.typeDescKey !== 'penalty') return "";
+
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
 
@@ -316,11 +317,7 @@ function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): stri
         ? `#${drawn.number} ${drawn.name}`
         : "—";
 
-    let infraction = ((s) => s[0].toUpperCase() + s.slice(1))(d.descKey ?? "Penalty");
-
-    if (infraction.toLowerCase().startsWith("too")) {
-        infraction = "Too many men";
-    }
+    const infraction = formatInfraction(d.descKey);    
     
     const minutes = d.duration ?? 0;
 
@@ -372,24 +369,51 @@ function organizePlaysByPeriod(plays: any[]) {
 }
 
 function getStrength(
-  situationCode: string,
-  scoringTeam: 'home' | 'away'
+    situationCode: string,
+    scoringTeam: 'home' | 'away'
 ): string {
 
-  if (!/^\d{4}$/.test(situationCode)) return "";
+    if (!/^\d{4}$/.test(situationCode)) return "";
 
-  const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
-    situationCode.split("").map(Number) as [number, number, number, number];
+    const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
+        situationCode.split("").map(Number) as [number, number, number, number];
 
-  const scoringIsHome = scoringTeam === 'home';
+    const scoringIsHome = scoringTeam === 'home';
 
-  const teamSkaters = scoringIsHome ? homeSkaters : awaySkaters;
-  const oppSkaters  = scoringIsHome ? awaySkaters : homeSkaters;
+    const teamSkaters = scoringIsHome ? homeSkaters : awaySkaters;
+    const oppSkaters  = scoringIsHome ? awaySkaters : homeSkaters;
 
-  const oppGoalieInNet = scoringIsHome ? awayGoalie : homeGoalie;
+    const oppGoalieInNet = scoringIsHome ? awayGoalie : homeGoalie;
 
-  if (oppGoalieInNet === 0) return "ENG";
-  if (teamSkaters > oppSkaters) return "PP";
-  if (teamSkaters < oppSkaters) return "SHG";
-  return "";
+    if (oppGoalieInNet === 0) return "ENG";
+    if (teamSkaters > oppSkaters) return "PP";
+    if (teamSkaters < oppSkaters) return "SHG";
+    return "";
+}
+
+function formatInfraction(descKey: string | undefined): string {
+    const s = descKey ?? "Penalty";
+
+    switch (s) {
+        case "high-sticking":
+        return "High-sticking"
+
+        case "too-many-men-on-the-ice":
+        return "Too many men";
+
+        case "delaying-game-puck-over-glass":
+        return "DoG Puck over glass"
+
+        case "delaying-game-unsuccessful-challenge":
+            return "DoG Unsuccessful challenge"
+        
+        case "abuse-of-officials":
+            return "Abuse of officials"
+        
+        
+        
+        default:
+            if (!s) return "Penalty";
+            return s.charAt(0).toUpperCase() + s.slice(1);
+    }
 }

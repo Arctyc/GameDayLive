@@ -168,38 +168,34 @@ export async function tryCleanupThread(
 		// Lock post
         //await post.lock(); NOTE: Is this wanted? (add to config options?)
 
-		// Delete redis storage associated with post
-		// Check if Game Day Thread
-		const normalGameIdStr = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-		if (normalGameIdStr) {
-			const gameId = Number(normalGameIdStr);
-			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-			await redis.del(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
-			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-			await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
-		}
+		// Get scheduled job ID 
+		const gameIdStr = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId)) || 
+                         await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
 
-		// Check if Post-game Thread
-		const postGameIdStr = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
-		if (postGameIdStr) {
-			const gameId = Number(postGameIdStr);
+        if (gameIdStr) {
+            const gameId = Number(gameIdStr);
+            const jobId = await redis.get(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
+            
+            if (jobId) {
+                await tryCancelScheduledJob(jobId);
+            }
 
-			// This is a postgame thread
-			await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-			await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
-		}
-
-		// Neither found
-		logger.warn(`No Redis found for post: ${postId}`);
-
-		// Cancel scheduled jobs related to post
-		await tryCancelScheduledJob(postId);
+            // Clean up Redis
+            await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+            await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+            await redis.del(REDIS_KEYS.SCHEDULED_JOB_ID(gameId));
+            await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
+        } else {
+            logger.warn(`No Redis mapping found for post: ${postId}`);
+        }
         
         logger.info(`Post ${postId} cleaned up.`);
         return { success: true, postId };
 
     } catch (err) {
-        logger.error(`Failed to cleanup post ${postId}:`, err);
+        logger.error(`Failed to clean up post ${postId}:`, err);
         return {
             success: false,
             error: err instanceof Error ? err.message : String(err),

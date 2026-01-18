@@ -44,13 +44,8 @@ To see more, report a bug, or contribute to the project, please visit [the githu
 			logger.warn(`Failed to sticky post in ${post.id}:`, sortNewErr);
 		}
 
-		// Attempt to sticky //TODO: only GDT?
-		try {
-			await post.sticky();
-			logger.info(`Post sticky succeeded for ${post.id}`);
-		} catch (stickyErr) {
-			logger.warn(`Failed to sticky post in ${post.id}:`, stickyErr);
-		}
+		// Sticky
+		await tryStickyThread(post);
 
 		return { success: true, post };
 
@@ -120,19 +115,55 @@ export async function tryAddComment(post: Post, comment: string){
 	}
 }
 
-// TODO: add function
-export async function tryStickyThread(){
+export async function tryStickyThread(post: Post){
+	const logger = await Logger.Create(`Thread - Sticky`);
+
+	// TODO: If not enabled in subredditconfig, return
+
+	try {
+		if (await post.isStickied) {
+			logger.warn(`Post: ${post.id} is already stickied.`);
+			return;
+		}
+
+		await post.sticky();
+	} catch (err) {
+		logger.error(`Error trying to sticky post: ${post.id}`, err);
+	}
 
 }
 
-// TODO: add function
-export async function tryUnstickyThread(){
+export async function tryUnstickyThread(post: Post){
+	const logger = await Logger.Create(`Thread - Unsticky`);
 
+	try {
+		if (!await post.isStickied) {
+			logger.warn(`Post: ${post.id} is not stickied.`);
+			return;
+		}
+
+		await post.unsticky();
+	} catch (err) {
+		logger.error(`Error trying to unstucky post: ${post.id}`, err);
+	}
 }
 
-// TODO: add function
-export async function tryLockThread(){
 
+export async function tryLockThread(post: Post){
+	const logger = await Logger.Create(`Thread - Lock`);
+
+	// TODO: If not enabled in subredditconfig, return
+	
+	try {
+		if (await post.isLocked) {
+			logger.warn(`Post: ${post.id} is already locked.`);
+			return;
+		}
+
+		await post.lock();
+	} catch (err) {
+		logger.error(`Error trying to lock post: ${post.id}`, err);
+	}
 }
 
 export async function tryCleanupThread(
@@ -161,10 +192,10 @@ export async function tryCleanupThread(
         }
 
         // Cleanup actions
-        await post.unsticky();
+        await tryUnstickyThread(post);
 		
 		// Lock post
-        //await post.lock(); NOTE: Is this wanted? (add to config options?)
+        //await tryLockPost(); NOTE: Is this wanted? (add to config options?)
 
 		// Get scheduled job ID 
 		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));

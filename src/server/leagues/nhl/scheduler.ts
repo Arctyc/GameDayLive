@@ -110,6 +110,7 @@ export const nextPGTUpdate = (router: Router) => {
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createGameThread(router);
-  createPostgameThread(router)
+  createPostgameThread(router);
   nextLiveUpdate(router);
+  nextPGTUpdate(router);
 };

@@ -82,8 +82,11 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     // Build game status text
     let periodLabel: string;
 
-    if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        periodLabel = "Final";
+    if (gameState === GAME_STATES.FINAL) {
+        periodLabel = "Final (unofficial)";
+    }
+    else if (gameState === GAME_STATES.OFF) {
+        periodLabel = "Final (official)";
     }
     else if (period === 0) {
         periodLabel = "Scheduled";

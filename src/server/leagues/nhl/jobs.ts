@@ -315,45 +315,68 @@ export async function nextLiveUpdateJob(gameId: number) {
 export async function nextPGTUpdateJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Next PGT Update');
 
-    // Retrieve the PGT ID from Redis
-    const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-    if (!postId) {
-        logger.error(`No PGT postId found for game ${gameId}`);
-        return;
-    }
-
-    // Fetch game data
-    const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
-    const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
-
-    if (!game) {
-        logger.error(`Could not fetch game data for PGT update: ${gameId}`);
-        return;
-    }
-
-    // Update the thread if the API data has changed
-    if (modified) {
-        if (etag) {
-            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
-            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+    try {
+        // Retrieve the PGT ID from Redis
+        const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+        if (!postId) {
+            logger.error(`No PGT postId found for game ${gameId}`);
+            return;
         }
 
-        const body = await formatThreadBody(game);
-        await tryUpdateThread(postId as Post["id"], body);
-    }
+        // Fetch game data
+        const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
+        const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
 
-    // Schedule next update if state is not OFF
-    if (game.gameState !== GAME_STATES.OFF) {
-        const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-        await scheduleNextPostgameUpdate(postId as string, gameId, nextUpdate);
-    } else {
-        logger.info(`Game ${gameId} results are official. Ending PGT updates.`);
+        if (!game) {
+            logger.error(`Could not fetch game data for PGT update: ${gameId}`);
+            // Reschedule retry
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            await scheduleNextPostgameUpdate(postId as string, gameId, retryTime);
+            return;
+        }
+
+        // Update the thread if the API data has changed
+        if (modified) {
+            if (etag) {
+                await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+                await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+            }
+
+            const body = await formatThreadBody(game);
+            const result = await tryUpdateThread(postId as Post["id"], body);
+            
+            if (!result.success) {
+                logger.error(`PGT update failed for post ${postId}: ${result.error}`);
+                // Reschedule retry
+                const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+                logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
+                await scheduleNextPostgameUpdate(postId as string, gameId, retryTime);
+                return;
+            }
+        }
+
+        // Schedule next update if state is not OFF
+        if (game.gameState !== GAME_STATES.OFF) {
+            const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            await scheduleNextPostgameUpdate(postId as string, gameId, nextUpdate);
+        } else {
+            logger.info(`Game ${gameId} results are official. Ending PGT updates.`);
+        }
+        
+    } catch (err) {
+        logger.error(`PGT update job failed for game ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
+        
+        // Try to reschedule
+        const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+        if (postId) {
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            logger.info(`Rescheduling PGT update attempt for game ${gameId} at ${retryTime.toISOString()}`);
+            await scheduleNextPostgameUpdate(postId as string, gameId, retryTime);
+        }
     }
-    
 }
 
 // --------------- Scheduling helpers -----------------
-
 // -------- Schedule Create Game Thread --------
 async function scheduleCreateGameThread(subredditName: string, game: NHLGame, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Game Thread');

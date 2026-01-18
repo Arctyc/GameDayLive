@@ -76,7 +76,7 @@ export const nextLiveUpdate = (router: Router) => {
       
     } catch (err) {
       logger.error('Next live update failed:', err);
-      res.status(400).json({ 
+      res.status(200).json({ 
         status: 'error', 
         message: 'Next live update failed',
         error: err instanceof Error ? err.message : String(err)
@@ -98,7 +98,7 @@ export const nextPGTUpdate = (router: Router) => {
       
     } catch (err) {
       logger.error('Next live update failed:', err);
-      res.status(400).json({ 
+      res.status(200).json({ 
         status: 'error', 
         message: 'Next PGT update failed',
         error: err instanceof Error ? err.message : String(err)

@@ -121,7 +121,7 @@ export async function tryStickyThread(post: Post){
 	// TODO: If not enabled in subredditconfig, return
 
 	try {
-		if (await post.isStickied) {
+		if (post.isStickied()) {
 			logger.warn(`Post: ${post.id} is already stickied.`);
 			return;
 		}
@@ -137,7 +137,7 @@ export async function tryUnstickyThread(post: Post){
 	const logger = await Logger.Create(`Thread - Unsticky`);
 
 	try {
-		if (!await post.isStickied) {
+		if (!post.isStickied()) {
 			logger.warn(`Post: ${post.id} is not stickied.`);
 			return;
 		}
@@ -155,7 +155,7 @@ export async function tryLockThread(post: Post){
 	// TODO: If not enabled in subredditconfig, return
 	
 	try {
-		if (await post.isLocked) {
+		if (post.isLocked()) {
 			logger.warn(`Post: ${post.id} is already locked.`);
 			return;
 		}

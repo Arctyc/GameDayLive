@@ -30,6 +30,7 @@ export const menuAction = (router: Router): void => {
                 const defaultLeague = config?.league ? [config.league] : [LEAGUES[0]];
                 const teamsForLeague = getTeamsForLeague(config?.league ?? LEAGUES[0]) ?? [];
                 const defaultTeam = config?.nhl?.teamAbbreviation ? [config.nhl.teamAbbreviation] : teamsForLeague[0] ? [teamsForLeague[0].value] : [];
+                const defaultPGT = config?.enablePostgameThreads ?? true;
 
                 // Build form
                 res.json({
@@ -62,7 +63,7 @@ export const menuAction = (router: Router): void => {
                                 type: 'boolean',
                                 name: 'enablePostgameThreads',
                                 label: 'Enable post-game threads',
-                                defaultValue: true,
+                                defaultValue: defaultPGT,
                             }
                             ],
                             acceptLabel: 'Save',

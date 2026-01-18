@@ -473,7 +473,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     const staleGameAge = UPDATE_INTERVALS.LATE_SCHEDULE_THRESHOLD;
 
     if (scheduledTime < now) {
-        const ageMs = now.getTime() - scheduledTime.getTime();
+        const ageMs = now.getTime() - new Date(game.startTimeUTC).getTime();
 
         // Scheduled start is in the past, but not stale
         if (ageMs <= staleGameAge) {

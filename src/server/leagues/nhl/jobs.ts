@@ -262,12 +262,19 @@ export async function nextLiveUpdateJob(gameId: number) {
         return;
     }
 
-    // FIX: Check that post is actually live on reddit, 
-    // if not, cancel and drop redis of game
-    // daily check will fix if necessary
-    const existingPost = await reddit.getPostById(postId as Post["id"])
-    if (!existingPost) {
-        await tryCleanupThread(postId as Post["id"]);
+    // Check that post is actually live on reddit
+    try {
+        const existingPost = await reddit.getPostById(postId as Post["id"])
+        if (!existingPost) {
+            await tryCleanupThread(postId as Post["id"]);
+        }
+    } catch (err) {
+        logger.error(`Failed to verify post exists: ${err instanceof Error ? err.message : String(err)}`);
+        // Reschedule and try again
+        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+        logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
+        await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
+        return;
     }
 
     // Check for game data changes and update if modified

@@ -32,7 +32,7 @@ export async function tryCreateThread(
 `This thread was created by GameDayLive, an application that is in active development.  
 GameDayLive is currently testing its features and performance in this subreddit. We appreciate your patience in the event of any issues.  
 
-To see more, report a bug, or contribute to the project, please visit [the github page](https://github.com/Arctyc/GameDayLive).`
+To see more, report a bug, or contribute to the project, please visit [the github page](<https://github.com/Arctyc/GameDayLive>).`
 		);
 		// -------- END TEMPORT COMMENT --------
 
@@ -98,7 +98,7 @@ export async function tryUpdateThread(
 }
 
 export function appendFooter(body: string) {
-	return body += `\n\n---\n\n[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.`;
+	return body += `\n\n---\n\n[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](<https://github.com/Arctyc/GameDayLive>) that is not affiliated with any organization.`;
 }
 
 export async function tryAddComment(post: Post, comment: string){

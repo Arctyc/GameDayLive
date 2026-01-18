@@ -244,15 +244,15 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`Per. | Time | Team | Player | Shot | Assists | Clip
----|---|---|---|---|---|---
+`| Per. | Time | Team | Player | Shot&nbsp;typegit | Assists | Clip |
+|---|---|---|--------|--------|--------|---|
 `);
 }
 
 function buildPenaltiesTableHeader() {
     return (
-`Per. | Time | Team | Player | Infraction | Against | Min.
----|---|---|---|---|---|---
+`| Per. | Time | Team | Player | Infraction | Against | Min. |
+|---|---|---|--------|--------|--------|---|
 `);
 }
 
@@ -273,7 +273,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
 
     // Format shot type
     if (shotType == "Slap" || shotType == "Snap" || shotType == "Wrist" ) {
-        shotType += " shot";
+        shotType += "&nbsp;shot";
     }
     
     // Add strength modifier (EV, PP, SH)
@@ -404,7 +404,7 @@ function formatInfraction(descKey: string | undefined): string {
 
     switch (s) {
         case "too-many-men-on-the-ice":
-        return "Too many men";
+        return "Too&nbsp;many&nbsp;men";
 
         case "delaying-game-puck-over-glass":
         return "DoG puck over glass";

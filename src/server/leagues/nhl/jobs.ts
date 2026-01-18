@@ -189,6 +189,8 @@ export async function createPostgameThreadJob(gameId: number) {
         await redis.expire(REDIS_KEYS.PGT_TO_GAME_ID(post.id), REDIS_KEYS.EXPIRY);
         // TODO: schedule cleanup for 12 hours
 
+        await scheduleNextPostgameUpdate(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+
         // Clean up game day thread
         const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
         await tryCleanupThread(existingGDT as Post["id"]);

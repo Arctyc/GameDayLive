@@ -402,16 +402,19 @@ function formatInfraction(descKey: string | undefined): string {
         return "Too many men";
 
         case "delaying-game-puck-over-glass":
-        return "DoG puck over glass"
+        return "DoG puck over glass";
 
         case "delaying-game-unsuccessful-challenge":
-            return "DoG unsuccessful challenge"
+            return "DoG unsuccessful challenge";
         
         case "abuse-of-officials":
-            return "Abuse of officials"
+            return "Abuse of officials";
 
         case "unsportsmanlike-conduct":
-            return "Unsportsmanlike conduct"
+            return "Unsportsmanlike conduct";
+
+        case "holding-the-stick":
+            return "Holding the stick";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

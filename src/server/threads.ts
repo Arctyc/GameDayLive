@@ -201,45 +201,39 @@ export async function tryCleanupThread(
 		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
         const gameIdForPGT = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
 
-        // Handle Game Day Thread Cleanup
-        if (gameIdForGDT) {
-            const gameId = Number(gameIdForGDT);
-            
-            // Cancel the update loop for this thread
-            const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
-            if (updateJobId) {
-                await tryCancelScheduledJob(updateJobId);
-                await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
-            }
+        // Prefer PGT mapping first
+		if (gameIdForPGT) {
+			const gameId = Number(gameIdForPGT);
 
-            // Wipe Redis
-            await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-            await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-            await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
-            
-            logger.info(`GDT ${postId} cleaned up.`);
-        } 
-        
-        // Handle Post-Game Thread Cleanup
-        else if (gameIdForPGT) {
-            const gameId = Number(gameIdForPGT);
-            
-            // Cancel any updates
-            const pgtJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
-            if (pgtJobId) {
-                await tryCancelScheduledJob(pgtJobId);
-                await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
-            }
+			const pgtJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
+			if (pgtJobId) {
+				await tryCancelScheduledJob(pgtJobId);
+				await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
+			}
 
-            // Wipe Redis
-            await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-            await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
-            
-            logger.info(`PGT ${postId} cleaned up.`);
-        } 
-        else {
-            logger.warn(`No Redis mapping found for post: ${postId}`);
-        }
+			await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+			await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+
+			logger.info(`PGT ${postId} cleaned up.`);
+		}
+		else if (gameIdForGDT) {
+			const gameId = Number(gameIdForGDT);
+
+			const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+			if (updateJobId) {
+				await tryCancelScheduledJob(updateJobId);
+				await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+			}
+
+			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+			await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
+
+			logger.info(`GDT ${postId} cleaned up.`);
+		}
+		else {
+			logger.warn(`No Redis mapping found for post: ${postId}`);
+		}
 
         return { success: true, postId };
     } catch (err) {

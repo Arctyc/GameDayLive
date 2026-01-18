@@ -341,7 +341,7 @@ function getPlayerInfo(game: NHLGame, playerId?: number) {
 }
 
 function formatTime(t: string): string {
-    if (!t || !t.includes(":")) return "00:00";
+    if (!t || !t.includes(":")) return "-";
     const [m, s] = t.split(":").map(Number);
     return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`;
 }

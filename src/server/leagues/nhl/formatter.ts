@@ -420,6 +420,9 @@ function formatInfraction(descKey: string | undefined): string {
 
         case "holding-the-stick":
             return "Holding the stick";
+
+        case "roughing-removing-opponents-helmet":
+            return "Roughing (Remove opp. helmet)";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

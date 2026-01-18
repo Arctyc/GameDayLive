@@ -12,7 +12,7 @@ export const dailyGameCheck = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Daily game check failed:', err);
-      res.status(400).json({ 
+      res.status(200).json({ // TODO: Send success regardless to prevent crash, schedule retry logic in dailyGameCheckJob if necessary
         status: 'error', 
         message: 'Daily check failed',
         error: err instanceof Error ? err.message : String(err)
@@ -32,7 +32,7 @@ export const createGameThread = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Create game thread failed:', err);
-      res.status(400).json({ 
+      res.status(200).json({  // TODO: Send success regardless to prevent crash, schedule retry logic in createGameThreadJob if necessary
         status: 'error', 
         message: 'Create game thread failed',
         error: err instanceof Error ? err.message : String(err)
@@ -54,7 +54,7 @@ export const createPostgameThread = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Create postgame thread failed:', err);
-      res.status(400).json({ 
+      res.status(200).json({ // TODO: Send success regardless to prevent crash, schedule retry logic in createPostgameThreadJob if necessary
         status: 'error', 
         message: 'Create postgame thread failed',
         error: err instanceof Error ? err.message : String(err)

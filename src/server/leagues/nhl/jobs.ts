@@ -347,7 +347,7 @@ export async function nextPGTUpdateJob(gameId: number) {
         const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
         await scheduleNextPostgameUpdate(postId as string, gameId, nextUpdate);
     } else {
-        logger.info(`Game ${gameId} is officially OFF. Ending PGT updates.`);
+        logger.info(`Game ${gameId} results are official. Ending PGT updates.`);
     }
     
 }

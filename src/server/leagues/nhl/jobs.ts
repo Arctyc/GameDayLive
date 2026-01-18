@@ -125,8 +125,14 @@ export async function createGameThreadJob(gameId: number) {
                 // Continue to creation logic below
             } else {
                 // Thread exists on reddit
-                logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);                
-                
+                const deleted = foundPost.isRemoved();
+                if (!deleted) {
+                    logger.info(`Gameday thread ID: ${existingThreadId} was deleted. Cleaning up.`);
+                    await tryCleanupThread(existingThreadId as Post["id"]);
+                } else {
+                    logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`); 
+                }
+
                 // Check if game is over
                 const gameIsOver = game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF; 
                 if (gameIsOver) {
@@ -625,6 +631,8 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         if (updateTime.getTime() < Date.now()) {
             logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
         }
+        
+        // TODO: Check if thread exists, fallback, should be handled by trigger and thread cleanup
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis

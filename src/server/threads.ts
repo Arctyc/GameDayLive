@@ -33,7 +33,7 @@ export async function tryCreateThread(
 GameDayLive is currently testing its features and performance in this subreddit. We appreciate your patience in the event of any issues.  
 
 To see more, report a bug, or contribute to the project, please visit [the github page](https://github.com/Arctyc/GameDayLive).  
-To request authorization for a subreddit you moderate, please join [the discord server](https://discord.gg/JjNUv3nsSc).  
+To request authorization for a subreddit you moderate, please contact u/ArctycDev.  
 All NHL team subreddits are pre-approved.`
 		);
 		// -------- END TEMPORT COMMENT --------

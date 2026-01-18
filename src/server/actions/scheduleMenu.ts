@@ -67,7 +67,7 @@ export const jobCancelAction = (router: Router): void => {
             const job = allJobs.find(j => j.id === jobId);
 
             if (!job) {
-               res.status(400).json({
+               res.status(200).json({
                   showToast: {
                      appearance: 'error',
                      text: 'No job selected.'
@@ -101,7 +101,7 @@ export const jobCancelAction = (router: Router): void => {
          } catch (err) {
             logger.error('Error cancelling job:', err);
 
-            res.status(400).json({
+            res.status(200).json({
                showToast: {
                   appearance: 'error',
                   text: 'Failed to cancel job.'

@@ -18,6 +18,15 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     
     // Format start time to team's local timezone
     const startTime = new Date(game.startTimeUTC);
+
+    // Format date from startTimeUTC if gameDate doesn't exist
+    const gameDate = game.gameDate || startTime.toLocaleDateString('en-US', {
+        timeZone: timezone,
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
     const localTime = startTime.toLocaleTimeString('en-US', {
         timeZone: timezone,
         hour: 'numeric',
@@ -30,7 +39,7 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         return `PGT | ${awayTeam} @ ${homeTeam}`;
     } 
-    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${game.gameDate} ${localTime}`;
+    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${gameDate} ${localTime}`;
 }
 
 export async function formatThreadBody(game: NHLGame): Promise<string> {

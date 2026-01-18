@@ -96,7 +96,7 @@ export const formAction = (router: Router): void => {
 
                 // Don't allow empty selection for league or team
                 if (!leagueValue || !teamValue) {
-                    res.status(400).json({
+                    res.status(200).json({
                         showToast: {
                             appearance: 'error',
                             text: 'League and team must be selected.'
@@ -192,7 +192,7 @@ export const formAction = (router: Router): void => {
 
             } catch (err) {
                 logger.error('Error saving subreddit config:', err);
-                res.status(400).json({
+                res.status(200).json({
                     showToast: {
                         appearance: 'error',
                         text: `Failed to save configuration.`

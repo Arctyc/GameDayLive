@@ -542,6 +542,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     }
     if (!config?.enablePostgameThreads) {
         logger.info(`Post-game threads disabled in subreddit ${subredditName}`);
+        // TODO: clean up GDT accordingly.
         return;
     }
 

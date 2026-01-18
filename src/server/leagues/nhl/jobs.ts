@@ -486,9 +486,17 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         if (ageMs <= staleGameAge) {
             scheduledTime = now;
         } else {
-            logger.warn(`Tried to create game day thread for stale game. Trying PGT instead.`);
-            await scheduleCreatePostgameThread(game, now);
-            return;
+            // Game started 3+ hours ago - check if it's actually finished
+            logger.warn(`Game started ${Math.round(ageMs / 1000 / 60)} minutes ago (threshold: ${staleGameAge / 1000 / 60} min). State: ${game.gameState}`);
+            
+            if (game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF) {
+                logger.info(`Game is finished. Trying PGT instead.`);
+                await scheduleCreatePostgameThread(game, now);
+                return;
+            } else {
+                logger.info(`Game not finished. Creating game thread now.`);
+                scheduledTime = now;
+            }
         }
     }
 

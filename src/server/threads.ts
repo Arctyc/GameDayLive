@@ -41,7 +41,7 @@ To see more, report a bug, or contribute to the project, please visit [the githu
 			await post.setSuggestedCommentSort("NEW");
 			logger.info(`Post sort by new succeeded for ${post.id}`)
 		} catch (sortNewErr) {
-			logger.warn(`Failed to sticky post in ${post.id}:`, sortNewErr);
+			logger.warn(`Failed to set sort by new on post: ${post.id}:`, sortNewErr);
 		}
 
 		// Sticky

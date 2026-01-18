@@ -373,7 +373,9 @@ function getStrength(
     scoringTeam: 'home' | 'away'
 ): string {
 
-    if (!/^\d{4}$/.test(situationCode)) return "";
+    if (!/^\d{4}$/.test(situationCode)) { return ""; }
+
+    if (situationCode === "0101" || situationCode === "1010"){ return ""; } // Shootout
 
     const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
         situationCode.split("").map(Number) as [number, number, number, number];

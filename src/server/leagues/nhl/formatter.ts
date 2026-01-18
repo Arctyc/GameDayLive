@@ -373,7 +373,9 @@ function getStrength(
     scoringTeam: 'home' | 'away'
 ): string {
 
-    if (!/^\d{4}$/.test(situationCode)) return "";
+    if (!/^\d{4}$/.test(situationCode)) { return ""; }
+
+    if (situationCode === "0101" || situationCode === "1010"){ return ""; } // Shootout
 
     const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
         situationCode.split("").map(Number) as [number, number, number, number];
@@ -383,11 +385,13 @@ function getStrength(
     const teamSkaters = scoringIsHome ? homeSkaters : awaySkaters;
     const oppSkaters  = scoringIsHome ? awaySkaters : homeSkaters;
 
-    const oppGoalieInNet = scoringIsHome ? awayGoalie : homeGoalie;
+    const teamGoalieInNet = scoringIsHome ? homeGoalie : awayGoalie;
+    const oppGoalieInNet  = scoringIsHome ? awayGoalie : homeGoalie;
 
     if (oppGoalieInNet === 0) return "ENG";
     if (teamSkaters > oppSkaters) return "PP";
     if (teamSkaters < oppSkaters) return "SHG";
+    if (teamSkaters > oppSkaters && !teamGoalieInNet) return "EA";
     return "";
 }
 
@@ -400,13 +404,19 @@ function formatInfraction(descKey: string | undefined): string {
         return "Too many men";
 
         case "delaying-game-puck-over-glass":
-        return "DoG Puck over glass"
+        return "DoG puck over glass";
 
         case "delaying-game-unsuccessful-challenge":
-            return "DoG Unsuccessful challenge"
+            return "DoG unsuccessful challenge";
         
         case "abuse-of-officials":
-            return "Abuse of officials"
+            return "Abuse of officials";
+
+        case "unsportsmanlike-conduct":
+            return "Unsportsmanlike conduct";
+
+        case "holding-the-stick":
+            return "Holding the stick";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

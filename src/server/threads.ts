@@ -110,8 +110,8 @@ export async function tryAddComment(post: Post, comment: string){
 		});
 
 		logger.info(`Post comment added to post ${post.id}`);
-	} catch (stickyErr) {
-		logger.warn(`Failed to add comment to post ${post.id}:`, stickyErr);
+	} catch (err) {
+		logger.warn(`Failed to add comment to post ${post.id}:`, err);
 	}
 }
 

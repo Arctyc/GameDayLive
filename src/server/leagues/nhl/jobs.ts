@@ -7,7 +7,7 @@ import { tryCleanupThread, tryCreateThread, tryUpdateThread, tryAddComment } fro
 import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
-import { stringify } from 'node:querystring';
+import { sendModmail } from '../../modmail';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
@@ -214,6 +214,11 @@ export async function createGameThreadJob(gameId: number) {
             await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
         }
     } else {
+        await sendModmail(`Game day thread creation failed`,
+`GameDayLive has detected an error creating the game day thread. This is most likely due to a reddit server glitch.  
+  
+If this is true, please re-save your configuration to attempt posting it again.`)
+
         logger.error(`Failed to create post: ${result.error}`);
     }
 }
@@ -262,6 +267,11 @@ export async function createPostgameThreadJob(gameId: number) {
         await tryCleanupThread(existingGDT as Post["id"]);
         
     } else {
+        await sendModmail(`Post-game thread creation failed`,
+`GameDayLive has detected an error creating the PGT. This is most likely due to a reddit server glitch.  
+  
+If this is true, please re-save your configuration to attempt posting it again.`)
+
         logger.error(`Failed to create post-game thread:`, result.error);
     }
 }
@@ -649,14 +659,6 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         // Check if scheduled time is future
         if (updateTime.getTime() < Date.now()) {
             logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
-        }
-        
-        // Check if thread exists, fallback, should be handled by trigger and thread cleanup
-        const existingThread = await reddit.getPostById(postId as Post["id"]);
-        if (!existingThread || existingThread.isRemoved()){
-            logger.warn(`Thread: ${existingThread.id} doesn't exist or has been removed. Cleaning up.`)
-            tryCleanupThread(existingThread.id as Post["id"]);
-            return;
         }
 
         const jobId = await scheduler.runJob(job);

@@ -8,6 +8,7 @@ import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../.
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
 import { stringify } from 'node:querystring';
+import { sendModmail } from '../../modmail';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
@@ -214,6 +215,11 @@ export async function createGameThreadJob(gameId: number) {
             await scheduleNextLiveUpdate(subredditName, post.id, game.id, updateTime);
         }
     } else {
+        await sendModmail(`Game day thread creation failed`,
+`GameDayLive has detected an error creating the game day thread. This is most likely due to a reddit server glitch.  
+  
+If this is true, please re-save your configuration to attempt posting it again.`)
+
         logger.error(`Failed to create post: ${result.error}`);
     }
 }
@@ -262,6 +268,11 @@ export async function createPostgameThreadJob(gameId: number) {
         await tryCleanupThread(existingGDT as Post["id"]);
         
     } else {
+        await sendModmail(`Post-game thread creation failed`,
+`GameDayLive has detected an error creating the PGT. This is most likely due to a reddit server glitch.  
+  
+If this is true, please re-save your configuration to attempt posting it again.`)
+
         logger.error(`Failed to create post-game thread:`, result.error);
     }
 }

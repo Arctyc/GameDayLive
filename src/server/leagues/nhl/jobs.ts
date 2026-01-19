@@ -127,7 +127,7 @@ export async function createGameThreadJob(gameId: number) {
             } else {
                 // Thread exists on reddit
                 const deleted = foundPost.isRemoved();
-                if (!deleted) {
+                if (deleted) {
                     logger.info(`Gameday thread ID: ${existingThreadId} was deleted. Cleaning up.`);
                     await tryCleanupThread(existingThreadId as Post["id"]);
                 } else {
@@ -531,11 +531,6 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         return;
     }
     */
-    // Workaround?
-    if (existingJob?.data?.threadTitle === threadTitle){
-        logger.warn(`Game day thread matching title ${threadTitle} already exists. Skipping scheduling.`);
-        return;
-    }
 
     const jobData: NewJobData = { subredditName, gameId, jobTitle, threadTitle }
     const job: ScheduledJob = {
@@ -606,12 +601,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
         return;
     }
     */
-    // Workaround?
-    if (existingJob?.data?.threadTitle === threadTitle){
-        logger.warn(`Postgame thread matching title ${threadTitle} already exists. Skipping scheduling.`);
-        return;
-    }
-    
+   
     const jobData: NewJobData = { subredditName, gameId, jobTitle, threadTitle }
     const job: ScheduledJob = {
         id: `create-postgame-${gameId}`,

@@ -15,7 +15,7 @@ GameDayLive automatically creates and updates live game threads for NHL teams (w
 The app:
 - Posts game day threads 1 hour before puck drop
 - Updates threads live with game details, goals, penalties, and scores every ~30 seconds
-- Creates post-game threads when games end (optional)
+- Optionally: Creates Post-game threads, stickies threads, locks threads after games.
 - Note: data is obtained by public APIs and is provided with no affiliation to any organization.
 
 ## Features
@@ -117,7 +117,7 @@ src/
 ## Roadmap
 
 - [x] NHL support
-- [ ] More customization (e.g. pre-game post time, optional sticky, optional lock thread after game)
+- [ ] More customization (e.g. pre-game post time)
 - [ ] More sports/leagues
 - [ ] Your desired features? Contribute or request!
 

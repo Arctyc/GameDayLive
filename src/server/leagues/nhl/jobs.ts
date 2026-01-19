@@ -626,12 +626,12 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Live Update');
 
-    const jobTitle = `Thread-Update-${gameId}`;
+    const jobTitle = `Thread-Update-${postId}`;
 
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
-        id: `Thread-update-${gameId}`,
+        id: `Thread-update-${postId}`,
         name: JOB_NAMES.NEXT_LIVE_UPDATE,
         data: jobData,
         runAt: updateTime,
@@ -670,12 +670,12 @@ async function scheduleNextPGTUpdate(postId: string, gameId: number, updateTime:
     const logger = await Logger.Create('Jobs - Schedule PGT Update');
 
     const subredditName = context.subredditName;
-    const jobTitle = `PGT-Update-${gameId}`;
+    const jobTitle = `PGT-Update-${postId}`;
 
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
-        id: `PGT-update-${gameId}`,
+        id: `PGT-update-${postId}`,
         name: JOB_NAMES.NEXT_PGT_UPDATE,
         data: jobData,
         runAt: updateTime,
@@ -696,11 +696,11 @@ async function scheduleCleanup(postId: Post["id"], gameId: number, cleanupTime: 
     const logger = await Logger.Create(`Jobs - Schedule Cleanup`);
 
     const subredditName = context.subredditName;
-    const jobTitle = `PGT-Cleanup-${gameId}`;
+    const jobTitle = `PGT-Cleanup-${postId}`;
     const jobData: CleanupJobData = { subredditName, gameId, postId, jobTitle};
 
     const job: ScheduledJob = {
-        id: `PGT-cleanup-${gameId}`,
+        id: `PGT-cleanup-${postId}`,
         name: JOB_NAMES.PGT_CLEANUP,
         data: jobData,
         runAt: cleanupTime

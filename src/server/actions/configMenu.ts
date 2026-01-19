@@ -9,6 +9,7 @@ import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
 import { tryCancelScheduledJob } from '../threads';
 import { Logger } from '../utils/Logger';
+import { sendModmail } from '../modmail';
 
 export const menuAction = (router: Router): void => {
     router.post(
@@ -31,6 +32,7 @@ export const menuAction = (router: Router): void => {
                 const teamsForLeague = getTeamsForLeague(config?.league ?? LEAGUES[0]) ?? [];
                 const defaultTeam = config?.nhl?.teamAbbreviation ? [config.nhl.teamAbbreviation] : teamsForLeague[0] ? [teamsForLeague[0].value] : [];
                 const defaultPGT = config?.enablePostgameThreads ?? true;
+                const defaultSticky = config?.enableThreadSticky ?? true;
                 const defaultLock = config?.enableThreadLocking ?? true;
 
                 // Build form
@@ -68,6 +70,12 @@ export const menuAction = (router: Router): void => {
                             },
                             {
                                 type: 'boolean',
+                                name: 'enableThreadSticky',
+                                label: 'Enable sticky threads',
+                                defaultValue: defaultSticky,
+                            },
+                            {
+                                type: 'boolean',
                                 name: 'enableThreadLocking',
                                 label: 'Enable thread locking',
                                 defaultValue: defaultLock,
@@ -92,17 +100,16 @@ export const formAction = (router: Router): void => {
 
             try {
                 // Extract form data
-                const { league, team, enablePostgameThreads, enableThreadLocking } = req.body;
-                                
-                // Convert arrays to single values if needed
-                const leagueValue = Array.isArray(league) ? league[0] : league;
-                const teamValue = Array.isArray(team) ? team[0] : team;
-                const enablePostgameThreadsValue = Array.isArray(enablePostgameThreads) 
-                    ? enablePostgameThreads[0] 
-                    : enablePostgameThreads;
-                const enableThreadLockingValue = Array.isArray(enableThreadLocking)
-                    ? enableThreadLocking[0]
-                    : enableThreadLocking;
+                const { league, team, enablePostgameThreads, enableThreadSticky, enableThreadLocking } = req.body;
+                
+                // Select field results are sent as array[0]
+                const leagueValue = league[0];
+                const teamValue = team[0];
+                // Bools
+                const enablePostgameThreadsValue = enablePostgameThreads;
+                const enableThreadStickyValue = enableThreadSticky;
+                const enableThreadLockingValue = enableThreadLocking;
+
 
                 // Don't allow empty selection for league or team
                 if (!leagueValue || !teamValue) {
@@ -122,7 +129,12 @@ export const formAction = (router: Router): void => {
                 const subreddit = context.subredditName?.toLowerCase();
 
                 if ( !subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit.toLowerCase())) {
-                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}`);
+
+                    const subject = getDenySubject();
+                    const body = getDenyBody();
+                    const conversationId = sendModmail(subject, body);
+
+                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);                    
 
                     res.status(200).json({
                         showToast: {
@@ -131,12 +143,14 @@ export const formAction = (router: Router): void => {
                     });
                     return;
                 }
+                // Approval is sent after config
 
                 // -------- CONFIG --------
                 // Build subredditConfig object
                 const config: SubredditConfig = {
                     league: leagueValue,
                     enablePostgameThreads: !!enablePostgameThreadsValue,
+                    enableThreadSticky: !! enableThreadStickyValue,
                     enableThreadLocking: !!enableThreadLockingValue,
                     ...(teamValue ? { nhl: { teamAbbreviation: teamValue } as NHLConfig } : {}),                    
                 };
@@ -145,13 +159,24 @@ export const formAction = (router: Router): void => {
                 //NOTE:logger.debug(`Attempting to store config for ${context.subredditName}`)
                 await setSubredditConfig(context.subredditName, config);
 
-                // Pull saved team name to confirm with toast
+                // Pull saved team name to confirm with toast/modmail
                 const savedConfig = await getSubredditConfig(context.subredditName)
+
+                const savedLeagueValue = "NHL"; // FIX: Make dynamic when leagues are dynamic
                 let savedTeamValue = savedConfig?.nhl?.teamAbbreviation;
                 if (!savedTeamValue){
                     logger.error(`Team did not save in config`);
                     savedTeamValue = "N/A";
                 }
+                const enablePGTValue = savedConfig?.enablePostgameThreads as boolean;
+                const enableStickyValue = savedConfig?.enableThreadSticky as boolean;
+                const enableLockValue = savedConfig?.enableThreadLocking as boolean;                
+
+                const subject = getApprovalSubject();
+                const body = getApprovalBody(savedLeagueValue, savedTeamValue, enablePGTValue, enableStickyValue, enableLockValue);
+
+                const conversationId = await sendModmail(subject, body);
+                logger.info(`Sent approval modmail to sub: ${context.subredditName} with conversation ID: ${conversationId}`);
 
                 // -------- DUPLICATE CHECKING --------
                 // Check for existing scheduled Create Game Thread job (any game ID)
@@ -213,3 +238,35 @@ export const formAction = (router: Router): void => {
         }
     );
 };
+
+function getApprovalSubject(): string {
+    return `Confirming your GameDayLive configuration settings`;
+}
+
+function getApprovalBody(league: string, team: string, pgt: boolean, sticky: boolean, lock: boolean): string {
+    const pgtString = pgt ? 'Enabled' : 'Disabled';
+    const stickyString = sticky ? `Enabled` : `Disabled`;
+    const lockString = lock ? `Enabled` : `Disabled`;
+
+    return`Thank you for using GameDayLive! Here are your saved configuration settings. If anything doesn't look right, simply reconfigure and save. 
+
+League: ${league}  
+Team: ${team}  
+Post-game Threads: ${pgtString}  
+Sticky threads: ${stickyString}  
+Lock threads: ${lockString}  
+
+If thread locking is enabled, game day threads will be locked when when the PGT is posted, or in the event PGT is disabled, after the game.  
+PGTs will be locked 18 hours after post.
+
+Thank you again! If you have any questions, do not hesitate to reach out via the contact information found on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
+}
+
+function getDenySubject(): string {
+    return `This subreddit requires authorization to configure GameDayLive`;
+}
+
+function getDenyBody(): string {
+    return `Thank you for your interest in GameDayLive! Due to API rate limits, we maintain a list of approved subreddits.  
+To request approval, please contact the operator of this app via the contact information on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
+}

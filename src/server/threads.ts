@@ -5,8 +5,6 @@ import { Logger } from './utils/Logger';
 import { REDIS_KEYS } from "./leagues/nhl/constants";
 import { getSubredditConfig } from "./config";
 
-//TODO: Implement optional sticky status of both GDT and PGT
-
 // Create new thread
 export async function tryCreateThread(
 	context: any,
@@ -119,15 +117,11 @@ export async function tryAddComment(post: Post, comment: string){
 export async function tryStickyThread(post: Post){
 	const logger = await Logger.Create(`Thread - Sticky`);
 
-	// TODO:
-	// If not enabled in subredditconfig, return
-	/*
 	const config = await getSubredditConfig(context.subredditName);
 	if (!config || !config.enableThreadSticky) {
 		logger.warn(`Thread Stickying not enabled in subreddit: ${context.subredditName}, or config not found.`);
 		return;
 	}
-	*/
 
 	try {
 		if (post.isStickied()) {
@@ -135,7 +129,10 @@ export async function tryStickyThread(post: Post){
 			return;
 		}
 
+		// Sticky it
 		await post.sticky();
+		logger.info(`Post: ${post.id} successfully stickied.`);
+
 	} catch (err) {
 		logger.error(`Error trying to sticky post: ${post.id}`, err);
 	}
@@ -174,7 +171,9 @@ export async function tryLockThread(post: Post){
 			return;
 		}
 
+		// Lock it
 		await post.lock();
+		logger.info(`Post: ${post.id} locked.`)
 	} catch (err) {
 		logger.error(`Error trying to lock post: ${post.id}`, err);
 	}
@@ -275,6 +274,7 @@ export async function tryCancelScheduledJob(jobId: string){
 	}
 }
 
+/* // Disabled due to non-functioning reddit.getNewPosts()
 export async function findRecentThreadByName(threadTitle: string): Promise<Post | undefined > {
 	const logger = await Logger.Create(`Thread - Find By Name`);
 
@@ -282,6 +282,15 @@ export async function findRecentThreadByName(threadTitle: string): Promise<Post 
 		subredditName: context.subredditName,
 		limit: 500,
 	})
+
+	// DEBUG
+	logger.info(`Searching for title: "${threadTitle}"`);
+	logger.info(`Total posts fetched: ${recentThreads.children?.length || 0}`);
+	recentThreads.children?.forEach((t, i) => {
+		logger.info(`Post ${i}: "${t.title}"`);
+		logger.info(`Match: ${t.title === threadTitle}`);
+	});
+	// END DEBUG
 
 	const post = recentThreads.children?.find(t => t.title === threadTitle);
 	
@@ -293,3 +302,4 @@ export async function findRecentThreadByName(threadTitle: string): Promise<Post 
 		return undefined;
 	}
 }
+*/

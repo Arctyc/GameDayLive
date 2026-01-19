@@ -650,14 +650,6 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         if (updateTime.getTime() < Date.now()) {
             logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
         }
-        
-        // Check if thread exists, fallback, should be handled by trigger and thread cleanup
-        const existingThread = await reddit.getPostById(postId as Post["id"]);
-        if (!existingThread || existingThread.isRemoved()){
-            logger.warn(`Thread: ${existingThread.id} doesn't exist or has been removed. Cleaning up.`)
-            tryCleanupThread(existingThread.id as Post["id"]);
-            return;
-        }
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis

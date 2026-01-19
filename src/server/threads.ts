@@ -119,15 +119,11 @@ export async function tryAddComment(post: Post, comment: string){
 export async function tryStickyThread(post: Post){
 	const logger = await Logger.Create(`Thread - Sticky`);
 
-	// TODO:
-	// If not enabled in subredditconfig, return
-	/*
 	const config = await getSubredditConfig(context.subredditName);
 	if (!config || !config.enableThreadSticky) {
 		logger.warn(`Thread Stickying not enabled in subreddit: ${context.subredditName}, or config not found.`);
 		return;
 	}
-	*/
 
 	try {
 		if (post.isStickied()) {
@@ -135,7 +131,10 @@ export async function tryStickyThread(post: Post){
 			return;
 		}
 
+		// Sticky it
 		await post.sticky();
+		logger.info(`Post: ${post.id} successfully stickied.`);
+
 	} catch (err) {
 		logger.error(`Error trying to sticky post: ${post.id}`, err);
 	}
@@ -174,7 +173,9 @@ export async function tryLockThread(post: Post){
 			return;
 		}
 
+		// Lock it
 		await post.lock();
+		logger.info(`Post: ${post.id} locked.`)
 	} catch (err) {
 		logger.error(`Error trying to lock post: ${post.id}`, err);
 	}

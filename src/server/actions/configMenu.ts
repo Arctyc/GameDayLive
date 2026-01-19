@@ -100,27 +100,15 @@ export const formAction = (router: Router): void => {
             try {
                 // Extract form data
                 const { league, team, enablePostgameThreads, enableThreadSticky, enableThreadLocking } = req.body;
-                                
-                // Convert arrays to single values if needed
-                const leagueValue = Array.isArray(league) ? league[0] : league;
-                const teamValue = Array.isArray(team) ? team[0] : team;
-                const enablePostgameThreadsValue = Array.isArray(enablePostgameThreads) 
-                    ? enablePostgameThreads[0] 
-                    : enablePostgameThreads;
-                const enableThreadStickyValue = Array.isArray(enableThreadSticky)
-                    ? enableThreadSticky[0]
-                    : enableThreadSticky;
-                const enableThreadLockingValue = Array.isArray(enableThreadLocking)
-                    ? enableThreadLocking[0]
-                    : enableThreadLocking;
+                
+                // Select field results are sent as array[0]
+                const leagueValue = league[0];
+                const teamValue = team[0];
+                // Bools
+                const enablePostgameThreadsValue = enablePostgameThreads;
+                const enableThreadStickyValue = enableThreadSticky;
+                const enableThreadLockingValue = enableThreadLocking;
 
-                // TESTING
-                logger.info(`league: ${Array.isArray(league) ? 'array' : 'not array'}`);
-                logger.info(`team: ${Array.isArray(team) ? 'array' : 'not array'}`);
-                logger.info(`enablePostgameThreads: ${Array.isArray(enablePostgameThreads) ? 'array' : 'not array'}`);
-                logger.info(`enableThreadSticky: ${Array.isArray(enableThreadSticky) ? 'array' : 'not array'}`);
-                logger.info(`enableThreadLocking: ${Array.isArray(enableThreadLocking) ? 'array' : 'not array'}`);
-                // End TESTING
 
                 // Don't allow empty selection for league or team
                 if (!leagueValue || !teamValue) {

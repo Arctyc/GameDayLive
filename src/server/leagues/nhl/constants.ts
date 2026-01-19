@@ -5,7 +5,7 @@ export const UPDATE_INTERVALS = {
   INTERMISSION: 60 * 1000, // Seconds before next period to resume updating during intermission
   PREGAME_THREAD_OFFSET: 60 * 60 * 1000,  // 1 hour before game
   LATE_SCHEDULE_THRESHOLD: 3 * 60 * 60 * 1000, // 3 hours after start
-  PGT_CLEANUP_DELAY: 24 * 60 * 60 * 1000, // Clean up PGT after 24 hours // TODO: Allow custom timing
+  PGT_CLEANUP_DELAY: 18 * 60 * 60 * 1000, // Clean up PGT after 18 hours // TODO: Allow custom timing
   RETRY_MAX_TIME: 1800000,
 } as const;
 

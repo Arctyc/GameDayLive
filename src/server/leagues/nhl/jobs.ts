@@ -257,7 +257,7 @@ export async function createPostgameThreadJob(gameId: number) {
 
         // Add closure comment to existingGDT
         const GDT = await reddit.getPostById(existingGDT as Post["id"]);
-        const completeComment = COMMENTS.CLOSED_GDT_BASE + `${GDT.url.toString()}`
+        const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`
 		await tryAddComment(GDT, completeComment)
         await tryCleanupThread(existingGDT as Post["id"]);
         

@@ -7,7 +7,6 @@ import { tryCleanupThread, tryCreateThread, tryUpdateThread, tryAddComment } fro
 import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
-import { stringify } from 'node:querystring';
 import { sendModmail } from '../../modmail';
 
 // --------------- Daily Game Check -----------------

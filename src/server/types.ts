@@ -22,3 +22,7 @@ export interface NewJobData extends BaseJobData {}
 export interface UpdateJobData extends BaseJobData {
   postId: string;
 }
+
+export interface CleanupJobData extends BaseJobData {
+  postId: string;
+}

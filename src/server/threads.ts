@@ -2,7 +2,7 @@ import { context, Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
-import { REDIS_KEYS } from "./leagues/nhl/constants";
+import { COMMENTS, REDIS_KEYS } from "./leagues/nhl/constants";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
@@ -154,6 +154,7 @@ export async function tryLockThread(post: Post){
 
 	// TODO: If not enabled in subredditconfig, return
 	
+	
 	try {
 		if (post.isLocked()) {
 			logger.warn(`Post: ${post.id} is already locked.`);
@@ -195,7 +196,8 @@ export async function tryCleanupThread(
         await tryUnstickyThread(post);
 		
 		// Lock post
-        //await tryLockPost(); NOTE: Is this wanted? (add to config options?)
+        await tryLockThread(post);
+
 
 		// Get scheduled job ID 
 		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));

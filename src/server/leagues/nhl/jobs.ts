@@ -1,12 +1,13 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
-import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES } from './constants';
+import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from './constants';
 import { getSubredditConfig } from '../../config';
-import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName } from '../../threads';
-import { NewJobData, SubredditConfig, UpdateJobData } from '../../types';
+import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName, tryAddComment } from '../../threads';
+import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
+import { stringify } from 'node:querystring';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
@@ -244,12 +245,20 @@ export async function createPostgameThreadJob(gameId: number) {
         await redis.expire(REDIS_KEYS.GAME_TO_PGT_ID(gameId), REDIS_KEYS.EXPIRY);
         await redis.set(REDIS_KEYS.PGT_TO_GAME_ID(post.id), gameId.toString());
         await redis.expire(REDIS_KEYS.PGT_TO_GAME_ID(post.id), REDIS_KEYS.EXPIRY);
-        // TODO: schedule cleanup for 12 hours
+        
+        // Schedule cleanup for 12 hours
+        await scheduleCleanup(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.PGT_CLEANUP_DELAY));
 
-        await scheduleNextPostgameUpdate(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+        // Schedule update
+        await scheduleNextPGTUpdate(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
 
         // Clean up game day thread
         const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+
+        // Add closure comment to existingGDT
+        const GDT = await reddit.getPostById(existingGDT as Post["id"]);
+        const completeComment = COMMENTS.CLOSED_GDT_BASE + `${GDT.url.toString()}`
+		await tryAddComment(GDT, completeComment)
         await tryCleanupThread(existingGDT as Post["id"]);
         
     } else {
@@ -395,7 +404,7 @@ export async function nextPGTUpdateJob(gameId: number) {
             logger.error(`Could not fetch game data for PGT update: ${gameId}`);
             // Reschedule retry
             const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            await scheduleNextPostgameUpdate(postId as string, gameId, retryTime);
+            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
             return;
         }
 
@@ -414,7 +423,7 @@ export async function nextPGTUpdateJob(gameId: number) {
                 // Reschedule retry
                 const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
                 logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
-                await scheduleNextPostgameUpdate(postId as string, gameId, retryTime);
+                await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
                 return;
             }
         }
@@ -422,7 +431,7 @@ export async function nextPGTUpdateJob(gameId: number) {
         // Schedule next update if state is not OFF
         if (game.gameState !== GAME_STATES.OFF) {
             const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            await scheduleNextPostgameUpdate(postId as string, gameId, nextUpdate);
+            await scheduleNextPGTUpdate(postId as string, gameId, nextUpdate);
         } else {
             logger.info(`Game ${gameId} results are official. Ending PGT updates.`);
         }
@@ -435,7 +444,7 @@ export async function nextPGTUpdateJob(gameId: number) {
         if (postId) {
             const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
             logger.info(`Rescheduling PGT update attempt for game ${gameId} at ${retryTime.toISOString()}`);
-            await scheduleNextPostgameUpdate(postId as string, gameId, retryTime);
+            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
         }
     }
 }
@@ -645,7 +654,7 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
     }
 }
 
-async function scheduleNextPostgameUpdate(postId: string, gameId: number, updateTime: Date) {
+async function scheduleNextPGTUpdate(postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule PGT Update');
 
     const subredditName = context.subredditName;
@@ -668,5 +677,30 @@ async function scheduleNextPostgameUpdate(postId: string, gameId: number, update
         logger.info(`Scheduled PGT update ID: ${jobId} for game ${gameId}`);
     } catch (err) {
         logger.error(`Failed to schedule PGT update: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
+async function scheduleCleanup(postId: Post["id"], gameId: number, cleanupTime: Date){
+    const logger = await Logger.Create(`Jobs - Schedule Cleanup`);
+
+    const subredditName = context.subredditName;
+    const jobTitle = `PGT-Cleanup-${gameId}`;
+    const jobData: CleanupJobData = { subredditName, gameId, postId, jobTitle};
+
+    const job: ScheduledJob = {
+        id: `PGT-cleanup-${gameId}`,
+        name: JOB_NAMES.PGT_CLEANUP,
+        data: jobData,
+        runAt: cleanupTime
+    }
+
+    try {
+        const jobId = await scheduler.runJob(job);
+
+        await redis.set(REDIS_KEYS.JOB_PGT_CLEANUP(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_PGT_CLEANUP(gameId), REDIS_KEYS.EXPIRY * 2);
+        logger.info(`Scheduled PGT cleanup ID: ${jobId} for game ${gameId}`);
+    } catch (err) {
+        logger.error(`Failed to schedule PGT cleanup: ${err instanceof Error ? err.message : String(err)}`);
     }
 }

@@ -9,6 +9,7 @@ import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
 import { dailyGameCheckJob } from '../leagues/nhl/jobs';
 import { tryCancelScheduledJob } from '../threads';
 import { Logger } from '../utils/Logger';
+import { sendModmail } from '../modmail';
 
 export const menuAction = (router: Router): void => {
     router.post(
@@ -128,7 +129,12 @@ export const formAction = (router: Router): void => {
                 const subreddit = context.subredditName?.toLowerCase();
 
                 if ( !subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit.toLowerCase())) {
-                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}`);
+
+                    const subject = getDenySubject();
+                    const body = getDenyBody();
+                    const conversationId = sendModmail(subject, body);
+
+                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);                    
 
                     res.status(200).json({
                         showToast: {
@@ -137,6 +143,7 @@ export const formAction = (router: Router): void => {
                     });
                     return;
                 }
+                // Approval is sent after config
 
                 // -------- CONFIG --------
                 // Build subredditConfig object
@@ -152,13 +159,24 @@ export const formAction = (router: Router): void => {
                 //NOTE:logger.debug(`Attempting to store config for ${context.subredditName}`)
                 await setSubredditConfig(context.subredditName, config);
 
-                // Pull saved team name to confirm with toast
+                // Pull saved team name to confirm with toast/modmail
                 const savedConfig = await getSubredditConfig(context.subredditName)
+
+                const savedLeagueValue = "NHL"; // FIX: Make dynamic when leagues are dynamic
                 let savedTeamValue = savedConfig?.nhl?.teamAbbreviation;
                 if (!savedTeamValue){
                     logger.error(`Team did not save in config`);
                     savedTeamValue = "N/A";
                 }
+                const enablePGTValue = savedConfig?.enablePostgameThreads as boolean;
+                const enableStickyValue = savedConfig?.enableThreadSticky as boolean;
+                const enableLockValue = savedConfig?.enableThreadLocking as boolean;                
+
+                const subject = getApprovalSubject();
+                const body = getApprovalBody(savedLeagueValue, savedTeamValue, enablePGTValue, enableStickyValue, enableLockValue);
+
+                const conversationId = await sendModmail(subject, body);
+                logger.info(`Sent approval modmail to sub: ${context.subredditName} with conversation ID: ${conversationId}`);
 
                 // -------- DUPLICATE CHECKING --------
                 // Check for existing scheduled Create Game Thread job (any game ID)
@@ -220,3 +238,33 @@ export const formAction = (router: Router): void => {
         }
     );
 };
+
+function getApprovalSubject(): string {
+    return `Confirming your GameDayLive configuration settings`;
+}
+
+function getApprovalBody(league: string, team: string, pgt: boolean, sticky: boolean, lock: boolean): string {
+    const pgtString = pgt ? 'Enabled' : 'Disabled';
+    const stickyString = sticky ? `Enabled` : `Disabled`;
+    const lockString = lock ? `Enabled` : `Disabled`;
+
+    return`Thank you for using GameDayLive! Here are your saved configuration settings. If anything doesn't look right, simply reconfigure and save.  
+League: ${league}  
+Team: ${team}  
+Post-game Threads: ${pgtString}  
+Sticky threads: ${stickyString}  
+Lock threads: ${lockString}  
+If thread locking is enabled, game day threads will be locked when when the PGT is posted, or in the event PGT is disabled, after the game.  
+PGTs will be locked 18 hours after post.
+
+Thank you again! If you have any questions, do not hesitate to reach out via the contact information found on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
+}
+
+function getDenySubject(): string {
+    return `This subreddit requires authorization to configure GameDayLive`;
+}
+
+function getDenyBody(): string {
+    return `Thank you for your interest in GameDayLive! Due to API rate limits, we maintain a list of approved subreddits.  
+To request approval, please contact the operator of this app via the contact information on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
+}

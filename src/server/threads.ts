@@ -5,8 +5,6 @@ import { Logger } from './utils/Logger';
 import { REDIS_KEYS } from "./leagues/nhl/constants";
 import { getSubredditConfig } from "./config";
 
-//TODO: Implement optional sticky status of both GDT and PGT
-
 // Create new thread
 export async function tryCreateThread(
 	context: any,

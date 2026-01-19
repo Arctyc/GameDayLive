@@ -2,7 +2,8 @@ import { context, Post, reddit } from "@devvit/web/server";
 import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
-import { COMMENTS, REDIS_KEYS } from "./leagues/nhl/constants";
+import { REDIS_KEYS } from "./leagues/nhl/constants";
+import { getSubredditConfig } from "./config";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
@@ -118,7 +119,15 @@ export async function tryAddComment(post: Post, comment: string){
 export async function tryStickyThread(post: Post){
 	const logger = await Logger.Create(`Thread - Sticky`);
 
-	// TODO: If not enabled in subredditconfig, return
+	// TODO:
+	// If not enabled in subredditconfig, return
+	/*
+	const config = await getSubredditConfig(context.subredditName);
+	if (!config || !config.enableThreadSticky) {
+		logger.warn(`Thread Stickying not enabled in subreddit: ${context.subredditName}, or config not found.`);
+		return;
+	}
+	*/
 
 	try {
 		if (post.isStickied()) {
@@ -152,8 +161,12 @@ export async function tryUnstickyThread(post: Post){
 export async function tryLockThread(post: Post){
 	const logger = await Logger.Create(`Thread - Lock`);
 
-	// TODO: If not enabled in subredditconfig, return
-	
+	// If not enabled in subredditconfig, return
+	const config = await getSubredditConfig(context.subredditName);
+	if (!config || !config.enableThreadLocking) {
+		logger.warn(`Thread locking not enabled in subreddit: ${context.subredditName}, or config not found.`);
+		return;
+	}
 	
 	try {
 		if (post.isLocked()) {

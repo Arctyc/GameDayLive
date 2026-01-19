@@ -45,8 +45,7 @@ export const jobMenuAction = (router: Router): void => {
          });
 
       } catch (err) {
-
-         // TODO: Catch error
+         logger.error(`Error in subreddit jobs menu ${err}`);
       }
    });
 }

@@ -31,6 +31,7 @@ export const menuAction = (router: Router): void => {
                 const teamsForLeague = getTeamsForLeague(config?.league ?? LEAGUES[0]) ?? [];
                 const defaultTeam = config?.nhl?.teamAbbreviation ? [config.nhl.teamAbbreviation] : teamsForLeague[0] ? [teamsForLeague[0].value] : [];
                 const defaultPGT = config?.enablePostgameThreads ?? true;
+                const defaultLock = config?.enableThreadLocking ?? true;
 
                 // Build form
                 res.json({
@@ -64,6 +65,12 @@ export const menuAction = (router: Router): void => {
                                 name: 'enablePostgameThreads',
                                 label: 'Enable post-game threads',
                                 defaultValue: defaultPGT,
+                            },
+                            {
+                                type: 'boolean',
+                                name: 'enableThreadLocking',
+                                lable: 'Enable thread locking',
+                                defaultValue: defaultLock,
                             }
                             ],
                             acceptLabel: 'Save',
@@ -71,7 +78,7 @@ export const menuAction = (router: Router): void => {
                     }
                 });
             } catch (err) {
-                // TODO: handle error
+                logger.error(`Error in config menu: ${err}`);
             }
         }
     )
@@ -85,7 +92,7 @@ export const formAction = (router: Router): void => {
 
             try {
                 // Extract form data
-                const { league, team, enablePostgameThreads } = req.body;
+                const { league, team, enablePostgameThreads, enableThreadLocking } = req.body;
                                 
                 // Convert arrays to single values if needed
                 const leagueValue = Array.isArray(league) ? league[0] : league;
@@ -93,6 +100,9 @@ export const formAction = (router: Router): void => {
                 const enablePostgameThreadsValue = Array.isArray(enablePostgameThreads) 
                     ? enablePostgameThreads[0] 
                     : enablePostgameThreads;
+                const enableThreadLockingValue = Array.isArray(enableThreadLocking)
+                    ? enableThreadLocking[0]
+                    : enableThreadLocking;
 
                 // Don't allow empty selection for league or team
                 if (!leagueValue || !teamValue) {
@@ -127,6 +137,7 @@ export const formAction = (router: Router): void => {
                 const config: SubredditConfig = {
                     league: leagueValue,
                     enablePostgameThreads: !!enablePostgameThreadsValue,
+                    enableThreadLocking: !!enableThreadLockingValue,
                     ...(teamValue ? { nhl: { teamAbbreviation: teamValue } as NHLConfig } : {}),                    
                 };
 

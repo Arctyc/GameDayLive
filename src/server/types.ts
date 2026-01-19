@@ -7,6 +7,7 @@ export interface SubredditConfig {
   nhl?: NHLConfig;
   // Additional leagues here
   enablePostgameThreads: boolean;
+  enableThreadLocking: boolean;
 }
 
 // Enforce standard job data

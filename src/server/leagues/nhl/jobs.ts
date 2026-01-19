@@ -3,7 +3,7 @@ import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from './constants';
 import { getSubredditConfig } from '../../config';
-import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName, tryAddComment } from '../../threads';
+import { tryCleanupThread, tryCreateThread, tryUpdateThread, tryAddComment } from '../../threads';
 import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
@@ -515,7 +515,7 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         }
     }
 
-    // only schedule if no same job exists // TODO: Move to own function with thread check
+    // only schedule if no same job exists
     const existingJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
     const existingJob = existingJobId ? await getJobData(existingJobId) : undefined;
 
@@ -524,13 +524,20 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         return;
     }
 
+    /* Thread title check disabled due to nonfunctioning reddit.getNewPosts()
     const foundThread = await findRecentThreadByName(threadTitle);
     if (foundThread){
-        logger.warn(`Postgame thread matching title ${threadTitle} already exists. Skipping scheduling.`);
+        logger.warn(`Game day thread matching title ${threadTitle} already exists. Skipping scheduling.`);
+        return;
+    }
+    */
+    // Workaround?
+    if (existingJob?.data?.threadTitle === threadTitle){
+        logger.warn(`Game day thread matching title ${threadTitle} already exists. Skipping scheduling.`);
         return;
     }
 
-    const jobData: NewJobData = { subredditName, gameId, jobTitle }
+    const jobData: NewJobData = { subredditName, gameId, jobTitle, threadTitle }
     const job: ScheduledJob = {
         id: `create-thread-${gameId}`,
         name: JOB_NAMES.CREATE_GAME_THREAD,
@@ -592,13 +599,20 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     }
 
     // Only schedule if no same THREAD exists
+    /* Thread title check disabled due to nonfunctioning reddit.getNewPosts()
     const foundThread = await findRecentThreadByName(threadTitle);
     if (foundThread){
         logger.warn(`Postgame thread matching title ${threadTitle} already exists. Skipping scheduling.`);
         return;
     }
+    */
+    // Workaround?
+    if (existingJob?.data?.threadTitle === threadTitle){
+        logger.warn(`Postgame thread matching title ${threadTitle} already exists. Skipping scheduling.`);
+        return;
+    }
     
-    const jobData: NewJobData = { subredditName, gameId, jobTitle }
+    const jobData: NewJobData = { subredditName, gameId, jobTitle, threadTitle }
     const job: ScheduledJob = {
         id: `create-postgame-${gameId}`,
         name: JOB_NAMES.CREATE_POSTGAME_THREAD,

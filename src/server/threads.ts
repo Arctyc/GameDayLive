@@ -274,6 +274,7 @@ export async function tryCancelScheduledJob(jobId: string){
 	}
 }
 
+/* // Disabled due to non-functioning reddit.getNewPosts()
 export async function findRecentThreadByName(threadTitle: string): Promise<Post | undefined > {
 	const logger = await Logger.Create(`Thread - Find By Name`);
 
@@ -281,6 +282,15 @@ export async function findRecentThreadByName(threadTitle: string): Promise<Post 
 		subredditName: context.subredditName,
 		limit: 500,
 	})
+
+	// DEBUG
+	logger.info(`Searching for title: "${threadTitle}"`);
+	logger.info(`Total posts fetched: ${recentThreads.children?.length || 0}`);
+	recentThreads.children?.forEach((t, i) => {
+		logger.info(`Post ${i}: "${t.title}"`);
+		logger.info(`Match: ${t.title === threadTitle}`);
+	});
+	// END DEBUG
 
 	const post = recentThreads.children?.find(t => t.title === threadTitle);
 	
@@ -292,3 +302,4 @@ export async function findRecentThreadByName(threadTitle: string): Promise<Post 
 		return undefined;
 	}
 }
+*/

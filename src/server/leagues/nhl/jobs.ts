@@ -149,7 +149,7 @@ export async function createGameThreadJob(gameId: number) {
                         logger.debug(`PGT found, cleaning up Redis...`);
                         await tryCleanupThread(existingPostgameThreadId as Post["id"]);
                     } else {
-                        // TODO: If game ended < X time ago
+                        // TODO: If game ended < X time ago?
                         // Create PGT
                         logger.debug(`No PGT found, scheduling new.`);
                         await scheduleCreatePostgameThread(game, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
@@ -372,7 +372,7 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     } else {
         // Game finished
-        // TODO:FIX: schedule postgame thread only if enabled (offload method?)
+        // Schedule postgame thread only if enabled (FIX: offload method to universal location for other leagues to use)
         const config = await getSubredditConfig(context.subredditName);
         if (config?.enablePostgameThreads){
             logger.info(`Game ended. Scheduling PGT.`);
@@ -572,7 +572,13 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     }
     if (!config?.enablePostgameThreads) {
         logger.info(`Post-game threads disabled in subreddit ${subredditName}`);
-        // TODO: clean up GDT accordingly.
+
+        // Clean up GDT accordingly.
+        const GDTId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+        if (GDTId) {
+            await tryCleanupThread(GDTId as Post["id"]);
+        }
+
         return;
     }
 
@@ -641,7 +647,13 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
             logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
         }
         
-        // TODO: Check if thread exists, fallback, should be handled by trigger and thread cleanup
+        // Check if thread exists, fallback, should be handled by trigger and thread cleanup
+        const existingThread = await reddit.getPostById(postId as Post["id"]);
+        if (!existingThread || existingThread.isRemoved()){
+            logger.warn(`Thread: ${existingThread.id} doesn't exist or has been removed. Cleaning up.`)
+            tryCleanupThread(existingThread.id as Post["id"]);
+            return;
+        }
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis

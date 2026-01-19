@@ -265,12 +265,14 @@ function buildPenaltiesTableHeader() {
 `);
 }
 
-// TODO: bold sub team - get teamAbbrev from config, if team = teamAbbrev, team > `**${team}`
+
 function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string { 
     const d = play.details;
     if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
+
+    // TODO: bold sub team - get teamAbbrev from config (requires async), if team = teamAbbrev, team = `**${team}**`
 
     const scorer = getPlayerInfo(game, d.scoringPlayerId);
     if (!scorer) return "";

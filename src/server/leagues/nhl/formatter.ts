@@ -431,6 +431,9 @@ function formatInfraction(descKey: string | undefined): string {
 
         case "roughing-removing-opponents-helmet":
             return "Roughing (Remove opp. helmet)";
+
+        case "high-sticking-double-minor":
+            return "High-sticking";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

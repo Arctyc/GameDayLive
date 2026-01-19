@@ -1,52 +1,104 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
 import { getTodaysSchedule, getGameData, NHLGame } from './api';
 import { formatThreadTitle, formatThreadBody } from './formatter';
-import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES } from './constants';
+import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from './constants';
 import { getSubredditConfig } from '../../config';
-import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName } from '../../threads';
-import { NewJobData, SubredditConfig, UpdateJobData } from '../../types';
+import { tryCleanupThread, tryCreateThread, tryUpdateThread, findRecentThreadByName, tryAddComment } from '../../threads';
+import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
+import { stringify } from 'node:querystring';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
     const logger = await Logger.Create('Jobs - Daily Game Check');
-    logger.debug(`Running daily game check...`);
-
-    const config = await getSubredditConfig(context.subredditName);
-    if (!config || !config.nhl) {
-        logger.debug(`No subreddit config returned for ${context.subredditName}`);
-        return; 
-    } 
-
-    const subredditName = context.subredditName;
-    const teamAbbrev = config.nhl.teamAbbreviation;
-    const todayGames = await getTodaysSchedule(fetch); // TODO:FIX: Add try/catch
-    const todayGamesIds = todayGames.map(g => g.id).join(', ');
-    logger.info(`Team: ${teamAbbrev}, Games: ${todayGamesIds}`);
-
-    // Filter by the subreddit's NHL team
-    const game = todayGames.find(
-        g => g.homeTeam.abbrev === teamAbbrev || g.awayTeam.abbrev === teamAbbrev
-    );
-
-    if (!game){
-        logger.info(`No game found for ${context.subredditName}: ${teamAbbrev}`)
-        return;
-    } 
-
-    // Else, game found
-    logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam.abbrev} at ${game.homeTeam.abbrev}`);
-
-    // Determine pre-game thread creation time
-    const startTime = new Date(game.startTimeUTC).getTime(); //NOTE: could fail if API format changes?
-    const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET); // TODO: Feature: Add subreddit specific modifier * 2 = 2 hours before
-    const gameId = game.id;
-
-    logger.debug(`Calling scheduleCreateGameThread with subreddit:${subredditName}, gameId: ${gameId}, time: ${scheduleTime.toISOString()}`);
-    await scheduleCreateGameThread(subredditName, game, scheduleTime);
     
+    const attemptKey = REDIS_KEYS.DAILY_CHECK_ATTEMPTS();
+    const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
+    
+    logger.debug(`Running daily game check (attempt ${attemptNumber + 1})...`);
+
+    try {
+        const config = await getSubredditConfig(context.subredditName);
+        if (!config || !config.nhl) {
+            logger.debug(`No subreddit config returned for ${context.subredditName}`);
+            return; 
+        } 
+
+        const subredditName = context.subredditName;
+        const teamAbbrev = config.nhl.teamAbbreviation;
+        
+        let todayGames: NHLGame[];
+        try {
+            todayGames = await getTodaysSchedule(fetch);
+        } catch (err) {
+            logger.error(`Failed to fetch today's schedule: ${err instanceof Error ? err.message : String(err)}`);
+            
+            // Retry with exponential backoff
+            if (attemptNumber < 5) {
+                const backoffMs = Math.min(60000 * Math.pow(2, attemptNumber), UPDATE_INTERVALS.RETRY_MAX_TIME);
+                const retryTime = new Date(Date.now() + backoffMs);
+                
+                // Increment attempt counter in Redis
+                await redis.set(attemptKey, String(attemptNumber + 1));
+                await redis.expire(attemptKey, 7200); // 2 hours TTL
+                
+                logger.info(`Rescheduling daily game check at ${retryTime.toISOString()}`);
+                await scheduleDailyGameCheck(retryTime);
+            } else {
+                logger.error(`Failed to fetch schedule after ${attemptNumber + 1} attempts. Giving up.`);
+                await redis.del(attemptKey); // Clear attempts
+            }
+            return;
+        }
+        
+        // Success - clear attempt counter
+        await redis.del(attemptKey);
+        
+        const todayGamesIds = todayGames.map(g => g.id).join(', ');
+        logger.info(`Team: ${teamAbbrev}, Games: ${todayGamesIds}`);
+
+        // Filter by the subreddit's NHL team
+        const game = todayGames.find(
+            g => g.homeTeam.abbrev === teamAbbrev || g.awayTeam.abbrev === teamAbbrev
+        );
+
+        if (!game){
+            logger.info(`No game found for ${context.subredditName}: ${teamAbbrev}`)
+            return;
+        } 
+
+        // Else, game found
+        logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam.abbrev} at ${game.homeTeam.abbrev}`);
+
+        // Determine pre-game thread creation time
+        const startTime = new Date(game.startTimeUTC).getTime();
+        const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
+        const gameId = game.id;
+
+        logger.debug(`Calling scheduleCreateGameThread with subreddit:${subredditName}, gameId: ${gameId}, time: ${scheduleTime.toISOString()}`);
+        await scheduleCreateGameThread(subredditName, game, scheduleTime);
+        
+    } catch (err) {
+        logger.error(`Daily game check failed: ${err instanceof Error ? err.message : String(err)}`);
+        
+        // Retry with exponential backoff for unexpected errors
+        if (attemptNumber < 5) {
+            const backoffMs = Math.min(60000 * Math.pow(2, attemptNumber), 1800000); // Max 30 min
+            const retryTime = new Date(Date.now() + backoffMs);
+            
+            // Increment attempt counter in Redis
+            await redis.set(attemptKey, String(attemptNumber + 1));
+            await redis.expire(attemptKey, 7200); // 2 hours TTL
+            
+            logger.info(`Rescheduling daily game check at ${retryTime.toISOString()}`);
+            await scheduleDailyGameCheck(retryTime);
+        } else {
+            logger.error(`Daily game check failed after ${attemptNumber + 1} attempts. Giving up.`);
+            await redis.del(attemptKey); // Clear attempts
+        }
     }
+}
 
 // --------------- Create Game Thread -----------------
 export async function createGameThreadJob(gameId: number) {
@@ -74,8 +126,14 @@ export async function createGameThreadJob(gameId: number) {
                 // Continue to creation logic below
             } else {
                 // Thread exists on reddit
-                logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`);                
-                
+                const deleted = foundPost.isRemoved();
+                if (!deleted) {
+                    logger.info(`Gameday thread ID: ${existingThreadId} was deleted. Cleaning up.`);
+                    await tryCleanupThread(existingThreadId as Post["id"]);
+                } else {
+                    logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`); 
+                }
+
                 // Check if game is over
                 const gameIsOver = game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF; 
                 if (gameIsOver) {
@@ -91,7 +149,7 @@ export async function createGameThreadJob(gameId: number) {
                         logger.debug(`PGT found, cleaning up Redis...`);
                         await tryCleanupThread(existingPostgameThreadId as Post["id"]);
                     } else {
-                        // TODO: If game ended < X time ago
+                        // TODO: If game ended < X time ago?
                         // Create PGT
                         logger.debug(`No PGT found, scheduling new.`);
                         await scheduleCreatePostgameThread(game, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
@@ -187,12 +245,20 @@ export async function createPostgameThreadJob(gameId: number) {
         await redis.expire(REDIS_KEYS.GAME_TO_PGT_ID(gameId), REDIS_KEYS.EXPIRY);
         await redis.set(REDIS_KEYS.PGT_TO_GAME_ID(post.id), gameId.toString());
         await redis.expire(REDIS_KEYS.PGT_TO_GAME_ID(post.id), REDIS_KEYS.EXPIRY);
-        // TODO: schedule cleanup for 12 hours
+        
+        // Schedule cleanup for 12 hours
+        await scheduleCleanup(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.PGT_CLEANUP_DELAY));
 
-        await scheduleNextPostgameUpdate(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+        // Schedule update
+        await scheduleNextPGTUpdate(post.id, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
 
         // Clean up game day thread
         const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+
+        // Add closure comment to existingGDT
+        const GDT = await reddit.getPostById(existingGDT as Post["id"]);
+        const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`
+		await tryAddComment(GDT, completeComment)
         await tryCleanupThread(existingGDT as Post["id"]);
         
     } else {
@@ -211,12 +277,19 @@ export async function nextLiveUpdateJob(gameId: number) {
         return;
     }
 
-    // FIX: Check that post is actually live on reddit, 
-    // if not, cancel and drop redis of game
-    // daily check will fix if necessary
-    const existingPost = await reddit.getPostById(postId as Post["id"])
-    if (!existingPost) {
-        await tryCleanupThread(postId as Post["id"]);
+    // Check that post is actually live on reddit
+    try {
+        const existingPost = await reddit.getPostById(postId as Post["id"])
+        if (!existingPost) {
+            await tryCleanupThread(postId as Post["id"]);
+        }
+    } catch (err) {
+        logger.error(`Failed to verify post exists: ${err instanceof Error ? err.message : String(err)}`);
+        // Reschedule and try again
+        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+        logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
+        await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
+        return;
     }
 
     // Check for game data changes and update if modified
@@ -299,7 +372,7 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     } else {
         // Game finished
-        // TODO:FIX: schedule postgame thread only if enabled (offload method?)
+        // Schedule postgame thread only if enabled (FIX: offload method to universal location for other leagues to use)
         const config = await getSubredditConfig(context.subredditName);
         if (config?.enablePostgameThreads){
             logger.info(`Game ended. Scheduling PGT.`);
@@ -315,44 +388,99 @@ export async function nextLiveUpdateJob(gameId: number) {
 export async function nextPGTUpdateJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Next PGT Update');
 
-    // Retrieve the PGT ID from Redis
-    const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-    if (!postId) {
-        logger.error(`No PGT postId found for game ${gameId}`);
-        return;
-    }
-
-    // Fetch game data
-    const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
-    const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
-
-    if (!game) {
-        logger.error(`Could not fetch game data for PGT update: ${gameId}`);
-        return;
-    }
-
-    // Update the thread if the API data has changed
-    if (modified) {
-        if (etag) {
-            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
-            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+    try {
+        // Retrieve the PGT ID from Redis
+        const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+        if (!postId) {
+            logger.error(`No PGT postId found for game ${gameId}`);
+            return;
         }
 
-        const body = await formatThreadBody(game);
-        await tryUpdateThread(postId as Post["id"], body);
-    }
+        // Fetch game data
+        const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
+        const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
 
-    // Schedule next update if state is not OFF
-    if (game.gameState !== GAME_STATES.OFF) {
-        const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-        await scheduleNextPostgameUpdate(postId as string, gameId, nextUpdate);
-    } else {
-        logger.info(`Game ${gameId} is officially OFF. Ending PGT updates.`);
+        if (!game) {
+            logger.error(`Could not fetch game data for PGT update: ${gameId}`);
+            // Reschedule retry
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
+            return;
+        }
+
+        // Update the thread if the API data has changed
+        if (modified) {
+            if (etag) {
+                await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+                await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+            }
+
+            const body = await formatThreadBody(game);
+            const result = await tryUpdateThread(postId as Post["id"], body);
+            
+            if (!result.success) {
+                logger.error(`PGT update failed for post ${postId}: ${result.error}`);
+                // Reschedule retry
+                const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+                logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
+                await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
+                return;
+            }
+        }
+
+        // Schedule next update if state is not OFF
+        if (game.gameState !== GAME_STATES.OFF) {
+            const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            await scheduleNextPGTUpdate(postId as string, gameId, nextUpdate);
+        } else {
+            logger.info(`Game ${gameId} results are official. Ending PGT updates.`);
+        }
+        
+    } catch (err) {
+        logger.error(`PGT update job failed for game ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
+        
+        // Try to reschedule
+        const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+        if (postId) {
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            logger.info(`Rescheduling PGT update attempt for game ${gameId} at ${retryTime.toISOString()}`);
+            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
+        }
     }
-    
 }
 
 // --------------- Scheduling helpers -----------------
+
+async function scheduleDailyGameCheck(runAt: Date) {
+    const logger = await Logger.Create('Jobs - Schedule Daily Game Check');
+
+    const job: ScheduledJob = {
+        id: `daily-game-check`,
+        name: JOB_NAMES.DAILY_GAME_CHECK,
+        data: {}, // No data needed
+        runAt: runAt,
+    };
+
+    try {
+        logger.debug(`Attempting to schedule daily game check at ${runAt.toISOString()}`);
+
+        // Check if scheduled time is in the future
+        if (runAt.getTime() < Date.now()) {
+            logger.warn(`Warning: scheduledTime ${runAt.toISOString()} is in the past. Job may run immediately or fail.`);
+        }
+
+        const jobId = await scheduler.runJob(job);
+        
+        // Optionally store jobId in Redis (not critical for daily check)
+        await redis.set(REDIS_KEYS.JOB_DAILY_CHECK(), jobId);
+        await redis.expire(REDIS_KEYS.JOB_DAILY_CHECK(), REDIS_KEYS.EXPIRY); // 24 hours
+        
+        logger.info(`Successfully scheduled daily game check job ID: ${jobId}`);
+
+    } catch (err) {
+        logger.error(`Failed to schedule daily game check: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
 
 // -------- Schedule Create Game Thread --------
 async function scheduleCreateGameThread(subredditName: string, game: NHLGame, scheduledTime: Date) {
@@ -367,15 +495,23 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
     const staleGameAge = UPDATE_INTERVALS.LATE_SCHEDULE_THRESHOLD;
 
     if (scheduledTime < now) {
-        const ageMs = now.getTime() - scheduledTime.getTime();
+        const ageMs = now.getTime() - new Date(game.startTimeUTC).getTime();
 
         // Scheduled start is in the past, but not stale
         if (ageMs <= staleGameAge) {
             scheduledTime = now;
         } else {
-            logger.warn(`Tried to create game day thread for stale game. Trying PGT instead.`);
-            await scheduleCreatePostgameThread(game, now);
-            return;
+            // Game started 3+ hours ago - check if it's actually finished
+            logger.warn(`Game started ${Math.round(ageMs / 1000 / 60)} minutes ago (threshold: ${staleGameAge / 1000 / 60} min). State: ${game.gameState}`);
+            
+            if (game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF) {
+                logger.info(`Game is finished. Trying PGT instead.`);
+                await scheduleCreatePostgameThread(game, now);
+                return;
+            } else {
+                logger.info(`Game not finished. Creating game thread now.`);
+                scheduledTime = now;
+            }
         }
     }
 
@@ -436,6 +572,13 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     }
     if (!config?.enablePostgameThreads) {
         logger.info(`Post-game threads disabled in subreddit ${subredditName}`);
+
+        // Clean up GDT accordingly.
+        const GDTId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+        if (GDTId) {
+            await tryCleanupThread(GDTId as Post["id"]);
+        }
+
         return;
     }
 
@@ -483,12 +626,12 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
 async function scheduleNextLiveUpdate(subredditName: string, postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Live Update');
 
-    const jobTitle = `Thread-Update-${gameId}`;
+    const jobTitle = `Thread-Update-${postId}`;
 
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
-        id: `Thread-update-${gameId}`,
+        id: `Thread-update-${postId}`,
         name: JOB_NAMES.NEXT_LIVE_UPDATE,
         data: jobData,
         runAt: updateTime,
@@ -503,6 +646,14 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
         if (updateTime.getTime() < Date.now()) {
             logger.warn(`Warning: scheduledTime ${updateTime.toISOString()} is in the past. Job may run immediately or fail.`);
         }
+        
+        // Check if thread exists, fallback, should be handled by trigger and thread cleanup
+        const existingThread = await reddit.getPostById(postId as Post["id"]);
+        if (!existingThread || existingThread.isRemoved()){
+            logger.warn(`Thread: ${existingThread.id} doesn't exist or has been removed. Cleaning up.`)
+            tryCleanupThread(existingThread.id as Post["id"]);
+            return;
+        }
 
         const jobId = await scheduler.runJob(job);
         // Store jobId in Redis
@@ -515,16 +666,16 @@ async function scheduleNextLiveUpdate(subredditName: string, postId: string, gam
     }
 }
 
-async function scheduleNextPostgameUpdate(postId: string, gameId: number, updateTime: Date) {
+async function scheduleNextPGTUpdate(postId: string, gameId: number, updateTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule PGT Update');
 
     const subredditName = context.subredditName;
-    const jobTitle = `PGT-Update-${gameId}`;
+    const jobTitle = `PGT-Update-${postId}`;
 
     const jobData: UpdateJobData = { subredditName, gameId, postId, jobTitle }
 
     const job: ScheduledJob = {
-        id: `PGT-update-${gameId}`,
+        id: `PGT-update-${postId}`,
         name: JOB_NAMES.NEXT_PGT_UPDATE,
         data: jobData,
         runAt: updateTime,
@@ -538,5 +689,30 @@ async function scheduleNextPostgameUpdate(postId: string, gameId: number, update
         logger.info(`Scheduled PGT update ID: ${jobId} for game ${gameId}`);
     } catch (err) {
         logger.error(`Failed to schedule PGT update: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
+async function scheduleCleanup(postId: Post["id"], gameId: number, cleanupTime: Date){
+    const logger = await Logger.Create(`Jobs - Schedule Cleanup`);
+
+    const subredditName = context.subredditName;
+    const jobTitle = `PGT-Cleanup-${postId}`;
+    const jobData: CleanupJobData = { subredditName, gameId, postId, jobTitle};
+
+    const job: ScheduledJob = {
+        id: `PGT-cleanup-${postId}`,
+        name: JOB_NAMES.PGT_CLEANUP,
+        data: jobData,
+        runAt: cleanupTime
+    }
+
+    try {
+        const jobId = await scheduler.runJob(job);
+
+        await redis.set(REDIS_KEYS.JOB_PGT_CLEANUP(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_PGT_CLEANUP(gameId), REDIS_KEYS.EXPIRY * 2);
+        logger.info(`Scheduled PGT cleanup ID: ${jobId} for game ${gameId}`);
+    } catch (err) {
+        logger.error(`Failed to schedule PGT cleanup: ${err instanceof Error ? err.message : String(err)}`);
     }
 }

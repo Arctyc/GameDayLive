@@ -156,17 +156,21 @@ export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
 	}).format(new Date()); 
 	// en-CA → YYYY-MM-DD
 
-  // TODO: Try/catch here
-  const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
-  
-  if (!response.ok) {
-    throw new Error(`NHL API error: ${response.status}`);
+  try {
+    const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
+    
+    if (!response.ok) {
+      throw new Error(`NHL API error: ${response.status}`);
+    }
+
+    const data: NHLScheduleResponse = await response.json();
+    const todayGames = data.gameWeek.find(day => day.date === today);
+    return todayGames?.games || [];
+    
+  } catch (error) {
+    console.error(`Failed to fetch NHL schedule for ${today}:`, error);
+    return [];
   }
-  
-  const data: NHLScheduleResponse = await response.json();
-  
-  const todayGames = data.gameWeek.find(day => day.date === today);
-  return todayGames?.games || [];
 }
 
 export async function getGameData(gameId: number, fetch: any, etag?: string): Promise<{

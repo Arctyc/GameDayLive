@@ -3,6 +3,7 @@ import { redis } from '@devvit/redis';
 import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
 import { REDIS_KEYS } from "./leagues/nhl/constants";
+import { getSubredditConfig } from "./config";
 
 //TODO: Implement optional sticky status of both GDT and PGT
 
@@ -32,7 +33,7 @@ export async function tryCreateThread(
 `This thread was created by GameDayLive, an application that is in active development.  
 GameDayLive is currently testing its features and performance in this subreddit. We appreciate your patience in the event of any issues.  
 
-To see more, report a bug, or contribute to the project, please visit [the github page](https://github.com/Arctyc/GameDayLive).`
+To see more, report a bug, or contribute to the project, please visit [the github page](<https://github.com/Arctyc/GameDayLive>).`
 		);
 		// -------- END TEMPORT COMMENT --------
 
@@ -41,16 +42,11 @@ To see more, report a bug, or contribute to the project, please visit [the githu
 			await post.setSuggestedCommentSort("NEW");
 			logger.info(`Post sort by new succeeded for ${post.id}`)
 		} catch (sortNewErr) {
-			logger.warn(`Failed to sticky post in ${post.id}:`, sortNewErr);
+			logger.warn(`Failed to set sort by new on post: ${post.id}:`, sortNewErr);
 		}
 
-		// Attempt to sticky //TODO: only GDT?
-		try {
-			await post.sticky();
-			logger.info(`Post sticky succeeded for ${post.id}`);
-		} catch (stickyErr) {
-			logger.warn(`Failed to sticky post in ${post.id}:`, stickyErr);
-		}
+		// Sticky
+		await tryStickyThread(post);
 
 		return { success: true, post };
 
@@ -103,7 +99,7 @@ export async function tryUpdateThread(
 }
 
 export function appendFooter(body: string) {
-	return body += `\n\n---\n\n[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.`;
+	return body += `\n\n---\n\n[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](<https://github.com/Arctyc/GameDayLive>) that is not affiliated with any organization.`;
 }
 
 export async function tryAddComment(post: Post, comment: string){
@@ -115,24 +111,73 @@ export async function tryAddComment(post: Post, comment: string){
 		});
 
 		logger.info(`Post comment added to post ${post.id}`);
-	} catch (stickyErr) {
-		logger.warn(`Failed to add comment to post ${post.id}:`, stickyErr);
+	} catch (err) {
+		logger.warn(`Failed to add comment to post ${post.id}:`, err);
 	}
 }
 
-// TODO: add function
-export async function tryStickyThread(){
+export async function tryStickyThread(post: Post){
+	const logger = await Logger.Create(`Thread - Sticky`);
+
+	// TODO:
+	// If not enabled in subredditconfig, return
+	/*
+	const config = await getSubredditConfig(context.subredditName);
+	if (!config || !config.enableThreadSticky) {
+		logger.warn(`Thread Stickying not enabled in subreddit: ${context.subredditName}, or config not found.`);
+		return;
+	}
+	*/
+
+	try {
+		if (post.isStickied()) {
+			logger.warn(`Post: ${post.id} is already stickied.`);
+			return;
+		}
+
+		await post.sticky();
+	} catch (err) {
+		logger.error(`Error trying to sticky post: ${post.id}`, err);
+	}
 
 }
 
-// TODO: add function
-export async function tryUnstickyThread(){
+export async function tryUnstickyThread(post: Post){
+	const logger = await Logger.Create(`Thread - Unsticky`);
 
+	try {
+		if (!post.isStickied()) {
+			logger.warn(`Post: ${post.id} is not stickied.`);
+			return;
+		}
+
+		await post.unsticky();
+	} catch (err) {
+		logger.error(`Error trying to unstucky post: ${post.id}`, err);
+	}
 }
 
-// TODO: add function
-export async function tryLockThread(){
 
+export async function tryLockThread(post: Post){
+	const logger = await Logger.Create(`Thread - Lock`);
+
+	// If not enabled in subredditconfig, return
+	const config = await getSubredditConfig(context.subredditName);
+	if (!config || !config.enableThreadLocking) {
+		logger.warn(`Thread locking not enabled in subreddit: ${context.subredditName}, or config not found.`);
+		return;
+	}
+	
+	try {
+		if (post.isLocked()) {
+			logger.warn(`Post: ${post.id} is already locked.`);
+			return;
+		}
+
+		await post.lock();
+	} catch (err) {
+		logger.error(`Error trying to lock post: ${post.id}`, err);
+	}
 }
 
 export async function tryCleanupThread(
@@ -161,54 +206,49 @@ export async function tryCleanupThread(
         }
 
         // Cleanup actions
-        await post.unsticky();
+        await tryUnstickyThread(post);
 		
 		// Lock post
-        //await post.lock(); NOTE: Is this wanted? (add to config options?)
+        await tryLockThread(post);
+
 
 		// Get scheduled job ID 
 		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
         const gameIdForPGT = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
 
-        // Handle Game Day Thread Cleanup
-        if (gameIdForGDT) {
-            const gameId = Number(gameIdForGDT);
-            
-            // Cancel the update loop for this thread
-            const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
-            if (updateJobId) {
-                await tryCancelScheduledJob(updateJobId);
-                await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
-            }
+        // Prefer PGT mapping first
+		if (gameIdForPGT) {
+			const gameId = Number(gameIdForPGT);
 
-            // Wipe Redis
-            await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-            await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-            await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
-            
-            logger.info(`GDT ${postId} cleaned up.`);
-        } 
-        
-        // Handle Post-Game Thread Cleanup
-        else if (gameIdForPGT) {
-            const gameId = Number(gameIdForPGT);
-            
-            // Cancel any updates
-            const pgtJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
-            if (pgtJobId) {
-                await tryCancelScheduledJob(pgtJobId);
-                await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
-            }
+			const pgtJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
+			if (pgtJobId) {
+				await tryCancelScheduledJob(pgtJobId);
+				await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
+			}
 
-            // Wipe Redis
-            await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-            await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
-            
-            logger.info(`PGT ${postId} cleaned up.`);
-        } 
-        else {
-            logger.warn(`No Redis mapping found for post: ${postId}`);
-        }
+			await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+			await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+
+			logger.info(`PGT ${postId} cleaned up.`);
+		}
+		else if (gameIdForGDT) {
+			const gameId = Number(gameIdForGDT);
+
+			const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+			if (updateJobId) {
+				await tryCancelScheduledJob(updateJobId);
+				await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+			}
+
+			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+			await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
+
+			logger.info(`GDT ${postId} cleaned up.`);
+		}
+		else {
+			logger.warn(`No Redis mapping found for post: ${postId}`);
+		}
 
         return { success: true, postId };
     } catch (err) {

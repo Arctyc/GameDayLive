@@ -30,6 +30,8 @@ export const menuAction = (router: Router): void => {
                 const defaultLeague = config?.league ? [config.league] : [LEAGUES[0]];
                 const teamsForLeague = getTeamsForLeague(config?.league ?? LEAGUES[0]) ?? [];
                 const defaultTeam = config?.nhl?.teamAbbreviation ? [config.nhl.teamAbbreviation] : teamsForLeague[0] ? [teamsForLeague[0].value] : [];
+                const defaultPGT = config?.enablePostgameThreads ?? true;
+                const defaultLock = config?.enableThreadLocking ?? true;
 
                 // Build form
                 res.json({
@@ -62,7 +64,13 @@ export const menuAction = (router: Router): void => {
                                 type: 'boolean',
                                 name: 'enablePostgameThreads',
                                 label: 'Enable post-game threads',
-                                defaultValue: true,
+                                defaultValue: defaultPGT,
+                            },
+                            {
+                                type: 'boolean',
+                                name: 'enableThreadLocking',
+                                label: 'Enable thread locking',
+                                defaultValue: defaultLock,
                             }
                             ],
                             acceptLabel: 'Save',
@@ -70,7 +78,7 @@ export const menuAction = (router: Router): void => {
                     }
                 });
             } catch (err) {
-                // TODO: handle error
+                logger.error(`Error in config menu: ${err}`);
             }
         }
     )
@@ -84,7 +92,7 @@ export const formAction = (router: Router): void => {
 
             try {
                 // Extract form data
-                const { league, team, enablePostgameThreads } = req.body;
+                const { league, team, enablePostgameThreads, enableThreadLocking } = req.body;
                                 
                 // Convert arrays to single values if needed
                 const leagueValue = Array.isArray(league) ? league[0] : league;
@@ -92,10 +100,13 @@ export const formAction = (router: Router): void => {
                 const enablePostgameThreadsValue = Array.isArray(enablePostgameThreads) 
                     ? enablePostgameThreads[0] 
                     : enablePostgameThreads;
+                const enableThreadLockingValue = Array.isArray(enableThreadLocking)
+                    ? enableThreadLocking[0]
+                    : enableThreadLocking;
 
                 // Don't allow empty selection for league or team
                 if (!leagueValue || !teamValue) {
-                    res.status(400).json({
+                    res.status(200).json({
                         showToast: {
                             appearance: 'error',
                             text: 'League and team must be selected.'
@@ -126,6 +137,7 @@ export const formAction = (router: Router): void => {
                 const config: SubredditConfig = {
                     league: leagueValue,
                     enablePostgameThreads: !!enablePostgameThreadsValue,
+                    enableThreadLocking: !!enableThreadLockingValue,
                     ...(teamValue ? { nhl: { teamAbbreviation: teamValue } as NHLConfig } : {}),                    
                 };
 
@@ -191,7 +203,7 @@ export const formAction = (router: Router): void => {
 
             } catch (err) {
                 logger.error('Error saving subreddit config:', err);
-                res.status(400).json({
+                res.status(200).json({
                     showToast: {
                         appearance: 'error',
                         text: `Failed to save configuration.`

@@ -7,6 +7,7 @@ export interface SubredditConfig {
   nhl?: NHLConfig;
   // Additional leagues here
   enablePostgameThreads: boolean;
+  enableThreadLocking: boolean;
 }
 
 // Enforce standard job data
@@ -20,5 +21,9 @@ interface BaseJobData {
 export interface NewJobData extends BaseJobData {}
 
 export interface UpdateJobData extends BaseJobData {
+  postId: string;
+}
+
+export interface CleanupJobData extends BaseJobData {
   postId: string;
 }

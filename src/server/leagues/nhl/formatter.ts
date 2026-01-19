@@ -18,6 +18,15 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     
     // Format start time to team's local timezone
     const startTime = new Date(game.startTimeUTC);
+
+    // Format date from startTimeUTC if gameDate doesn't exist
+    const gameDate = game.gameDate || startTime.toLocaleDateString('en-US', {
+        timeZone: timezone,
+        month: 'numeric',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
     const localTime = startTime.toLocaleTimeString('en-US', {
         timeZone: timezone,
         hour: 'numeric',
@@ -30,7 +39,7 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
         return `PGT | ${awayTeam} @ ${homeTeam}`;
     } 
-    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${game.gameDate} ${localTime}`;
+    else return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${gameDate} ${localTime}`;
 }
 
 export async function formatThreadBody(game: NHLGame): Promise<string> {
@@ -82,8 +91,11 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     // Build game status text
     let periodLabel: string;
 
-    if (gameState === GAME_STATES.FINAL || gameState === GAME_STATES.OFF) {
-        periodLabel = "Final";
+    if (gameState === GAME_STATES.FINAL) {
+        periodLabel = "Final (unofficial)";
+    }
+    else if (gameState === GAME_STATES.OFF) {
+        periodLabel = "Final (official)";
     }
     else if (period === 0) {
         periodLabel = "Scheduled";
@@ -241,24 +253,26 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`Per. | Time | Team | Player | Shot | Assists | Clip
----|---|---|---|---|---|---
+`| Per. | Time | Team | Player | Shot&nbsp;type | Assists | Clip |
+|---|---|---|--------|--------|--------|---|
 `);
 }
 
 function buildPenaltiesTableHeader() {
     return (
-`Per. | Time | Team | Player | Infraction | Against | Min.
----|---|---|---|---|---|---
+`| Per. | Time | Team | Player | Infraction | Against | Min. |
+|---|---|---|--------|--------|--------|---|
 `);
 }
 
-// TODO: bold sub team - get teamAbbrev from config, if team = teamAbbrev, team > `**${team}`
+
 function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string { 
     const d = play.details;
     if (!d) return ""; // Skip plays with no goals
     const time = formatTime(play.timeInPeriod);
     const team = getTeamById(game, d.eventOwnerTeamId);
+
+    // TODO: bold sub team - get teamAbbrev from config (requires async), if team = teamAbbrev, team = `**${team}**`
 
     const scorer = getPlayerInfo(game, d.scoringPlayerId);
     if (!scorer) return "";
@@ -270,7 +284,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
 
     // Format shot type
     if (shotType == "Slap" || shotType == "Snap" || shotType == "Wrist" ) {
-        shotType += " shot";
+        shotType += "&nbsp;shot";
     }
     
     // Add strength modifier (EV, PP, SH)
@@ -341,7 +355,7 @@ function getPlayerInfo(game: NHLGame, playerId?: number) {
 }
 
 function formatTime(t: string): string {
-    if (!t || !t.includes(":")) return "00:00";
+    if (!t || !t.includes(":")) return "-";
     const [m, s] = t.split(":").map(Number);
     return `${m!.toString().padStart(2, "0")}:${s!.toString().padStart(2, "0")}`;
 }
@@ -401,7 +415,7 @@ function formatInfraction(descKey: string | undefined): string {
 
     switch (s) {
         case "too-many-men-on-the-ice":
-        return "Too many men";
+        return "Too&nbsp;many&nbsp;men";
 
         case "delaying-game-puck-over-glass":
         return "DoG puck over glass";
@@ -417,6 +431,9 @@ function formatInfraction(descKey: string | undefined): string {
 
         case "holding-the-stick":
             return "Holding the stick";
+
+        case "roughing-removing-opponents-helmet":
+            return "Roughing (Remove opp. helmet)";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

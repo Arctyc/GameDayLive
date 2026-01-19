@@ -31,6 +31,7 @@ export const menuAction = (router: Router): void => {
                 const teamsForLeague = getTeamsForLeague(config?.league ?? LEAGUES[0]) ?? [];
                 const defaultTeam = config?.nhl?.teamAbbreviation ? [config.nhl.teamAbbreviation] : teamsForLeague[0] ? [teamsForLeague[0].value] : [];
                 const defaultPGT = config?.enablePostgameThreads ?? true;
+                const defaultSticky = config?.enableThreadSticky ?? true;
                 const defaultLock = config?.enableThreadLocking ?? true;
 
                 // Build form
@@ -68,6 +69,12 @@ export const menuAction = (router: Router): void => {
                             },
                             {
                                 type: 'boolean',
+                                name: 'enableThreadSticky',
+                                label: 'Enable sticky threads',
+                                defaultValue: defaultSticky,
+                            },
+                            {
+                                type: 'boolean',
                                 name: 'enableThreadLocking',
                                 label: 'Enable thread locking',
                                 defaultValue: defaultLock,
@@ -92,7 +99,7 @@ export const formAction = (router: Router): void => {
 
             try {
                 // Extract form data
-                const { league, team, enablePostgameThreads, enableThreadLocking } = req.body;
+                const { league, team, enablePostgameThreads, enableThreadSticky, enableThreadLocking } = req.body;
                                 
                 // Convert arrays to single values if needed
                 const leagueValue = Array.isArray(league) ? league[0] : league;
@@ -100,9 +107,20 @@ export const formAction = (router: Router): void => {
                 const enablePostgameThreadsValue = Array.isArray(enablePostgameThreads) 
                     ? enablePostgameThreads[0] 
                     : enablePostgameThreads;
+                const enableThreadStickyValue = Array.isArray(enableThreadSticky)
+                    ? enableThreadSticky[0]
+                    : enableThreadSticky;
                 const enableThreadLockingValue = Array.isArray(enableThreadLocking)
                     ? enableThreadLocking[0]
                     : enableThreadLocking;
+
+                // TESTING
+                logger.info(`league: ${Array.isArray(league) ? 'array' : 'not array'}`);
+                logger.info(`team: ${Array.isArray(team) ? 'array' : 'not array'}`);
+                logger.info(`enablePostgameThreads: ${Array.isArray(enablePostgameThreads) ? 'array' : 'not array'}`);
+                logger.info(`enableThreadSticky: ${Array.isArray(enableThreadSticky) ? 'array' : 'not array'}`);
+                logger.info(`enableThreadLocking: ${Array.isArray(enableThreadLocking) ? 'array' : 'not array'}`);
+                // End TESTING
 
                 // Don't allow empty selection for league or team
                 if (!leagueValue || !teamValue) {
@@ -137,6 +155,7 @@ export const formAction = (router: Router): void => {
                 const config: SubredditConfig = {
                     league: leagueValue,
                     enablePostgameThreads: !!enablePostgameThreadsValue,
+                    enableThreadSticky: !! enableThreadStickyValue,
                     enableThreadLocking: !!enableThreadLockingValue,
                     ...(teamValue ? { nhl: { teamAbbreviation: teamValue } as NHLConfig } : {}),                    
                 };

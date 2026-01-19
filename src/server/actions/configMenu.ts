@@ -69,7 +69,7 @@ export const menuAction = (router: Router): void => {
                             {
                                 type: 'boolean',
                                 name: 'enableThreadLocking',
-                                lable: 'Enable thread locking',
+                                label: 'Enable thread locking',
                                 defaultValue: defaultLock,
                             }
                             ],

@@ -20,11 +20,8 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     const startTime = new Date(game.startTimeUTC);
 
     // Format date from startTimeUTC if gameDate doesn't exist
-    const gameDate = game.gameDate || startTime.toLocaleDateString('en-US', {
-        timeZone: timezone,
-        month: 'numeric',
-        day: 'numeric',
-        year: 'numeric'
+    const gameDate = game.gameDate || startTime.toLocaleDateString('en-CA', {
+        timeZone: timezone
     });
 
     const localTime = startTime.toLocaleTimeString('en-US', {

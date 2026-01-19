@@ -248,12 +248,14 @@ function getApprovalBody(league: string, team: string, pgt: boolean, sticky: boo
     const stickyString = sticky ? `Enabled` : `Disabled`;
     const lockString = lock ? `Enabled` : `Disabled`;
 
-    return`Thank you for using GameDayLive! Here are your saved configuration settings. If anything doesn't look right, simply reconfigure and save.  
+    return`Thank you for using GameDayLive! Here are your saved configuration settings. If anything doesn't look right, simply reconfigure and save. 
+
 League: ${league}  
 Team: ${team}  
 Post-game Threads: ${pgtString}  
 Sticky threads: ${stickyString}  
 Lock threads: ${lockString}  
+
 If thread locking is enabled, game day threads will be locked when when the PGT is posted, or in the event PGT is disabled, after the game.  
 PGTs will be locked 18 hours after post.
 

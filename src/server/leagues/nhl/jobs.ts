@@ -107,7 +107,19 @@ export async function createGameThreadJob(gameId: number) {
     const subredditName = context.subredditName;
 
     // Fetch game data
-    const { game } = await getGameData(gameId, fetch);
+    let game: NHLGame;
+    try {
+        const result = await getGameData(gameId, fetch);
+        game = result.game
+    } catch (err) {
+        logger.error(`Failed to fetch game data: ${err instanceof Error ? err.message : String(err)}`);
+        
+        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT * 2);
+        logger.info(`Rescheduling thread creation for game ${gameId} at ${retryTime.toISOString()}`);
+        
+        await scheduleDailyGameCheck(retryTime) //FIX: add a backoff/limit and add to PGT as well
+        return;
+    }
     
     // Ensure no existing thread for game
     try {

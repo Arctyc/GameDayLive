@@ -85,6 +85,9 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         ? game.tvBroadcasts.map(b => b.network).join(", ")
         : "None?";
 
+    // Extract officials
+    // TODO: If possible, not appearing as part of nhle.com api data
+
     // Build game status text
     let periodLabel: string;
 

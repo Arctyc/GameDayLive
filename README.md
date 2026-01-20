@@ -32,7 +32,7 @@ Moderators can install GameDayLive from the Reddit Apps directory:
 
 1. From your subreddit, click Mod Tools
 2. select Browse Apps on the left sidebar
-3. Search for and select "GameDayLive" and "+ Add to community"
+3. Search for and select "GameDayLive" and click "+ Add to community" (you're probably on this page right now)
 
 ## Configuration
 

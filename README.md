@@ -41,7 +41,8 @@ Moderators can install GameDayLive from the Reddit Apps directory:
 3. Choose your team and preferences
 
 That's it! 
-The app will now automatically create game day and (optionally) post-game threads for your chosen team.
+The app will now automatically create game day and (optionally) post-game threads for your chosen team.  
+You will receive a modmail message confirming your settings.
 
 ## Maintenance
 

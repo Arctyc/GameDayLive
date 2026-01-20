@@ -219,10 +219,25 @@ export async function tryCleanupThread(
 		if (gameIdForPGT) {
 			const gameId = Number(gameIdForPGT);
 
-			const pgtJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
-			if (pgtJobId) {
-				await tryCancelScheduledJob(pgtJobId);
+			// Cancel PGT creation job
+			const pgtCreateJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
+			if (pgtCreateJobId) {
+				await tryCancelScheduledJob(pgtCreateJobId);
 				await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
+			}
+
+			// Cancel PGT cleanup job
+			const pgtCleanupJobId = await redis.get(REDIS_KEYS.JOB_PGT_CLEANUP(gameId));
+			if (pgtCleanupJobId) {
+				await tryCancelScheduledJob(pgtCleanupJobId);
+				await redis.del(REDIS_KEYS.JOB_PGT_CLEANUP(gameId));
+			}
+
+			// Cancel PGT update job
+			const pgtUpdateJobId = await redis.get(REDIS_KEYS.JOB_PGT_UPDATE(gameId));
+			if (pgtUpdateJobId) {
+				await tryCancelScheduledJob(pgtUpdateJobId);
+				await redis.del(REDIS_KEYS.JOB_PGT_UPDATE(gameId));
 			}
 
 			await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
@@ -233,6 +248,14 @@ export async function tryCleanupThread(
 		else if (gameIdForGDT) {
 			const gameId = Number(gameIdForGDT);
 
+			// Cancel GDT creation job
+			const gdtCreateJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
+			if (gdtCreateJobId) {
+				await tryCancelScheduledJob(gdtCreateJobId);
+				await redis.del(REDIS_KEYS.JOB_CREATE(gameId));
+			}
+
+			// Cancel GDT update job
 			const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
 			if (updateJobId) {
 				await tryCancelScheduledJob(updateJobId);
@@ -269,6 +292,12 @@ export async function tryCancelScheduledJob(jobId: string){
 		return { ok: true };
 
 	} catch (err) {
+		const errorMsg = (err as Error).message;
+		if (errorMsg.includes('not found')) {
+			logger.warn(`Job ${jobId} not found (already completed or never existed)`);
+			await redis.del(`job:${jobId}`); // Clean up Redis anyway
+			return { ok: true }; // Not actually an error
+		}
 		logger.error(`Failed to cancel job ${jobId}`, err);
 		return { ok: false, reason: (err as Error).message };
 	}

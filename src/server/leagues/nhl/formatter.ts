@@ -424,13 +424,13 @@ function formatInfraction(descKey: string | undefined): string {
             return "DoG Unsuccessful Challenge";
         
         case "abuse-of-officials":
-            return "Abuse of Officials";
+            return "Abuse&nbsp;of&nbsp;Officials";
 
         case "unsportsmanlike-conduct":
             return "Unsportsmanlike Conduct";
 
         case "holding-the-stick":
-            return "Holding the Stick";
+            return "Holding&nbsp;the&nbsp;Stick";
 
         case "roughing-removing-opponents-helmet":
             return "Roughing (Remove opp. helmet)";
@@ -439,7 +439,10 @@ function formatInfraction(descKey: string | undefined): string {
             return "High-sticking";
 
         case "interference-goalkeeper":
-            return "Goalkeeper Interference";
+            return "Goalkeeper&nbsp;Interference";
+        
+        case "goalie-leave-crease":
+            return "Leaving&nbsp;the&nbsp;Crease";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

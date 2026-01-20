@@ -8,6 +8,9 @@ Automated game day and post-game thread app for sports subreddits.
 - [Reddit](https://www.reddit.com/message/compose/?to=ArctycDev)
 - [Github](https://github.com/Arctyc/GameDayLive)
 
+### Changelog
+[View on GitHub](https://github.com/Arctyc/GameDayLive/blob/main/CHANGELOG.md)
+
 ## Overview
 
 GameDayLive automatically creates and updates live game threads for NHL teams (with support for more sports possible).

@@ -12,6 +12,8 @@ export const UPDATE_INTERVALS = {
 // Redis key prefixes
 export const REDIS_KEYS = {
   DAILY_CHECK_ATTEMPTS: () => `daily:check:attempts`,
+  CREATE_THREAD_ATTEMPTS: (gameId: number) => `create:thread:attempts${gameId}`,
+  CREATE_PGT_ATTEMPTS: () => `create:PGT:attempts`,
   GAME_ETAG: (gameId: number) => `game:${gameId}:etag`,
   GAME_STATE: (gameId: number) => `game:${gameId}:state`, // Unused?
   GAME_TO_THREAD_ID: (gameId: number) => `game:${gameId}:threadId`,

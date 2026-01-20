@@ -106,6 +106,11 @@ export async function createGameThreadJob(gameId: number) {
     
     const subredditName = context.subredditName;
 
+    const attemptKey = REDIS_KEYS.CREATE_THREAD_ATTEMPTS(gameId);
+    const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
+
+    logger.debug(`Fetching data for for game ${gameId} (attempt ${attemptNumber + 1})`);
+
     // Fetch game data
     let game: NHLGame;
     try {
@@ -114,12 +119,26 @@ export async function createGameThreadJob(gameId: number) {
     } catch (err) {
         logger.error(`Failed to fetch game data: ${err instanceof Error ? err.message : String(err)}`);
         
-        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT * 2);
-        logger.info(`Rescheduling thread creation for game ${gameId} at ${retryTime.toISOString()}`);
-        
-        await scheduleDailyGameCheck(retryTime) //FIX: add a backoff/limit and add to PGT as well
+        // Retry with exponential backoff
+        if (attemptNumber < 5) {
+            const backoffMs = Math.min(60000 * Math.pow(2, attemptNumber), UPDATE_INTERVALS.RETRY_MAX_TIME);
+            const retryTime = new Date(Date.now() + backoffMs);
+            
+            // Increment attempt counter in Redis
+            await redis.set(attemptKey, String(attemptNumber + 1));
+            await redis.expire(attemptKey, 7200); // 2 hours TTL
+            
+            logger.info(`Rescheduling daily game check at ${retryTime.toISOString()}`);
+            await scheduleDailyGameCheck(retryTime);
+        } else {
+            logger.error(`Failed to fetch game data after ${attemptNumber + 1} attempts. Giving up on game ${gameId}.`);
+            await sendModmail(`Failed to Post GDT!`, `GameDayLive made ${attemptNumber + 1} attempts to retrieve the data for game ${gameId}, but was unsuccessful. The NHL API may be down or blocking GameDayLive. You can re-save your configuration to try again.`)
+            await redis.del(attemptKey); // Clear attempts            
+        }
         return;
     }
+    // Clear attempt counter
+    await redis.del(attemptKey);
     
     // Ensure no existing thread for game
     try {
@@ -546,7 +565,8 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
         return;
     }
 
-    /* Thread title check disabled due to nonfunctioning reddit.getNewPosts()
+    // Only schedule if no same THREAD exists
+    /* NOTE: Thread title check disabled due to nonfunctioning reddit.getNewPosts()
     const foundThread = await findRecentThreadByName(threadTitle);
     if (foundThread){
         logger.warn(`Game day thread matching title ${threadTitle} already exists. Skipping scheduling.`);
@@ -616,7 +636,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     }
 
     // Only schedule if no same THREAD exists
-    /* Thread title check disabled due to nonfunctioning reddit.getNewPosts()
+    /* NOTE: Thread title check disabled due to nonfunctioning reddit.getNewPosts()
     const foundThread = await findRecentThreadByName(threadTitle);
     if (foundThread){
         logger.warn(`Postgame thread matching title ${threadTitle} already exists. Skipping scheduling.`);

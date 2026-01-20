@@ -265,7 +265,36 @@ export async function createPostgameThreadJob(gameId: number) {
         return;
     }
 
-    const { game } = await getGameData(gameId, fetch);
+    const attemptKey = REDIS_KEYS.CREATE_PGT_ATTEMPTS(gameId);
+    const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
+
+    logger.debug(`Fetching data for PGT game: ${gameId} (attempt ${attemptNumber + 1})`);
+
+    let game: NHLGame;
+    try {
+        const result = await getGameData(gameId, fetch);
+        game = result.game;
+    } catch (err) {
+        logger.error(`Failed to fetch game data: ${err instanceof Error ? err.message : String(err)}`);
+        
+         if (attemptNumber < 5) {
+            const backoffMs = Math.min(60000 * Math.pow(2, attemptNumber), UPDATE_INTERVALS.RETRY_MAX_TIME);
+            const retryTime = new Date(Date.now() + backoffMs);
+            
+            // Increment attempt counter in Redis
+            await redis.set(attemptKey, String(attemptNumber + 1));
+            await redis.expire(attemptKey, 7200); // 2 hours TTL
+            
+            logger.info(`Rescheduling daily game check at ${retryTime.toISOString()}`);
+            await scheduleDailyGameCheck(retryTime);
+        } else {
+            logger.error(`Failed to fetch game data after ${attemptNumber + 1} attempts. Giving up on game ${gameId}.`);
+            await sendModmail(`Failed to Post PGT!`, `GameDayLive made ${attemptNumber + 1} attempts to retrieve the data for game ${gameId}, but was unsuccessful. The NHL API may be down or blocking GameDayLive. You can re-save your configuration to try again.`);
+            await redis.del(attemptKey); // Clear attempts
+        }
+        return;
+    }
+
     const title = await formatThreadTitle(game);
     const body = await formatThreadBody(game);
 

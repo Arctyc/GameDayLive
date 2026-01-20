@@ -32,7 +32,7 @@ Moderators can install GameDayLive from the Reddit Apps directory:
 
 1. From your subreddit, click Mod Tools
 2. select Browse Apps on the left sidebar
-3. Search for and select "GameDayLive" and "+ Add to community"
+3. Search for and select "GameDayLive" and click "+ Add to community" (you're probably on this page right now)
 
 ## Configuration
 
@@ -41,12 +41,15 @@ Moderators can install GameDayLive from the Reddit Apps directory:
 3. Choose your team and preferences
 
 That's it! 
-The app will now automatically create game day and (optionally) post-game threads for your chosen team.
+The app will now automatically create game day and (optionally) post-game threads for your chosen team.  
+You will receive a modmail message confirming your settings.
 
 ## Maintenance
 
 - A GameDayLive schedule menu is available to view and cancel any scheduled action (i.e. A future game thread post or live update)
 - If necessary, uninstalling and reinstalling the app will clear your settings and scheduled jobs.
+
+---
 
 ## Development - WARNING: Nerd stuff below this point!
 
@@ -78,7 +81,8 @@ src/
 └── server
     ├── actions
     │   ├── configMenu.ts
-    │   └── scheduleMenu.ts
+    │   ├── scheduleMenu.ts
+    │   └── triggers.ts
     ├── leagues
     │   ├── nhl
     │   │   ├── api.ts
@@ -90,9 +94,11 @@ src/
     │   │   └── types.ts
     │   └── index.ts
     ├── utils
-    │   └── Logger.ts
+    │   ├── Logger.ts
+    │   └── jobs.ts
     ├── config.ts
     ├── index.ts
+    ├── modmail.ts
     ├── threads.ts
     └── types.ts
 ```

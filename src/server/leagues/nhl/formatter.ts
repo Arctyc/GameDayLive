@@ -85,6 +85,9 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         ? game.tvBroadcasts.map(b => b.network).join(", ")
         : "None?";
 
+    // Extract officials
+    // TODO: If possible, not appearing as part of nhle.com api data
+
     // Build game status text
     let periodLabel: string;
 
@@ -250,7 +253,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`| Per. | Time | Team | Player | Shot&nbsp;type | Assists | Clip |
+`| Per. | Time | Team | Player | Shot&nbsp;Type | Assists | Clip |
 |---|---|---|--------|--------|--------|---|
 `);
 }
@@ -307,7 +310,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "-";
 
-    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${modifier} ${shotType} | ${assistsStr} | ${clip}\n`;
+    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr} | ${clip}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {
@@ -412,28 +415,37 @@ function formatInfraction(descKey: string | undefined): string {
 
     switch (s) {
         case "too-many-men-on-the-ice":
-        return "Too&nbsp;many&nbsp;men";
+        return "Too&nbsp;Many&nbsp;Men";
 
         case "delaying-game-puck-over-glass":
-        return "DoG puck over glass";
+        return "DoG Puck Over Glass";
 
         case "delaying-game-unsuccessful-challenge":
-            return "DoG unsuccessful challenge";
+            return "DoG Unsuccessful Challenge";
         
         case "abuse-of-officials":
-            return "Abuse of officials";
+            return "Abuse&nbsp;of&nbsp;Officials";
 
         case "unsportsmanlike-conduct":
-            return "Unsportsmanlike conduct";
+            return "Unsportsmanlike Conduct";
 
         case "holding-the-stick":
-            return "Holding the stick";
+            return "Holding&nbsp;the&nbsp;Stick";
 
         case "roughing-removing-opponents-helmet":
             return "Roughing (Remove opp. helmet)";
 
         case "high-sticking-double-minor":
             return "High-sticking";
+
+        case "interference-goalkeeper":
+            return "Goalkeeper&nbsp;Interference";
+        
+        case "goalie-leave-crease":
+            return "Leaving&nbsp;the&nbsp;Crease";
+        
+        case "illegal-check-to-head":
+            return "Illegal&nbsp;Check&nbsp;to&nbsp;Head";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

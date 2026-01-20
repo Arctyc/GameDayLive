@@ -415,28 +415,31 @@ function formatInfraction(descKey: string | undefined): string {
 
     switch (s) {
         case "too-many-men-on-the-ice":
-        return "Too&nbsp;many&nbsp;men";
+        return "Too&nbsp;Many&nbsp;Men";
 
         case "delaying-game-puck-over-glass":
-        return "DoG puck over glass";
+        return "DoG Puck Over Glass";
 
         case "delaying-game-unsuccessful-challenge":
-            return "DoG unsuccessful challenge";
+            return "DoG Unsuccessful Challenge";
         
         case "abuse-of-officials":
-            return "Abuse of officials";
+            return "Abuse of Officials";
 
         case "unsportsmanlike-conduct":
-            return "Unsportsmanlike conduct";
+            return "Unsportsmanlike Conduct";
 
         case "holding-the-stick":
-            return "Holding the stick";
+            return "Holding the Stick";
 
         case "roughing-removing-opponents-helmet":
             return "Roughing (Remove opp. helmet)";
 
         case "high-sticking-double-minor":
             return "High-sticking";
+
+        case "interference-goalkeeper":
+            return "Goalkeeper Interference";
         
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);

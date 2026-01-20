@@ -257,9 +257,13 @@ Sticky threads: ${stickyString}
 Lock threads: ${lockString}  
 
 If thread locking is enabled, game day threads will be locked when when the PGT is posted, or in the event PGT is disabled, after the game.  
-PGTs will be locked 18 hours after post.
+PGTs will be locked 18 hours after post.  
 
-Thank you again! If you have any questions, do not hesitate to reach out via the contact information found on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
+Tip: Some errors that interrupt the bot's functionality may be sent in modmail to notify you.  
+If you come across any issues, such as a game day thread not receiving updates, you can re-save your config form to try to get the bot to recover.  
+If that doesn't solve the problem, you can uninstall and reinstall the bot. Please notify me of any issues you encounter so I can look into them and try to resolve them. Thanks!
+
+If you have any questions, feel free to reach out via the contact information found on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
 }
 
 function getDenySubject(): string {

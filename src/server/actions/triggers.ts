@@ -7,7 +7,7 @@ export const onAppInstallAction = (router: Router): void => {
     router.post('/internal/triggers/install', async (_req, res): Promise<void> => {
         res.json({
         status: 'success',
-        message: `Placeholder for Install Trigger`
+        message: `Install Trigger`
         });
     });
     
@@ -26,7 +26,7 @@ export const onAppUpgradeAction = (router: Router): void => {
     router.post('/internal/triggers/upgrade', async (_req, res): Promise<void> => {
         res.json({
         status: 'success',
-        message: `Placeholder for Update Trigger`
+        message: `Update Trigger`
         });
     });
 
@@ -42,25 +42,18 @@ export const onAppUpgradeAction = (router: Router): void => {
 
 export const onPostDeleteAction = (router: Router): void => {
     // Placeholder
-    router.post('/internal/triggers/delete-post', async (_req, res): Promise<void> => {
-        res.json({
-        status: 'success',
-        message: `Placeholder for Delete Post Trigger`
-        });
-    });
-
-    /*
-    router.post('/internal/triggers/delete-post', async (req, res) => {
+    router.post('/internal/triggers/delete-post', async (req, res): Promise<void> => {
         const logger = await Logger.Create('Trigger - Install');
         logger.debug(`Post delete trigger called.`);
-        // TODO: Compare source to app to ensure app didn't delete?
-        //const source = req.body.source;
 
         const postId = req.body.postId;
         await tryCleanupThread(postId);
-        res.status(200).json({ status: 'ok'});
+
+        res.json({
+        status: 'success',
+        message: `Delete Post Trigger`
+        });
     });
-    */
 }
 
 

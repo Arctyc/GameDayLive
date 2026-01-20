@@ -23,6 +23,11 @@ export const jobMenuAction = (router: Router): void => {
          });
 
          logger.info(`[LIST] Found ${jobs.length} scheduled jobs`);
+         // Debug: Log each job's ID and title
+         for (const job of jobs) {
+            const data = job.data as { jobTitle?: string };
+            logger.info(`[JOB] ID: ${job.id} | Title: ${data?.jobTitle ?? 'N/A'}`);
+         }
 
          // Populate form with readable job names
          res.json({

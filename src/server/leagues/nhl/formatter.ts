@@ -310,7 +310,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "-";
 
-    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${modifier} ${shotType} | ${assistsStr} | ${clip}\n`;
+    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr} | ${clip}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {

@@ -444,6 +444,9 @@ function formatInfraction(descKey: string | undefined): string {
         case "goalie-leave-crease":
             return "Leaving&nbsp;the&nbsp;Crease";
         
+        case "illegal-check-to-head":
+            return "Illegal&nbsp;Check&nbsp;to&nbsp;Head";
+        
         default: // Returns capitalized first letter
             return s.charAt(0).toUpperCase() + s.slice(1);
     }

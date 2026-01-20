@@ -124,17 +124,12 @@ export const formAction = (router: Router): void => {
 
                 // Don't allow unapproved subreddit to configure
                 // HACK: Process this with some proper notification like modmail, don't rely on toast.
-                // TODO: In fact, there should be a modmail or something sent with confirmation of setup regardless.
-                // DOCS: modmail instructions https://discord.com/channels/1050224141732687912/1461467837548986389/1461468906253451396
                 const subreddit = context.subredditName?.toLowerCase();
 
                 if ( !subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit.toLowerCase())) {
 
-                    const subject = getDenySubject();
-                    const body = getDenyBody();
-                    const conversationId = sendModmail(subject, body);
-
-                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);                    
+                    const conversationId = sendModmail(getDenySubject(), getDenyBody());
+                    logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);
 
                     res.status(200).json({
                         showToast: {
@@ -172,10 +167,9 @@ export const formAction = (router: Router): void => {
                 const enableStickyValue = savedConfig?.enableThreadSticky as boolean;
                 const enableLockValue = savedConfig?.enableThreadLocking as boolean;                
 
-                const subject = getApprovalSubject();
                 const body = getApprovalBody(savedLeagueValue, savedTeamValue, enablePGTValue, enableStickyValue, enableLockValue);
 
-                const conversationId = await sendModmail(subject, body);
+                const conversationId = await sendModmail(getApprovalSubject(), body);
                 logger.info(`Sent approval modmail to sub: ${context.subredditName} with conversation ID: ${conversationId}`);
 
                 // -------- DUPLICATE CHECKING --------

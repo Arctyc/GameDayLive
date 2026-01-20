@@ -49,6 +49,8 @@ You will receive a modmail message confirming your settings.
 - A GameDayLive schedule menu is available to view and cancel any scheduled action (i.e. A future game thread post or live update)
 - If necessary, uninstalling and reinstalling the app will clear your settings and scheduled jobs.
 
+---
+
 ## Development - WARNING: Nerd stuff below this point!
 
 ### Prerequisites

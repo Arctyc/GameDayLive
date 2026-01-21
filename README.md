@@ -52,6 +52,14 @@ You will receive a modmail message confirming your settings.
 - A GameDayLive schedule menu is available to view and cancel any scheduled action (i.e. A future game thread post or live update)
 - If necessary, uninstalling and reinstalling the app will clear your settings and scheduled jobs.
 
+## Roadmap
+
+- [x] NHL support
+- [ ] Pre-game threads
+- [ ] More customization (e.g. customizable thread post time)
+- [ ] More sports/leagues
+- [ ] Your desired features? Contribute or request!
+
 ---
 
 ## Development - WARNING: Nerd stuff below this point!
@@ -122,13 +130,6 @@ src/
 4. Register scheduler in `src/server/index.ts` Note: Schedule execution and league-specific jobs need to be decoupled, (e.g.):
     - Current:  `/internal/scheduler/daily-game-check -> nhl/jobs.ts`
     - Fix:      `/internal/scheduler/daily-game-check -> leagues/index.ts -> {league}/jobs.ts`
-
-## Roadmap
-
-- [x] NHL support
-- [ ] More customization (e.g. pre-game post time)
-- [ ] More sports/leagues
-- [ ] Your desired features? Contribute or request!
 
 ## Contributing
 

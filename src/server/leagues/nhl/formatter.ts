@@ -253,7 +253,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`| Per. | Time | Team | Player | Shot&nbsp;Type | Assists | Clip |
+`| Clip | Per. | Time | Team | Player | Shot&nbsp;Type | Assists |
 |---|---|---|--------|--------|--------|---|
 `);
 }
@@ -308,7 +308,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "-";
 
-    return `${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr} | ${clip}\n`;
+    return `${clip} | ${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {

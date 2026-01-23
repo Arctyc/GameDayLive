@@ -103,6 +103,7 @@ export interface NHLGame {
       drawnByPlayerId?: number;
       servedByPlayerId?: number;
     };
+    pptReplayUrl?: string;
   }>;
   rosterSpots?: Array<{
     teamId: number;

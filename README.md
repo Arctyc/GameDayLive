@@ -56,6 +56,7 @@ You will receive a modmail message confirming your settings.
 
 - [x] NHL support
 - [ ] Pre-game threads
+- [ ] Off-day threads
 - [ ] More customization (e.g. customizable thread post time)
 - [ ] More sports/leagues
 - [ ] Your desired features? Contribute or request!

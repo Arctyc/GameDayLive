@@ -136,7 +136,10 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
         ? `${periodLabel} - ${timeRemainingDisplay}`
         : periodLabel;
 
-    const header = `# ${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}  
+    // Construct GameCenter URL
+    const gameCenterUrl = `https://www.nhl.com/gamecenter/${game.id}`;
+
+    const header = `# [${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}](${gameCenterUrl});
 
 **Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  
@@ -253,7 +256,7 @@ function buildBodyPenalties(game: NHLGame): string {
 
 function buildGoalsTableHeader() {
     return (
-`| Clip | Per. | Time | Team | Player | Shot&nbsp;Type | Assists |
+`| Per. | Time | Team | Player | Shot&nbsp;Type | Assists | Clip |
 |---|---|---|--------|--------|--------|---|
 `);
 }
@@ -308,7 +311,7 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
         ? `[nhl.com](${d.highlightClipSharingUrl})` 
         : "-";
 
-    return `${clip} | ${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr}\n`;
+    return `| ${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr} | ${clip}\n`;
 }
 
 function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): string {

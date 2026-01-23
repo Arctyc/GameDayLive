@@ -61,7 +61,7 @@ export const APPROVED_NHL_SUBREDDITS: string[] = [
   "wildhockey",
   "Habs",
   "devils",
-  "NashvillePredators",
+  "Predators",
   "NewYorkIslanders",
   "rangers",
   "OttawaSenators",

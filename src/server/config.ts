@@ -11,7 +11,6 @@ export async function setSubredditConfig(subredditName: string, config: Subreddi
   
   const key = keyFor(subredditName);
   await redis.set(key, JSON.stringify(config));
-  await redis.expire(key, REDIS_KEYS.EXPIRY);
   logger.info(`Saved config for ${subredditName}:`, config);
 }
 

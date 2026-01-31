@@ -139,7 +139,7 @@ async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<st
     // Construct GameCenter URL
     const gameCenterUrl = `https://www.nhl.com/gamecenter/${game.id}`;
 
-    const header = `# [${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}](${gameCenterUrl});
+    const header = `# [${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}](${gameCenterUrl})
 
 **Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  

@@ -4,6 +4,7 @@ import { scheduler } from '@devvit/web/server';
 import { Logger } from './utils/Logger';
 import { REDIS_KEYS } from "./leagues/nhl/constants";
 import { getSubredditConfig } from "./config";
+import { APPNAME } from "./types";
 
 // Create new thread
 export async function tryCreateThread(
@@ -117,6 +118,12 @@ export async function tryAddComment(post: Post, comment: string){
 export async function tryStickyThread(post: Post){
 	const logger = await Logger.Create(`Thread - Sticky`);
 
+	// Ensure app is author of post
+	if (post.authorName !== APPNAME) {
+		logger.warn(`Tried to sticky un-owned post.`);
+		return;
+	}
+
 	const config = await getSubredditConfig(context.subredditName);
 	if (!config || !config.enableThreadSticky) {
 		logger.warn(`Thread Stickying not enabled in subreddit: ${context.subredditName}, or config not found.`);
@@ -142,6 +149,12 @@ export async function tryStickyThread(post: Post){
 export async function tryUnstickyThread(post: Post){
 	const logger = await Logger.Create(`Thread - Unsticky`);
 
+	// Ensure app is author of post
+	if (post.authorName !== APPNAME) {
+		logger.warn(`Tried to unsticky un-owned post.`);
+		return;
+	}
+
 	try {
 		if (!post.isStickied()) {
 			logger.warn(`Post: ${post.id} is not stickied.`);
@@ -149,6 +162,8 @@ export async function tryUnstickyThread(post: Post){
 		}
 
 		await post.unsticky();
+		// distinguish
+
 	} catch (err) {
 		logger.error(`Error trying to unstucky post: ${post.id}`, err);
 	}
@@ -157,6 +172,12 @@ export async function tryUnstickyThread(post: Post){
 
 export async function tryLockThread(post: Post){
 	const logger = await Logger.Create(`Thread - Lock`);
+
+	// Ensure app is author of post
+	if (post.authorName !== APPNAME) {
+		logger.warn(`Tried to lock un-owned post.`);
+		return;
+	}
 
 	// If not enabled in subredditconfig, return
 	const config = await getSubredditConfig(context.subredditName);
@@ -205,11 +226,10 @@ export async function tryCleanupThread(
         }
 
         // Cleanup actions
+		// Unsticky
         await tryUnstickyThread(post);
-		
 		// Lock post
         await tryLockThread(post);
-
 
 		// Get scheduled job ID 
 		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));

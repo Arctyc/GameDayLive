@@ -64,7 +64,6 @@ export const onPostDeleteAction = (router: Router): void => {
     });
 }
 
-
 export const registerTriggers = (router: Router) => {
   onAppInstallAction(router);
   onAppUpgradeAction(router);

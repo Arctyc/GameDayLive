@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { Logger } from '../utils/Logger';
 import { tryCleanupThread } from '../threads';
+import { Post } from '@devvit/web/server';
+import { APPNAME } from '../types';
 
 export const onAppInstallAction = (router: Router): void => {
     // Placeholder
@@ -41,12 +43,17 @@ export const onAppUpgradeAction = (router: Router): void => {
 }
 
 export const onPostDeleteAction = (router: Router): void => {
-    // Placeholder
     router.post('/internal/triggers/delete-post', async (req, res): Promise<void> => {
         const logger = await Logger.Create('Trigger - Delete Post');
         logger.info(`Post delete trigger called.`);
 
+        const post = req.body.post;
         const postId = req.body.postId;
+
+        // Only process self-posts
+        if (post.authorName !== APPNAME){
+            logger.debug(`Ignoring unowned post deletion... App = ${APPNAME} - Author = ${post.authorName}`);
+        }
         await tryCleanupThread(postId);
 
         res.json({

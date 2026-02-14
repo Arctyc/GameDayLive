@@ -1,5 +1,6 @@
 import { NHLConfig } from "./leagues/nhl/types";
 
+export const APPNAME = "gamedaylive" as const;
 export const LEAGUES = ["nhl"] as const;
 
 export interface SubredditConfig {

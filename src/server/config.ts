@@ -1,7 +1,6 @@
 import { redis } from '@devvit/web/server';
 import { SubredditConfig } from './types';
 import { Logger } from './utils/Logger';
-import { REDIS_KEYS } from './leagues/nhl/constants';
 
 const keyFor = (subreddit: string) => `subreddit:${subreddit}`;
 

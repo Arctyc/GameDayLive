@@ -1,11 +1,18 @@
 # Changelog
-**Last Updated:** 2026-01-23
+**Last Updated:** 2026-02-13
+
+---
+
+## [0.3.0] - 2026-02-13
+
+### Bugfixes
+- Fixed bug where GameDayLive would react to the deletion of threads it did not create by locking them
 
 ---
 
 ## [0.2.6] - 2026-01-23
 
-### Teaks
+### Tweaks
 - Fixed a subreddit name on the allow-list
 
 ---

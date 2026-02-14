@@ -47,12 +47,13 @@ export const onPostDeleteAction = (router: Router): void => {
         const logger = await Logger.Create('Trigger - Delete Post');
         logger.info(`Post delete trigger called.`);
 
-        const post = req.body.post;
         const postId = req.body.postId;
+        const author = req.body.author.name;
 
         // Only process self-posts
-        if (post.authorName !== APPNAME){
-            logger.debug(`Ignoring unowned post deletion... App = ${APPNAME} - Author = ${post.authorName}`);
+        if (author !== APPNAME){
+            logger.debug(`Ignoring unowned post deletion... App = ${APPNAME} - Author = ${author}`);
+            return;
         }
         await tryCleanupThread(postId);
 

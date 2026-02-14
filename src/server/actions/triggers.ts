@@ -52,7 +52,7 @@ export const onPostDeleteAction = (router: Router): void => {
 
         // Only process self-posts
         if (author !== APPNAME){
-            logger.debug(`Ignoring unowned post deletion... App = ${APPNAME} - Author = ${author}`);
+            logger.warn(`Ignoring unowned post deletion... App = ${APPNAME} - Author = ${author}`);
             return;
         }
         await tryCleanupThread(postId);

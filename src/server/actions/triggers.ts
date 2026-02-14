@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { Logger } from '../utils/Logger';
 import { tryCleanupThread } from '../threads';
-import { Post } from '@devvit/web/server';
 import { APPNAME } from '../types';
 
 export const onAppInstallAction = (router: Router): void => {

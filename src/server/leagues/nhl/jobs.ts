@@ -4,7 +4,7 @@ import { formatThreadTitle, formatThreadBody } from './formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from './constants';
 import { getSubredditConfig } from '../../config';
 import { tryCleanupThread, tryCreateThread, tryUpdateThread, tryAddComment } from '../../threads';
-import { NewJobData, SubredditConfig, UpdateJobData, CleanupJobData } from '../../types';
+import { NewJobData, UpdateJobData, CleanupJobData } from '../../types';
 import { Logger } from '../../utils/Logger';
 import { getJobData } from '../../utils/jobs';
 import { sendModmail } from '../../modmail';

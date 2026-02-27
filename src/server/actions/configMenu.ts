@@ -73,7 +73,7 @@ export const menuAction = (router: Router): void => {
                                 {
                                     type: 'boolean',
                                     name: 'pregameEnabled',
-                                    label: 'Enable pre-game threads',
+                                    label: 'Enable pre-game threads (Coming soon)',
                                     defaultValue: config?.pregame?.enabled ?? false,
                                 },
                                 {

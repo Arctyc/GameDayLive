@@ -105,6 +105,14 @@ export async function createGameThreadJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Create Game Thread');
     
     const subredditName = context.subredditName;
+    const config = await getSubredditConfig(subredditName);
+    if (!config) {
+        logger.error(`No config found for ${subredditName}, aborting.`);
+        const subjectString = `Failed to post thread`;
+        const bodyString = `A configuration error prevented GameDayLive from posting a thread. Please re-save your configuration from the subreddit menu.`;
+        await sendModmail(subjectString, bodyString);
+        return;
+    }
 
     const attemptKey = REDIS_KEYS.CREATE_THREAD_ATTEMPTS(gameId);
     const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
@@ -153,14 +161,14 @@ export async function createGameThreadJob(gameId: number) {
             if (!foundPost) {
                 // Thread not found on reddit, cleanup stale reference and recreate
                 logger.warn(`Thread ${existingThreadId} in Redis but not on Reddit. Cleaning up.`);
-                await tryCleanupThread(existingThreadId as Post["id"]);
+                await tryCleanupThread(existingThreadId as Post["id"], config.gameday.lock);
                 // Continue to creation logic below
             } else {
                 // Thread exists on reddit
                 const deleted = foundPost.isRemoved();
                 if (deleted) {
                     logger.info(`Gameday thread ID: ${existingThreadId} was deleted. Cleaning up.`);
-                    await tryCleanupThread(existingThreadId as Post["id"]);
+                    await tryCleanupThread(existingThreadId as Post["id"], config.gameday.lock);
                 } else {
                     logger.info(`Gameday thread already exists (ID: ${existingThreadId}) for game ${gameId}. Skipping creation.`); 
                 }
@@ -170,7 +178,7 @@ export async function createGameThreadJob(gameId: number) {
                 if (gameIsOver) {
                     // Run cleanup, don't post new
                     logger.debug(`Tried to create thread for game that's over.`);
-                    await tryCleanupThread(existingThreadId as Post["id"]);
+                    await tryCleanupThread(existingThreadId as Post["id"], config.gameday.lock);
                     
                     // Check for PGT
                     const existingPostgameThreadId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId))
@@ -178,7 +186,7 @@ export async function createGameThreadJob(gameId: number) {
                     if (existingPostgameThreadId) {
                         // Clean up stale thread
                         logger.debug(`PGT found, cleaning up Redis...`);
-                        await tryCleanupThread(existingPostgameThreadId as Post["id"]);
+                        await tryCleanupThread(existingPostgameThreadId as Post["id"], config.gameday.lock);
                     } else {
                         // TODO: If game ended < X time ago?
                         // Create PGT
@@ -218,7 +226,7 @@ export async function createGameThreadJob(gameId: number) {
     const body = await formatThreadBody(game);
 
     // Create thread on reddit
-    const result = await tryCreateThread(context, title, body);
+    const result = await tryCreateThread(context, title, body, config.gameday.sticky, config.gameday.sort);
 
     if (result.success) {
         const post = result.post!;
@@ -257,6 +265,16 @@ If this is true, please re-save your configuration to attempt posting it again.`
 // --------------- Create Post-game Thread -----------------
 export async function createPostgameThreadJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Create Post-game Thread');
+
+    const subredditName = context.subredditName;
+    const config = await getSubredditConfig(subredditName);
+    if (!config) {
+        logger.error(`No config found for ${subredditName}, aborting.`);
+        const subjectString = `Failed to post thread`;
+        const bodyString = `A configuration error prevented GameDayLive from posting a thread. Please re-save your configuration from the subreddit menu.`;
+        await sendModmail(subjectString, bodyString);
+        return;
+    }
     
     // Check if postgame thread already exists
     const existingPgtId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
@@ -299,7 +317,7 @@ export async function createPostgameThreadJob(gameId: number) {
     const body = await formatThreadBody(game);
 
     // Create thread on reddit
-    const result = await tryCreateThread(context, title, body)
+    const result = await tryCreateThread(context, title, body, config.postgame.sticky, config.postgame.sort)
 
     if (result.success) {
         const post = result.post!;
@@ -323,8 +341,11 @@ export async function createPostgameThreadJob(gameId: number) {
         // Add closure comment to existingGDT
         const GDT = await reddit.getPostById(existingGDT as Post["id"]);
         const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`
-		await tryAddComment(GDT, completeComment)
-        await tryCleanupThread(existingGDT as Post["id"]);
+        if (config.gameday.lock) {
+            // Only comment if locking enabled
+            await tryAddComment(GDT, completeComment)
+        }		
+        await tryCleanupThread(existingGDT as Post["id"], config.gameday.lock);
         
     } else {
         await sendModmail(`Post-game thread creation failed`,
@@ -336,11 +357,17 @@ If this is true, please re-save your configuration to attempt posting it again.`
     }
 }
 
-// --------------- Next Live Update -----------------
+// --------------- Next Live Update (GDT) -----------------
 export async function nextLiveUpdateJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Next Live Update');
     
     const subredditName = context.subredditName;
+    const config = await getSubredditConfig(subredditName);
+    if (!config) {
+        logger.error(`No config found for ${subredditName}, aborting.`);
+        return;
+    }
+    
     const postId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
     if (!postId) {
         logger.error(`Invalid postId`);
@@ -351,7 +378,7 @@ export async function nextLiveUpdateJob(gameId: number) {
     try {
         const existingPost = await reddit.getPostById(postId as Post["id"])
         if (!existingPost) {
-            await tryCleanupThread(postId as Post["id"]);
+            await tryCleanupThread(postId as Post["id"], config.gameday.lock);
         }
     } catch (err) {
         logger.error(`Failed to verify post exists: ${err instanceof Error ? err.message : String(err)}`);
@@ -442,15 +469,14 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     } else {
         // Game finished
-        // Schedule postgame thread only if enabled (FIX: offload method to universal location for other leagues to use)
-        const config = await getSubredditConfig(context.subredditName);
-        if (config?.enablePostgameThreads){
+        // Schedule postgame thread only if enabled (TODO:FIX: offload method to universal location for other leagues to use)
+        if (config?.postgame.enabled) {
             logger.info(`Game ended. Scheduling PGT.`);
             const scheduledTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
             await scheduleCreatePostgameThread(game, scheduledTime);
         } else {
             // PGT not enabled, cleanup game thread immediately
-            await tryCleanupThread(postId as Post["id"]);
+            await tryCleanupThread(postId as Post["id"], config.gameday.lock);
         }
     }
 }
@@ -631,6 +657,8 @@ async function scheduleCreateGameThread(subredditName: string, game: NHLGame, sc
 // -------- Schedule Create Postgame Thread --------
 async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) {
     const logger = await Logger.Create('Jobs - Schedule Create Post-game Thread');
+
+    
     
     const gameId = game.id;
     const subredditName = context.subredditName;
@@ -639,17 +667,22 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
     const jobTitle = `PGT-${shortTitle}-${gameId}`;
 
     // Only schedule if enabled in subredditConfig
-    const config: SubredditConfig | undefined = await getSubredditConfig(subredditName);
+    const config = await getSubredditConfig(subredditName);
     if (!config) {
-        // Should never happen, but if so, send mod mail?
+        logger.error(`No config found for ${subredditName}, aborting.`);
+        const subjectString = `Failed to post thread`;
+        const bodyString = `A configuration error prevented GameDayLive from posting a thread. Please re-save your configuration from the subreddit menu.`;
+        await sendModmail(subjectString, bodyString);
+        return;
     }
-    if (!config?.enablePostgameThreads) {
+
+    if (config?.postgame.enabled) {
         logger.info(`Post-game threads disabled in subreddit ${subredditName}`);
 
         // Clean up GDT accordingly.
         const GDTId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
         if (GDTId) {
-            await tryCleanupThread(GDTId as Post["id"]);
+            await tryCleanupThread(GDTId as Post["id"], config.gameday.lock);
         }
 
         return;

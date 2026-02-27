@@ -385,18 +385,18 @@ function getApprovalBody(league: string, team: string, config: SubredditConfig):
         ? `Enabled | Sticky: ${t.sticky ? 'Yes' : 'No'} | Lock: ${t.lock ? 'Yes' : 'No'} | Sort: ${t.sort}`
         : 'Disabled';
 
-    return `Thank you for using GameDayLive! Here are your saved configuration settings. If anything doesn't look right, simply reconfigure and save.
+    return `Thank you for using GameDayLive! Here are your saved configuration settings. If anything doesn't look right, simply reconfigure and save.  
 
-League: ${league}
-Team: ${team}
+League: ${league}  
+Team: ${team}  
 
-Pre-game threads:  ${fmt(config.pregame)}
-Game day threads:  ${fmt(config.gameday)}
-Post-game threads: ${fmt(config.postgame)}
+Pre-game threads:  ${fmt(config.pregame)}  
+Game day threads:  ${fmt(config.gameday)}  
+Post-game threads: ${fmt(config.postgame)}  
 
-Tip: Some errors that interrupt the bot's functionality may be sent in modmail to notify you.
-If you come across any issues, you can re-save your config form to try to get the bot to recover.
-If that doesn't solve the problem, you can uninstall and reinstall the bot. Please notify me of any issues you encounter so I can look into them and try to resolve them. Thanks!
+Tip: Some errors that interrupt the bot's functionality may be sent in modmail to notify you.  
+If you come across any issues, you can re-save your config form to try to get the bot to recover.  
+If that doesn't solve the problem, you can uninstall and reinstall the bot. Please notify me of any issues you encounter so I can look into them and try to resolve them. Thanks!  
 
 If you have any questions, feel free to reach out via the contact information found on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
 }
@@ -406,6 +406,6 @@ function getDenySubject(): string {
 }
 
 function getDenyBody(): string {
-    return `Thank you for your interest in GameDayLive! Due to API rate limits, we maintain a list of approved subreddits.
+    return `Thank you for your interest in GameDayLive! Due to API rate limits, we maintain a list of approved subreddits.  
 To request approval, please contact the operator of this app via the contact information on [the app's devvit page.](https://developers.reddit.com/apps/gamedaylive)`;
 }

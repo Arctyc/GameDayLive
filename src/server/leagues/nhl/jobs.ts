@@ -186,7 +186,7 @@ export async function createGameThreadJob(gameId: number) {
                     if (existingPostgameThreadId) {
                         // Clean up stale thread
                         logger.debug(`PGT found, cleaning up Redis...`);
-                        await tryCleanupThread(existingPostgameThreadId as Post["id"], config.gameday.lock);
+                        await tryCleanupThread(existingPostgameThreadId as Post["id"], config.postgame.lock);
                     } else {
                         // TODO: If game ended < X time ago?
                         // Create PGT
@@ -676,7 +676,7 @@ async function scheduleCreatePostgameThread(game: NHLGame, scheduledTime: Date) 
         return;
     }
 
-    if (config?.postgame.enabled) {
+    if (!config?.postgame.enabled) {
         logger.info(`Post-game threads disabled in subreddit ${subredditName}`);
 
         // Clean up GDT accordingly.

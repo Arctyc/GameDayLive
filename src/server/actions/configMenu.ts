@@ -13,11 +13,6 @@ import { sendModmail } from '../modmail';
 
 // -------- CONSTANTS --------
 
-const SORT_OPTIONS = [
-    { label: 'New', value: 'new' },
-    { label: 'Best', value: 'best' },
-];
-
 const DEFAULT_THREAD: ThreadConfig = {
     enabled: true,
     sticky: true,

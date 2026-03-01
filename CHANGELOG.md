@@ -7,6 +7,7 @@
 
 ### Updates
 - Added configuration granularity for pre-game threads, game day threads, and post-game threads individually.
+- Updated GDT/PGT thread formatting with linescore table
 
 ### News
 - Pre-game threads coming soon.

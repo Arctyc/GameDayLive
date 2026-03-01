@@ -4,10 +4,14 @@ import { GAME_STATES } from "../constants";
 import type { NHLGame } from "../api";
 
 export async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<string> {
+    const homeTeamAbbrev = game.homeTeam.abbrev;
+    const awayTeamAbbrev = game.awayTeam.abbrev;
     const homeTeamPlace = game.homeTeam.placeName.default;
     const awayTeamPlace = game.awayTeam.placeName.default;
     const homeTeamName = game.homeTeam.commonName.default;
     const awayTeamName = game.awayTeam.commonName.default;
+    const homeScore = game.homeTeam.score ?? 0;
+    const awayScore = game.awayTeam.score ?? 0;
 
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
     const period = game.periodDescriptor?.number ?? 0;
@@ -71,6 +75,7 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string): Pro
 
     return `# [${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}](${gameCenterUrl})
 
+**Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}

@@ -44,8 +44,8 @@ export function buildBodyGoals(game: NHLGame): string {
 
 function buildGoalsTableHeader(): string {
     return (
-`| Per. | Time | Team | Player | Shot&nbsp;Type | Assists | Clip |
-|---|---|---|--------|--------|--------|---|
+`| Per. | Time | Team | STR | Player | Shot&nbsp;Type | Assists | Clip |
+|---|---|---|---|--------|--------|--------|---|
 `);
 }
 
@@ -87,5 +87,5 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
         ? `[nhl.com](${d.highlightClipSharingUrl})`
         : "-";
 
-    return `| ${periodLabel} | ${time} | ${team} | #${scorer.number} ${scorer.name} | ${shotType}&nbsp;${modifier} | ${assistsStr} | ${clip}\n`;
+    return `| ${periodLabel} | ${time} | ${team} | ${modifier} |#${scorer.number} ${scorer.name} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }

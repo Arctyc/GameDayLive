@@ -61,9 +61,9 @@ export function getStrength(
     const oppGoalieInNet  = scoringIsHome ? awayGoalie : homeGoalie;
 
     if (oppGoalieInNet === 0) return "ENG";
+    if (teamSkaters > oppSkaters && !teamGoalieInNet) return "EA";
     if (teamSkaters > oppSkaters) return "PP";
     if (teamSkaters < oppSkaters) return "SHG";
-    if (teamSkaters > oppSkaters && !teamGoalieInNet) return "EA";
     return "";
 }
 

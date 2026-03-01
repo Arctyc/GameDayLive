@@ -93,7 +93,7 @@ export function buildBodyLinescore(game: NHLGame): string {
     const plays = game.plays ?? [];
     const { goals } = organizePlaysByPeriod(plays);
 
-    // Always show 1–3, add OT/SO columns only if the game went there
+    // Always show 1–3, add OT/SO columns as necessary
     const periodColumns: Array<{ label: string; period: number }> = [
         { label: "1st", period: 1 },
         { label: "2nd", period: 2 },
@@ -106,7 +106,7 @@ export function buildBodyLinescore(game: NHLGame): string {
         periodColumns.push({ label, period: p });
     }
 
-    // Header and separator — always include all stat columns
+    // Header and separator
     const periodHeaders = periodColumns.map(c => c.label).join(" | ");
     const header = `| Team | Score | ${periodHeaders} | SOG | F/O% | BLK | HIT |`;
     const separator = `|${Array(periodColumns.length + 6).fill("---").join("|")}|`;

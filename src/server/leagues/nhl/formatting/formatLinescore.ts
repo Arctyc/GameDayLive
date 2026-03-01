@@ -5,26 +5,10 @@ interface TeamLinescoreStats {
     periodGoals: Record<number, number>;
     totalGoals: number;
     shots: number;
-    faceoffPct: string;
+    faceoffWins: number;
+    faceoffTotal: number;
     blocks: number;
     hits: number;
-}
-
-/**
- * Pulls a stat value from game.summary.teamGameStats (provided by the NHL play-by-play endpoint).
- * Falls back to "-" if the data isn't present yet (e.g. pre-game).
- *
- * teamGameStats shape:
- * [{ category: "faceoffWinningPctg", awayValue: 0.523, homeValue: 0.477 }, ...]
- */
-function getTeamStat(
-    teamGameStats: Array<{ category: string; awayValue: number; homeValue: number }>,
-    category: string,
-    side: 'away' | 'home'
-): number | null {
-    const entry = teamGameStats.find(s => s.category === category);
-    if (!entry) return null;
-    return side === 'away' ? entry.awayValue : entry.homeValue;
 }
 
 function buildLinescoreStats(game: NHLGame): { away: TeamLinescoreStats; home: TeamLinescoreStats } {
@@ -32,13 +16,44 @@ function buildLinescoreStats(game: NHLGame): { away: TeamLinescoreStats; home: T
     const { goals } = organizePlaysByPeriod(plays);
     const currentPeriod = game.periodDescriptor?.number ?? 0;
 
-    const teamGameStats: Array<{ category: string; awayValue: number; homeValue: number }> =
-        (game.summary as any)?.teamGameStats ?? [];
+    const homeId = game.homeTeam.id;
+    const awayId = game.awayTeam.id;
+
+    // Tally faceoffs, blocks, hits from play-by-play
+    let homeFaceoffWins = 0, awayFaceoffWins = 0, totalFaceoffs = 0;
+    let homeBlocks = 0, awayBlocks = 0;
+    let homeHits = 0, awayHits = 0;
+
+    for (const play of plays) {
+        const d = play.details;
+        if (!d) continue;
+
+        switch (play.typeDescKey) {
+            case "faceoff":
+                // eventOwnerTeamId is the winning team
+                totalFaceoffs++;
+                if (d.eventOwnerTeamId === homeId) homeFaceoffWins++;
+                else if (d.eventOwnerTeamId === awayId) awayFaceoffWins++;
+                break;
+
+            case "blocked-shot":
+                // eventOwnerTeamId is the blocking (defending) team
+                if (d.eventOwnerTeamId === homeId) homeBlocks++;
+                else if (d.eventOwnerTeamId === awayId) awayBlocks++;
+                break;
+
+            case "hit":
+                // eventOwnerTeamId is the hitting team
+                if (d.eventOwnerTeamId === homeId) homeHits++;
+                else if (d.eventOwnerTeamId === awayId) awayHits++;
+                break;
+        }
+
+    }
 
     const buildStats = (side: 'away' | 'home'): TeamLinescoreStats => {
-        const teamId = side === 'home' ? game.homeTeam.id : game.awayTeam.id;
+        const teamId = side === 'home' ? homeId : awayId;
 
-        // Count goals per period for this team
         const periodGoals: Record<number, number> = {};
         for (let p = 1; p <= currentPeriod; p++) {
             const periodPlays = goals[p] ?? [];
@@ -55,20 +70,19 @@ function buildLinescoreStats(game: NHLGame): { away: TeamLinescoreStats; home: T
             ? (game.homeTeam.sog ?? 0)
             : (game.awayTeam.sog ?? 0);
 
-        // These come from summary.teamGameStats when available
-        const foRaw = getTeamStat(teamGameStats, 'faceoffWinningPctg', side);
-        const faceoffPct = foRaw !== null ? `${(foRaw * 100).toFixed(1)}%` : "-";
+        const faceoffWins  = side === 'home' ? homeFaceoffWins  : awayFaceoffWins;
+        const blocks       = side === 'home' ? homeBlocks        : awayBlocks;
+        const hits         = side === 'home' ? homeHits          : awayHits;
 
-        const blocksRaw = getTeamStat(teamGameStats, 'blockedShots', side);
-        const blocks = blocksRaw ?? 0;
-
-        const hitsRaw = getTeamStat(teamGameStats, 'hits', side);
-        const hits = hitsRaw ?? 0;
-
-        return { periodGoals, totalGoals, shots, faceoffPct, blocks, hits };
+        return { periodGoals, totalGoals, shots, faceoffWins, faceoffTotal: totalFaceoffs, blocks, hits };
     };
 
     return { away: buildStats('away'), home: buildStats('home') };
+}
+
+function formatFaceoffPct(wins: number, total: number): string {
+    if (total === 0) return "-";
+    return `${((wins / total) * 100).toFixed(1)}%`;
 }
 
 export function buildBodyLinescore(game: NHLGame): string {
@@ -79,8 +93,7 @@ export function buildBodyLinescore(game: NHLGame): string {
     const plays = game.plays ?? [];
     const { goals } = organizePlaysByPeriod(plays);
 
-    // Determine which period columns to show
-    // Always show 1–3, add OT/SO columns dynamically
+    // Always show 1–3, add OT/SO columns only if the game went there
     const periodColumns: Array<{ label: string; period: number }> = [
         { label: "1st", period: 1 },
         { label: "2nd", period: 2 },
@@ -89,27 +102,17 @@ export function buildBodyLinescore(game: NHLGame): string {
 
     for (let p = 4; p <= currentPeriod; p++) {
         const playsInPeriod = goals[p] ?? [];
-        // isShootoutPeriod needs some plays to inspect; fall back to game flags
         const label = getPeriodLabel(p, game, playsInPeriod.length > 0 ? playsInPeriod : undefined);
         periodColumns.push({ label, period: p });
     }
 
-    const teamGameStats: any[] = (game.summary as any)?.teamGameStats ?? [];
-    const hasExtendedStats = teamGameStats.length > 0;
-
-    // Build header row
+    // Header and separator — always include all stat columns
     const periodHeaders = periodColumns.map(c => c.label).join(" | ");
-    const extendedHeaders = hasExtendedStats ? " | F/O% | BLK | HIT" : "";
-    const header = `| Team | ${periodHeaders} | Total | SOG${extendedHeaders} |`;
-    const separator = `|${["", ...periodColumns.map(() => ""), "", "", ...(hasExtendedStats ? ["", "", ""] : [])].map(() => "---").join("|")}|`;
+    const header    = `| Team | Score | ${periodHeaders} | SOG | F/O% | BLK | HIT |`;
+    const separator = `|${Array(periodColumns.length + 6).fill("---").join("|")}|`;
 
-    // Build a row for one team
-    const buildRow = (
-        abbrev: string,
-        stats: TeamLinescoreStats,
-    ): string => {
+    const buildRow = (abbrev: string, stats: TeamLinescoreStats): string => {
         const periodCells = periodColumns.map(c => {
-            // Don't show shootout goals in linescore (they don't count toward score display)
             const periodPlays = goals[c.period] ?? [];
             if (isShootoutPeriod(c.period, game, periodPlays.length > 0 ? periodPlays : undefined)) {
                 return "-";
@@ -117,15 +120,15 @@ export function buildBodyLinescore(game: NHLGame): string {
             return String(stats.periodGoals[c.period] ?? 0);
         });
 
-        const extendedCells = hasExtendedStats
-            ? ` | ${stats.faceoffPct} | ${stats.blocks || "-"} | ${stats.hits || "-"}`
-            : "";
+        const fo  = formatFaceoffPct(stats.faceoffWins, stats.faceoffTotal);
+        const blk = stats.blocks || "-";
+        const hit = stats.hits   || "-";
 
-        return `| **${abbrev}** | ${periodCells.join(" | ")} | **${stats.totalGoals}** | ${stats.shots}${extendedCells} |`;
+        return `| **${abbrev}** | **${stats.totalGoals}** | ${periodCells.join(" | ")} | ${stats.shots} | ${fo} | ${blk} | ${hit} |`;
     };
 
     const awayRow = buildRow(game.awayTeam.abbrev, away);
     const homeRow = buildRow(game.homeTeam.abbrev, home);
 
-    return `**LINESCORE** swipe→\n\n${header}\n${separator}\n${awayRow}\n${homeRow}\n\n`;
+    return `${header}\n${separator}\n${awayRow}\n${homeRow}\n\n`;
 }

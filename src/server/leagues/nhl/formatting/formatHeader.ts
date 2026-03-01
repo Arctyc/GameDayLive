@@ -75,7 +75,6 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string): Pro
 
     return `# [${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}](${gameCenterUrl})
 
-**Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}

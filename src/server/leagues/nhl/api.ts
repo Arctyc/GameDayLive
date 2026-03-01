@@ -102,6 +102,15 @@ export interface NHLGame {
       committedByPlayerId?: number;
       drawnByPlayerId?: number;
       servedByPlayerId?: number;
+      // Faceoff details
+      winningPlayerId?: number;
+      losingPlayerId?: number;
+      // Blocked-shot details
+      blockingPlayerId?: number;
+      shootingPlayerId?: number;
+      // Hit details
+      hittingPlayerId?: number;
+      hitteePlayerId?: number;
     };
     pptReplayUrl?: string;
   }>;

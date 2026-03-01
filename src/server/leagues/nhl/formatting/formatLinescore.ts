@@ -94,8 +94,6 @@ export function buildBodyLinescore(game: NHLGame): string {
         periodColumns.push({ label, period: p });
     }
 
-    const hasSummaryStat = (stat: number): boolean => stat > 0; // rough check — 0 could be real or missing
-
     const teamGameStats: any[] = (game.summary as any)?.teamGameStats ?? [];
     const hasExtendedStats = teamGameStats.length > 0;
 

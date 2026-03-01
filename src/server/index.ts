@@ -1,6 +1,6 @@
 import express from 'express';
 import { createServer, getServerPort } from '@devvit/web/server';
-import { menuAction, formAction } from './actions/configMenu';
+import { menuAction, formStep1Action, formStep2Action } from './actions/configMenu';
 import { registerSchedulers } from './leagues/nhl/scheduler';
 import { jobMenuAction, jobCancelAction } from './actions/scheduleMenu';
 import { registerTriggers } from './actions/triggers';
@@ -15,7 +15,8 @@ app.use(express.text());
 
 // Register bot functionality
 menuAction(router);
-formAction(router);
+formStep1Action(router);
+formStep2Action(router);
 jobMenuAction(router);
 jobCancelAction(router);
 registerSchedulers(router);

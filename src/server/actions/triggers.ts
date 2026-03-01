@@ -54,7 +54,7 @@ export const onPostDeleteAction = (router: Router): void => {
             logger.warn(`Ignoring unowned post deletion... App = ${APPNAME} - Author = ${author}`);
             return;
         }
-        await tryCleanupThread(postId);
+        await tryCleanupThread(postId, false); // NOTE: false ignores lock config setting during manual post deletion
 
         res.json({
         status: 'success',

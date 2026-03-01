@@ -1,5 +1,15 @@
 # Changelog
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-02-27
+
+---
+
+## [0.4.0] - 2026-02-27
+
+### Updates
+- Added configuration granularity for pre-game threads, game day threads, and post-game threads individually.
+
+### News
+- Pre-game threads coming soon.
 
 ---
 

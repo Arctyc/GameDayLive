@@ -3,13 +3,19 @@ import { NHLConfig } from "./leagues/nhl/types";
 export const APPNAME = "gamedaylive" as const;
 export const LEAGUES = ["nhl"] as const;
 
+export interface ThreadConfig {
+  enabled: boolean;
+  sticky: boolean;
+  lock: boolean;
+  sort: 'new' | 'best';
+}
+
 export interface SubredditConfig {
-  league: typeof LEAGUES[number]; 
+  league: typeof LEAGUES[number];
   nhl?: NHLConfig;
-  // Additional leagues here
-  enablePostgameThreads: boolean;
-  enableThreadSticky: boolean;
-  enableThreadLocking: boolean;
+  pregame: ThreadConfig;
+  gameday: ThreadConfig;
+  postgame: ThreadConfig;
 }
 
 // Enforce standard job data
@@ -17,7 +23,7 @@ interface BaseJobData {
   [key: string]: string | number;
   subredditName: string;
   gameId: string | number;
-  jobTitle: string; // Make this human readable and unique when scheduling jobs. i.e. const jobTitle = `${formatThreadTitle(game)} - ${game.id}`;
+  jobTitle: string;
 }
 
 export interface NewJobData extends BaseJobData {}

@@ -42,14 +42,21 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
 
 export async function formatThreadBody(game: NHLGame): Promise<string> {
     const subredditName = context.subredditName;
+    const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
 
-    const body =
-        await buildBodyHeader(game, subredditName) +
+    const header = await buildBodyHeader(game, subredditName);
+
+    if (gameState === GAME_STATES.FUT || gameState === GAME_STATES.PRE) {
+        return header;
+    }
+
+    return (
+        header +
         "\n\n---\n\n" +
         buildBodyLinescore(game) +
+        "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
-        buildBodyPenalties(game);
-
-    return body;
+        buildBodyPenalties(game)
+    );
 }

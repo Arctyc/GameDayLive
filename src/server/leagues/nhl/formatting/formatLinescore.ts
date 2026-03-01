@@ -130,5 +130,5 @@ export function buildBodyLinescore(game: NHLGame): string {
     const awayRow = buildRow(game.awayTeam.abbrev, away);
     const homeRow = buildRow(game.homeTeam.abbrev, home);
 
-    return `${header}\n${separator}\n${awayRow}\n${homeRow}\n\n`;
+    return `${header}\n${separator}\n${awayRow}\n${homeRow}`;
 }

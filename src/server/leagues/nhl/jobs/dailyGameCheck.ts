@@ -65,7 +65,7 @@ export async function dailyGameCheckJob() {
 
         logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam.abbrev} at ${game.homeTeam.abbrev}`);
 
-        // Determine pre-game thread creation time
+        // Determine pre-game thread creation time // TODO: Make this customizable
         const startTime = new Date(game.startTimeUTC).getTime();
         const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
 

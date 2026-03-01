@@ -151,7 +151,7 @@ export async function createGameThreadJob(gameId: number) {
     }
 }
 
-// --------------- Next Live Update (GDT) -----------------
+// --------------- Next Live Update -----------------
 export async function nextLiveUpdateJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Next Live Update');
     

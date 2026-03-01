@@ -108,7 +108,7 @@ export function buildBodyLinescore(game: NHLGame): string {
 
     // Header and separator
     const periodHeaders = periodColumns.map(c => c.label).join(" | ");
-    const header = `| Team | ${periodHeaders} | Score | SOG | F/O% | BLK | HIT |`;
+    const header = `| Team | ${periodHeaders} | Total | SOG | F/O% | BLK | HIT |`;
     const separator = `|${Array(periodColumns.length + 6).fill("---").join("|")}|`;
 
     const buildRow = (abbrev: string, stats: TeamLinescoreStats): string => {

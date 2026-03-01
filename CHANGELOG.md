@@ -1,16 +1,16 @@
 # Changelog
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-01
 
 ---
 
-## [0.4.0] - 2026-02-27
+## [0.4.0] - 2026-03-01
 
 ### Updates
-- Added configuration granularity for pre-game threads, game day threads, and post-game threads individually.
-- Updated GDT/PGT thread formatting with linescore table
+- Added configuration granularity for pre-game threads, game day threads, and post-game threads individually
+- Added linescore table to GDT/PGT body
 
 ### News
-- Pre-game threads coming soon.
+- Pre-game threads coming soon
 
 ---
 

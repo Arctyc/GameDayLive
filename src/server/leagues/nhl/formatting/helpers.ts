@@ -49,7 +49,7 @@ export function getStrength(
     scoringTeam: 'home' | 'away'
 ): string {
     if (!/^\d{4}$/.test(situationCode)) return "";
-    if (situationCode === "0101" || situationCode === "1010") return ""; // Shootout
+    if (situationCode === "0101" || situationCode === "1010") return "SO"; // Shootout
 
     const [awayGoalie, awaySkaters, homeSkaters, homeGoalie] =
         situationCode.split("").map(Number) as [number, number, number, number];
@@ -64,7 +64,7 @@ export function getStrength(
     if (teamSkaters > oppSkaters && !teamGoalieInNet) return "EA";
     if (teamSkaters > oppSkaters) return "PP";
     if (teamSkaters < oppSkaters) return "SHG";
-    return "";
+    return "-";
 }
 
 export function getPeriodLabel(period: number, game: NHLGame, plays?: any[]): string {

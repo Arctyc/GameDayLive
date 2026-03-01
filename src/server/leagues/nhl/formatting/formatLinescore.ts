@@ -108,7 +108,7 @@ export function buildBodyLinescore(game: NHLGame): string {
 
     // Header and separator — always include all stat columns
     const periodHeaders = periodColumns.map(c => c.label).join(" | ");
-    const header    = `| Team | Score | ${periodHeaders} | SOG | F/O% | BLK | HIT |`;
+    const header = `| Score | Team | ${periodHeaders} | SOG | F/O% | BLK | HIT |`;
     const separator = `|${Array(periodColumns.length + 6).fill("---").join("|")}|`;
 
     const buildRow = (abbrev: string, stats: TeamLinescoreStats): string => {
@@ -124,7 +124,7 @@ export function buildBodyLinescore(game: NHLGame): string {
         const blk = stats.blocks || "-";
         const hit = stats.hits   || "-";
 
-        return `| **${abbrev}** | **${stats.totalGoals}** | ${periodCells.join(" | ")} | ${stats.shots} | ${fo} | ${blk} | ${hit} |`;
+        return `| **${stats.totalGoals}** | **${abbrev}** | ${periodCells.join(" | ")} | ${stats.shots} | ${fo} | ${blk} | ${hit} |`;
     };
 
     const awayRow = buildRow(game.awayTeam.abbrev, away);

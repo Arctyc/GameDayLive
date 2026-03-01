@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { dailyGameCheckJob, createGameThreadJob, createPostgameThreadJob, nextLiveUpdateJob, nextPGTUpdateJob } from './jobs';
+import { dailyGameCheckJob } from './jobs/dailyGameCheck';
+import { createGameThreadJob, nextLiveUpdateJob } from './jobs/gameday';
+import { createPostgameThreadJob, nextPGTUpdateJob } from './jobs/postgame';
 import { Logger } from '../../utils/Logger';
 
 export const dailyGameCheck = (router: Router) => {

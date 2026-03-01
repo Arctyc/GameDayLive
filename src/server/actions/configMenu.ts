@@ -6,7 +6,7 @@ import { getTeamsForLeague } from '../leagues';
 import { getSubredditConfig, setSubredditConfig } from '../config';
 import { getTeamLabel } from '../leagues/nhl/config';
 import { APPROVED_NHL_SUBREDDITS } from '../leagues/nhl/config';
-import { dailyGameCheckJob } from '../leagues/nhl/jobs';
+import { dailyGameCheckJob } from '../leagues/nhl/jobs/dailyGameCheck';
 import { tryCancelScheduledJob } from '../threads';
 import { Logger } from '../utils/Logger';
 import { sendModmail } from '../modmail';

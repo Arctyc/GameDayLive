@@ -97,11 +97,20 @@ src/
     │   └── triggers.ts
     ├── leagues
     │   ├── nhl
+    │   │   ├── formatting
+    │   │   │   ├── formatGoals.ts
+    │   │   │   ├── formatHeader.ts
+    │   │   │   ├── formatLinescore.ts
+    │   │   │   ├── formatPenalties.ts
+    │   │   │   ├── formatter.ts
+    │   │   │   └── helpers.ts
+    │   │   ├── jobs
+    │   │   │   ├── dailyGameCheck.ts
+    │   │   │   ├── gameday.ts
+    │   │   │   └── postgame.ts
     │   │   ├── api.ts
     │   │   ├── config.ts
     │   │   ├── constants.ts
-    │   │   ├── formatter.ts
-    │   │   ├── jobs.ts
     │   │   ├── scheduler.ts
     │   │   └── types.ts
     │   └── index.ts

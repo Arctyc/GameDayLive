@@ -93,7 +93,7 @@ export function formatInfraction(descKey: string | undefined): string {
     const s = descKey ?? "Penalty";
 
     switch (s) {
-        case "too-many-men-on-the-ice":               return "Too&nbsp;Many&nbsp;Men";
+        case "too-many-men-on-the-ice":                return "Too&nbsp;Many&nbsp;Men";
         case "delaying-game-puck-over-glass":          return "DoG Puck Over Glass";
         case "delaying-game-unsuccessful-challenge":   return "DoG Unsuccessful Challenge";
         case "abuse-of-officials":                     return "Abuse&nbsp;of&nbsp;Officials";

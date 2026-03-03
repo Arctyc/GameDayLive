@@ -4,7 +4,7 @@ import { GAME_STATES } from "../constants";
 import type { NHLGame } from "../api";
 import { context } from "@devvit/web/server";
 import { buildBodyHeader } from "./formatHeader";
-import { buildBodyLinescore } from "./formatLinescore";
+//import { buildBodyLinescore } from "./formatLinescore";
 import { buildBodyGoals } from "./formatGoals";
 import { buildBodyPenalties } from "./formatPenalties";
 

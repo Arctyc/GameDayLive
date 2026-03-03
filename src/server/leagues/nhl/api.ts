@@ -312,7 +312,6 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
     const rightRail: any = await rightRailRes.value.json();
     const rawSeries: any[] = rightRail.seasonSeries ?? [];
     seasonSeries = rawSeries
-      .filter((g: any) => g.id !== game.id)
       .map((g: any): SeriesGame => ({
         gameDate: g.gameDate ?? '',
         awayAbbrev: g.awayTeam?.abbrev ?? '',

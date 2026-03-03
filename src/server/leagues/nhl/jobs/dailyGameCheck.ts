@@ -68,8 +68,18 @@ export async function dailyGameCheckJob() {
 
         // Schedule pregame thread immediately if enabled
         if (config.pregame.enabled) {
-            logger.info(`Pre-game threads enabled. Scheduling pre-game thread now.`);
-            await schedulePregameThread(game, new Date());
+            const gameStartMs = new Date(game.startTimeUTC).getTime();
+            const twoHoursMs = 2 * 60 * 60 * 1000;
+            const alreadyCreated = await redis.get(REDIS_KEYS.GAME_TO_PREGAME_ID(game.id));
+
+            if (alreadyCreated) {
+                logger.info(`Pre-game thread already exists for game ${game.id}. Skipping.`);
+            } else if (gameStartMs - Date.now() <= twoHoursMs) {
+                logger.info(`Game ${game.id} starts in ≤2 hours. Too late to create a pre-game thread.`);
+            } else {
+                logger.info(`Pre-game threads enabled. Scheduling pre-game thread now.`);
+                await schedulePregameThread(game, new Date());
+            }
         }
 
         // Determine GDT thread creation time

@@ -6,12 +6,10 @@ import type { NHLGame } from "../api";
 export async function buildBodyHeader(game: NHLGame, subredditName: string): Promise<string> {
     const homeTeamAbbrev = game.homeTeam.abbrev;
     const awayTeamAbbrev = game.awayTeam.abbrev;
-    /* Used for full team name
-    const homeTeamPlace = game.homeTeam.placeName.default;
-    const awayTeamPlace = game.awayTeam.placeName.default;
+    // const homeTeamPlace = game.homeTeam.placeName.default;
+    // const awayTeamPlace = game.awayTeam.placeName.default;
     const homeTeamName = game.homeTeam.commonName.default;
     const awayTeamName = game.awayTeam.commonName.default;
-    */
     const homeScore = game.homeTeam.score ?? 0;
     const awayScore = game.awayTeam.score ?? 0;
 
@@ -75,7 +73,7 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string): Pro
 
     const gameCenterUrl = `https://www.nhl.com/gamecenter/${game.id}`;
 
-    return `# [More ${awayTeamAbbrev} @ ${homeTeamAbbrev} stats on GameCenter](${gameCenterUrl})
+    return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})
 
 **Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  

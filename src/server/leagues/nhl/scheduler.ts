@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { dailyGameCheckJob } from './jobs/dailyGameCheck';
 import { createGameThreadJob, nextLiveUpdateJob } from './jobs/gameday';
 import { createPostgameThreadJob, nextPGTUpdateJob } from './jobs/postgame';
-import { createPregameThreadJob } from './jobs/pregame';
+import { createPregameThreadJob, pregameCleanupJob } from './jobs/pregame';
 import { Logger } from '../../utils/Logger';
 
 export const dailyGameCheck = (router: Router) => {
@@ -130,9 +130,30 @@ export const nextPGTUpdate = (router: Router) => {
   });
 };
 
+export const pregameCleanup = (router: Router) => {
+  router.post('/internal/scheduler/pregame-cleanup', async (_req, res) => {
+    const logger = await Logger.Create('Scheduler - Pregame Cleanup');
+
+    try {
+      const { postId } = _req.body.data || {};
+      if (!postId) throw new Error('postId required');
+      await pregameCleanupJob(postId);
+      res.status(200).json({ status: 'success' });
+    } catch (err) {
+      logger.error('Pregame cleanup failed:', err);
+      res.status(200).json({
+        status: 'error',
+        message: 'Pregame cleanup failed',
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+};
+
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createPregameThread(router);
+  pregameCleanup(router);
   createGameThread(router);
   createPostgameThread(router);
   nextLiveUpdate(router);

@@ -165,7 +165,7 @@ function buildSeasonSeries(game: NHLGame, data: PregameData): string {
     const series = data.seasonSeries;
 
     if (!series || series.length === 0) {
-        return `## Season Series\n*Missing data...*`;
+        return `## Season Series\n*No data*`;
     }
 
     const awayAbbrev = game.awayTeam.abbrev;

@@ -1,10 +1,10 @@
-import { redis, context, scheduler, ScheduledJob } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob, Post } from '@devvit/web/server';
 import { getGameData, getPregameData, NHLGame } from '../api';
 import { formatPregameTitle, formatPregameBody } from '../formatting/formatPregame';
-import { REDIS_KEYS, JOB_NAMES } from '../constants';
+import { UPDATE_INTERVALS, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
-import { tryCreateThread } from '../../../threads';
-import { NewJobData } from '../../../types';
+import { tryCleanupThread, tryCreateThread } from '../../../threads';
+import { NewJobData, CleanupJobData } from '../../../types';
 import { Logger } from '../../../utils/Logger';
 import { getJobData } from '../../../utils/jobs';
 import { sendModmail } from '../../../modmail';
@@ -77,12 +77,55 @@ export async function createPregameThreadJob(gameId: number) {
         await redis.expire(REDIS_KEYS.GAME_TO_PREGAME_ID(gameId), REDIS_KEYS.EXPIRY);
         await redis.set(REDIS_KEYS.PREGAME_TO_GAME_ID(post.id), gameId.toString());
         await redis.expire(REDIS_KEYS.PREGAME_TO_GAME_ID(post.id), REDIS_KEYS.EXPIRY);
+
+        // Schedule cleanup for 1 hour before game start — when the GDT goes live
+        const cleanupTime = new Date(new Date(game.startTimeUTC).getTime() - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
+        await schedulePregameCleanup(post.id, gameId, cleanupTime);
     } else {
         logger.error(`Failed to create pre-game thread: ${result.error}`);
         await sendModmail(
             `Pre-game thread creation failed`,
             `GameDayLive encountered an error creating the pre-game thread for game ${gameId}. This is most likely a Reddit server issue.`
         );
+    }
+}
+
+// --------------- Pregame Cleanup Job -----------------
+export async function pregameCleanupJob(postId: string) {
+    const logger = await Logger.Create('Jobs - Pregame Cleanup');
+
+    const config = await getSubredditConfig(context.subredditName);
+    if (!config) {
+        logger.error(`No config found for ${context.subredditName}, aborting cleanup.`);
+        return;
+    }
+
+    logger.info(`Running pregame cleanup for post ${postId}`);
+    await tryCleanupThread(postId as Post["id"], config.pregame.lock);
+}
+
+// --------------- Schedule Pregame Cleanup -----------------
+async function schedulePregameCleanup(postId: Post["id"], gameId: number, cleanupTime: Date) {
+    const logger = await Logger.Create(`Jobs - Schedule Pregame Cleanup`);
+
+    const subredditName = context.subredditName;
+    const jobTitle = `Pregame-Cleanup-${postId}`;
+    const jobData: CleanupJobData = { subredditName, gameId, postId, jobTitle };
+
+    const job: ScheduledJob = {
+        id: `pregame-cleanup-${postId}`,
+        name: JOB_NAMES.PREGAME_CLEANUP,
+        data: jobData,
+        runAt: cleanupTime,
+    };
+
+    try {
+        const jobId = await scheduler.runJob(job);
+        await redis.set(REDIS_KEYS.JOB_PREGAME_CLEANUP(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_PREGAME_CLEANUP(gameId), REDIS_KEYS.EXPIRY);
+        logger.info(`Scheduled pregame cleanup ID: ${jobId} for game ${gameId} at ${cleanupTime.toISOString()}`);
+    } catch (err) {
+        logger.error(`Failed to schedule pregame cleanup: ${err instanceof Error ? err.message : String(err)}`);
     }
 }
 

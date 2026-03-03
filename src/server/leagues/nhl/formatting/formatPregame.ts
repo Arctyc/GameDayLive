@@ -82,12 +82,12 @@ function buildStandings(game: NHLGame, data: PregameData): string {
         const pct = s.pointPctg.toFixed(3).replace(/^0/, ''); // 0.750 → .750
         const l10 = `${s.l10Wins}-${s.l10Losses}-${s.l10OtLosses}`;
         const strk = `${s.streakCode}${s.streakCount}`;
-        return `| **${abbrev}** | ${s.gamesPlayed} | ${s.wins} | ${s.losses} | ${s.otLosses} | ${s.points} | ${pct} | ${l10} | ${strk} |`;
+        return `| **${abbrev}** | ${s.leagueSequence} | ${s.gamesPlayed} | ${s.wins} | ${s.losses} | ${s.otLosses} | ${s.points} | ${pct} | ${l10} | ${strk} |`;
     };
 
     return `## Standings
-| Team | GP | W | L | OT | PTS | PTS% | L10 | STRK |
-|---|---|---|---|---|---|---|---|---|
+| Team | Rank | GP | W | L | OT | PTS | PTS% | L10 | STRK |
+|---|---|---|---|---|---|---|---|---|---|
 ${formatRow(game.awayTeam.abbrev, away)}
 ${formatRow(game.homeTeam.abbrev, home)}`;
 }
@@ -105,12 +105,13 @@ function buildTeamStats(game: NHLGame, data: PregameData): string {
     const formatRow = (abbrev: string, s: StandingsTeam): string => {
         const gfGp = (s.goalsFor / s.gamesPlayed).toFixed(2);
         const gaGp = (s.goalsAgainst / s.gamesPlayed).toFixed(2);
-        return `| **${abbrev}** | ${gfGp} | ${gaGp} |`;
+        const diff = s.goalDifferential >= 0 ? `+${s.goalDifferential}` : `${s.goalDifferential}`;
+        return `| **${abbrev}** | ${gfGp} | ${gaGp} | ${diff} |`;
     };
 
     return `## Team Stats
-| Team | GF/GP | GA/GP |
-|---|---|---|
+| Team | GF/GP | GA/GP | DIFF |
+|---|---|---|---|
 ${formatRow(game.awayTeam.abbrev, away)}
 ${formatRow(game.homeTeam.abbrev, home)}`;
 }
@@ -148,12 +149,13 @@ function buildSkaterLeaders(game: NHLGame, data: PregameData): string {
 
     const rows = leaders.map(p => {
         const abbrev = p.teamId === game.awayTeam.id ? game.awayTeam.abbrev : game.homeTeam.abbrev;
-        return `| **${abbrev}** | ${p.name} | ${p.goals} | ${p.assists} | ${p.points} |`;
+        const pm = p.plusMinus >= 0 ? `+${p.plusMinus}` : `${p.plusMinus}`;
+        return `| **${abbrev}** | ${p.name} | ${p.goals} | ${p.assists} | ${p.points} | ${pm} | ${p.avgTimeOnIce} |`;
     });
 
     return `## Skater Leaders
-| Team | Player | G | A | PTS |
-|---|---|---|---|---|
+| Team | Player | G | A | PTS | +/- | ATOI |
+|---|---|---|---|---|---|---|
 ${rows.join('\n')}`;
 }
 

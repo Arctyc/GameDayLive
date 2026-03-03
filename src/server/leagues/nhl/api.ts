@@ -147,6 +147,7 @@ export interface NHLScheduleResponse {
 
 export interface StandingsTeam {
   teamAbbrev: string;
+  leagueSequence: number; // 1 = best in league
   gamesPlayed: number;
   wins: number;
   losses: number;
@@ -155,6 +156,7 @@ export interface StandingsTeam {
   pointPctg: number;      // 0–1 decimal e.g. 0.75
   goalsFor: number;       // season total — divide by gamesPlayed for GF/GP
   goalsAgainst: number;   // season total — divide by gamesPlayed for GA/GP
+  goalDifferential: number;
   l10Wins: number;
   l10Losses: number;
   l10OtLosses: number;
@@ -177,6 +179,8 @@ export interface SkaterLeader {
   goals: number;
   assists: number;
   points: number;
+  plusMinus: number;
+  avgTimeOnIce: string;   // pre-formatted string e.g. "22:14"
 }
 
 export interface SeriesGame {
@@ -220,6 +224,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
       if (!s) return undefined;
       return {
         teamAbbrev: abbrev,
+        leagueSequence: s.leagueSequence ?? 0,
         gamesPlayed: s.gamesPlayed ?? 0,
         wins: s.wins ?? 0,
         losses: s.losses ?? 0,
@@ -228,6 +233,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
         pointPctg: s.pointPctg ?? 0,
         goalsFor: s.goalFor ?? 0,
         goalsAgainst: s.goalAgainst ?? 0,
+        goalDifferential: s.goalDifferential ?? 0,
         l10Wins: s.l10Wins ?? 0,
         l10Losses: s.l10Losses ?? 0,
         l10OtLosses: s.l10OtLosses ?? 0,
@@ -287,6 +293,8 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
           goals: s.goals ?? 0,
           assists: s.assists ?? 0,
           points: s.points ?? 0,
+          plusMinus: s.plusMinus ?? 0,
+          avgTimeOnIce: s.avgTimeOnIce ?? '-',
         }));
 
     skaterLeaders = [

@@ -6,11 +6,12 @@
 ## [0.4.0] - 2026-03-01
 
 ### Updates
+- Added pre-game threads
 - Added configuration granularity for pre-game threads, game day threads, and post-game threads individually
-- Added linescore table to GDT/PGT body
 
-### News
-- Pre-game threads coming soon
+### Tweaks
+- Changed GameCenter link text to be more apparent what it links to
+- Configuration menu now has two pages. Page 1 select league, team, thread types. Page 2 select sticky, lock, comment sort options
 
 ---
 

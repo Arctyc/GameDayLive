@@ -11,7 +11,7 @@ export async function tryCreateThread(
 	title: string,
 	body: string,
 	sticky: boolean,
-	sort: 'new' | 'best',
+	sort: 'new' | 'confidence',
 ): Promise<{ success: boolean; post?: Post; error?: string }> {
 	const logger = await Logger.Create('Thread - Create');
 

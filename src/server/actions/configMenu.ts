@@ -301,7 +301,7 @@ export const formStep2Action = (router: Router): void => {
                         ...existing,
                         sticky: !!sticky,
                         lock: !!lock,
-                        sort: sortNew ? 'new' : 'best',
+                        sort: sortNew ? 'new' : 'confidence',
                     };
                 };
 

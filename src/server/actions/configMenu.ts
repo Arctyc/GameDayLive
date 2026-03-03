@@ -180,7 +180,7 @@ export const formStep1Action = (router: Router): void => {
                         {
                             type: 'boolean',
                             name: 'pregameLock',
-                            label: 'Pre-game: Lock',
+                            label: 'Pre-game: Lock before game',
                             defaultValue: partialConfig.pregame.lock,
                         },
                         {
@@ -197,13 +197,13 @@ export const formStep1Action = (router: Router): void => {
                         {
                             type: 'boolean',
                             name: 'gamedaySticky',
-                            label: 'Game day: Sticky thread',
+                            label: 'Game day: Sticky',
                             defaultValue: partialConfig.gameday.sticky,
                         },
                         {
                             type: 'boolean',
                             name: 'gamedayLock',
-                            label: 'Game day: Lock thread after game',
+                            label: 'Game day: Lock after game',
                             defaultValue: partialConfig.gameday.lock,
                         },
                         {
@@ -220,13 +220,13 @@ export const formStep1Action = (router: Router): void => {
                         {
                             type: 'boolean',
                             name: 'postgameSticky',
-                            label: 'Post-game: Sticky thread',
+                            label: 'Post-game: Sticky',
                             defaultValue: partialConfig.postgame.sticky,
                         },
                         {
                             type: 'boolean',
                             name: 'postgameLock',
-                            label: 'Post-game: Lock thread 18h after post',
+                            label: 'Post-game: Lock 18h after post',
                             defaultValue: partialConfig.postgame.lock,
                         },
                         {

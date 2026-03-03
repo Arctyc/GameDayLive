@@ -3,7 +3,7 @@ import { getGameData, getPregameData, NHLGame } from '../api';
 import { formatPregameTitle, formatPregameBody } from '../formatting/formatPregame';
 import { UPDATE_INTERVALS, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
-import { tryCleanupThread, tryCreateThread } from '../../../threads';
+import { tryCreateThread } from '../../../threads';
 import { NewJobData, CleanupJobData } from '../../../types';
 import { Logger } from '../../../utils/Logger';
 import { getJobData } from '../../../utils/jobs';
@@ -88,20 +88,6 @@ export async function createPregameThreadJob(gameId: number) {
             `GameDayLive encountered an error creating the pre-game thread for game ${gameId}. This is most likely a Reddit server issue.`
         );
     }
-}
-
-// --------------- Pregame Cleanup Job -----------------
-export async function pregameCleanupJob(postId: string) {
-    const logger = await Logger.Create('Jobs - Pregame Cleanup');
-
-    const config = await getSubredditConfig(context.subredditName);
-    if (!config) {
-        logger.error(`No config found for ${context.subredditName}, aborting cleanup.`);
-        return;
-    }
-
-    logger.info(`Running pregame cleanup for post ${postId}`);
-    await tryCleanupThread(postId as Post["id"], config.pregame.lock);
 }
 
 // --------------- Schedule Pregame Cleanup -----------------

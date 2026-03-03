@@ -59,6 +59,9 @@
       "create-postgame-thread": {
         "endpoint": "/internal/scheduler/create-postgame-thread"
       },
+      "pgt-cleanup": {
+        "endpoint": "/internal/scheduler/pgt-cleanup"
+      },
       "next-live-update": {
         "endpoint": "/internal/scheduler/next-live-update"
       },

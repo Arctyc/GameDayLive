@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { context } from '@devvit/web/server';
 import { dailyGameCheckJob } from './jobs/dailyGameCheck';
 import { createGameThreadJob, nextLiveUpdateJob } from './jobs/gameday';
 import { createPostgameThreadJob, nextPGTUpdateJob } from './jobs/postgame';
@@ -139,7 +140,7 @@ export const pregameCleanup = (router: Router) => {
     try {
       const { postId } = _req.body.data || {};
       if (!postId) throw new Error('postId required');
-      const config = await getSubredditConfig(_req.body.subredditName);
+      const config = await getSubredditConfig(context.subredditName);
       await tryCleanupThread(postId, config?.pregame?.lock ?? false);
       res.status(200).json({ status: 'success' });
     } catch (err) {

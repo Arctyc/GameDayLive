@@ -205,9 +205,10 @@ export interface PregameData {
 // --------------- Pregame API Fetches ---------------
 
 export async function getPregameData(game: NHLGame, fetch: any): Promise<PregameData> {
-  const [standingsRes, landingRes] = await Promise.allSettled([
+  const [standingsRes, landingRes, rightRailRes] = await Promise.allSettled([
     fetch(`https://api-web.nhle.com/v1/standings/now`),
     fetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/landing`),
+    fetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/right-rail`),
   ]);
 
   // ---- Standings ----
@@ -302,19 +303,26 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
       ...getTopSkaters(game.homeTeam.id),
     ];
 
-    // ---- Season series ----
-    // NOTE: summary.seasonSeries is only present for LIVE/FINAL/OFF games.
-    // For FUT games this will be empty — that is expected behaviour.
-    const rawSeries: any[] = landing.summary?.seasonSeries ?? [];
-    seasonSeries = rawSeries.map((g: any): SeriesGame => ({
-      gameDate: g.gameDate ?? '',
-      awayAbbrev: g.awayTeam?.abbrev ?? '',
-      homeAbbrev: g.homeTeam?.abbrev ?? '',
-      awayScore: g.awayTeam?.score,
-      homeScore: g.homeTeam?.score,
-      gameOutcome: g.gameOutcome?.lastPeriodType,
-      gameState: g.gameState ?? '',
-    }));
+  }
+
+  // ---- Season series ----
+  // Pulled from right-rail, which includes all games (past AND future) unlike
+  // landing.summary.seasonSeries which is only populated for LIVE/FINAL/OFF games.
+  // The current game is excluded since it hasn't been played yet.
+  if (rightRailRes.status === 'fulfilled' && rightRailRes.value.ok) {
+    const rightRail: any = await rightRailRes.value.json();
+    const rawSeries: any[] = rightRail.seasonSeries ?? [];
+    seasonSeries = rawSeries
+      .filter((g: any) => g.id !== game.id)
+      .map((g: any): SeriesGame => ({
+        gameDate: g.gameDate ?? '',
+        awayAbbrev: g.awayTeam?.abbrev ?? '',
+        homeAbbrev: g.homeTeam?.abbrev ?? '',
+        awayScore: g.awayTeam?.score,
+        homeScore: g.homeTeam?.score,
+        gameOutcome: g.gameOutcome?.lastPeriodType,
+        gameState: g.gameState ?? '',
+      }));
   }
 
   return {

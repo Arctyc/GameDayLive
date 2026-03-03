@@ -1,9 +1,9 @@
 # Changelog
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-03
 
 ---
 
-## [0.4.0] - 2026-03-01
+## [0.4.0] - 2026-03-03
 
 ### Updates
 - Added pre-game threads

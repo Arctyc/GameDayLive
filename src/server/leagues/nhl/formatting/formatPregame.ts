@@ -63,10 +63,10 @@ function buildHeader(game: NHLGame, timezone: string): string {
         : "N/A";
 
     const gameCenterUrl = `https://www.nhl.com/gamecenter/${game.id}`;
-    const awayName = `${game.awayTeam.placeName.default} ${game.awayTeam.commonName.default}`;
-    const homeName = `${game.homeTeam.placeName.default} ${game.homeTeam.commonName.default}`;
+    const awayTeamName = `${game.awayTeam.placeName.default} ${game.awayTeam.commonName.default}`;
+    const homeTeamName = `${game.homeTeam.placeName.default} ${game.homeTeam.commonName.default}`;
 
-    return `# [${awayName} @ ${homeName}](${gameCenterUrl})
+    return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}`;
 }
 

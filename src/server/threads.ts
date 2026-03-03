@@ -41,7 +41,7 @@ To see more, report a bug, or contribute to the project, please visit [the githu
 			await post.setSuggestedCommentSort(sort.toUpperCase() as PostSuggestedCommentSort);
 			logger.info(`Post sort set to ${sort} for ${post.id}`);
 		} catch (sortErr) {
-			logger.warn(`Failed to set comment sort on post ${post.id}:`, sortErr);
+			logger.warn(`Failed to set comment sort as ${sort} on post ${post.id}:`, sortErr);
 		}
 
 		await tryStickyThread(post, sticky);

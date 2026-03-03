@@ -173,7 +173,7 @@ export interface GoalieStats {
   shutouts?: number;
 }
 
-export interface SkaterLeader {
+export interface topSkaters {
   name: string;
   playerId: number;
   teamId: number;
@@ -199,7 +199,7 @@ export interface PregameData {
   homeStandings?: StandingsTeam | undefined;
   awayGoalies: GoalieStats[];
   homeGoalies: GoalieStats[];
-  topSkaters: SkaterLeader[];
+  topSkaters: topSkaters[];
   seasonSeries: SeriesGame[];
 }
 
@@ -250,7 +250,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
   // ---- Landing (goalies, skater leaders, season series) ----
   let awayGoalies: GoalieStats[] = [];
   let homeGoalies: GoalieStats[] = [];
-  let skaterLeaders: SkaterLeader[] = [];
+  let topSkaters: topSkaters[] = [];
   let seasonSeries: SeriesGame[] = [];
 
   if (landingRes.status === 'fulfilled' && landingRes.value.ok) {
@@ -265,6 +265,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
       const leaders: any[] = gc[key]?.leaders ?? [];
       return leaders
         .filter((l: any) => l.record)
+        .sort((a: any, b: any) => (b.gamesPlayed ?? 0) - (a.gamesPlayed ?? 0))
         .slice(0, 2)
         .map((g: any): GoalieStats => ({
           name: g.name?.default ?? 'Unknown',
@@ -278,18 +279,17 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
     awayGoalies = parseGoalies('away');
     homeGoalies = parseGoalies('home');
 
-    // ---- Skater leaders ----
-    // skaterSeasonStats.skaters contains all roster skaters for both teams
-    // sorted descending by points to get top 3 per team
+    // ---- Top Skaters ----
+
     const allSkaters: any[] = matchup.skaterSeasonStats?.skaters ?? [];
     const LEADERS_PER_TEAM = 3;
 
-    const getTopSkaters = (teamId: number): SkaterLeader[] =>
+    const getTopSkaters = (teamId: number): topSkaters[] =>
       allSkaters
         .filter((s: any) => s.teamId === teamId && s.points != null)
         .sort((a: any, b: any) => b.points - a.points)
         .slice(0, LEADERS_PER_TEAM)
-        .map((s: any): SkaterLeader => ({
+        .map((s: any): topSkaters => ({
           name: s.name?.default ?? 'Unknown',
           playerId: s.playerId,
           teamId: s.teamId,
@@ -300,7 +300,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
           avgTimeOnIce: s.avgTimeOnIce ?? '-',
         }));
 
-    skaterLeaders = [
+    topSkaters = [
       ...getTopSkaters(game.awayTeam.id),
       ...getTopSkaters(game.homeTeam.id),
     ];
@@ -308,6 +308,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
   }
 
   // ---- Season series ----
+
   if (rightRailRes.status === 'fulfilled' && rightRailRes.value.ok) {
     const rightRail: any = await rightRailRes.value.json();
     const rawSeries: any[] = rightRail.seasonSeries ?? [];
@@ -328,7 +329,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
     homeStandings,
     awayGoalies,
     homeGoalies,
-    topSkaters: skaterLeaders,
+    topSkaters: topSkaters,
     seasonSeries,
   };
 }

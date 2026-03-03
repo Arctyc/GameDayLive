@@ -51,15 +51,16 @@ export async function createPregameThreadJob(gameId: number) {
         return;
     }
 
-    // Fetch all pregame data (standings, stats, season series, etc.)
+    // Fetch all pregame data
     let pregameData;
     try {
         pregameData = await getPregameData(game, fetch);
     } catch (err) {
         logger.error(`Failed to fetch pregame data: ${err instanceof Error ? err.message : String(err)}`);
-        // Continue with empty data — the formatter handles missing sections gracefully
         pregameData = {
-            skaterLeaders: [],
+            awayGoalies: [],
+            homeGoalies: [],
+            topSkaters: [],
             seasonSeries: [],
         };
     }

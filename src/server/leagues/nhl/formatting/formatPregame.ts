@@ -18,8 +18,6 @@ export async function formatPregameTitle(game: NHLGame): Promise<string> {
         timeZoneName: 'short',
     });
 
-    // Use gameDate (local date) not startTimeUTC date — a 7:30pm PT game
-    // has a next-day UTC date, so startTimeUTC.toDateString() would be wrong
     return `Pre-Game Thread | ${game.awayTeam.abbrev} @ ${game.homeTeam.abbrev} | ${game.gameDate} ${localTime}`;
 }
 
@@ -93,8 +91,6 @@ ${formatRow(game.homeTeam.abbrev, home)}`;
 }
 
 // --------------- Team Stats ---------------
-// PP%/PK%/SF/SA are not available from any endpoint without additional calls.
-// GF/GP and GA/GP are derived from standings season totals.
 
 function buildTeamStats(game: NHLGame, data: PregameData): string {
     const away = data.awayStandings;
@@ -116,44 +112,50 @@ ${formatRow(game.awayTeam.abbrev, away)}
 ${formatRow(game.homeTeam.abbrev, home)}`;
 }
 
-// --------------- Projected Goalies ---------------
+// --------------- Goalies ---------------
 
 function buildGoalies(game: NHLGame, data: PregameData): string {
-    const away = data.awayGoalie;
-    const home = data.homeGoalie;
+    const awayGoalies = data.awayGoalies ?? [];
+    const homeGoalies = data.homeGoalies ?? [];
 
-    if (!away && !home) return `## Projected Goalies\n*Goalie data unavailable.*`;
+    if (awayGoalies.length === 0 && homeGoalies.length === 0) {
+        return `## Goalies\n*Goalie data unavailable.*`;
+    }
 
     const formatSv = (v?: number): string =>
         v != null ? `.${Math.round(v * 1000).toString().padStart(3, '0')}` : '-';
 
-    const formatRow = (abbrev: string, g: GoalieStats | undefined): string => {
-        if (!g) return `| **${abbrev}** | - | - | - | - |`;
+    const formatRow = (abbrev: string, g: GoalieStats): string => {
         const gaa = g.gaa != null ? g.gaa.toFixed(2) : '-';
-        return `| **${abbrev}** | ${g.name} | ${g.record} | ${gaa} | ${formatSv(g.savePctg)} |`;
+        const so = g.shutouts != null ? `${g.shutouts}` : '-';
+        return `| **${abbrev}** | ${g.name} | ${g.record} | ${gaa} | ${formatSv(g.savePctg)} | ${so} |`;
     };
 
-    return `## Projected Goalies
-| Team | Goalie | Record | GAA | SV% |
-|---|---|---|---|---|
-${formatRow(game.awayTeam.abbrev, away)}
-${formatRow(game.homeTeam.abbrev, home)}`;
+    const rows = [
+        ...awayGoalies.map(g => formatRow(game.awayTeam.abbrev, g)),
+        ...homeGoalies.map(g => formatRow(game.homeTeam.abbrev, g)),
+    ];
+
+    return `## Goalies
+| Team | Goalie | Record | GAA | SV% | SO |
+|---|---|---|---|---|---|
+${rows.join('\n')}`;
 }
 
-// --------------- Skater Leaders ---------------
+// --------------- Top Skaters ---------------
 
 function buildSkaterLeaders(game: NHLGame, data: PregameData): string {
-    const leaders = data.skaterLeaders;
+    const skaters = data.topSkaters;
 
-    if (!leaders || leaders.length === 0) return `## Skater Leaders\n*Skater data unavailable.*`;
+    if (!skaters || skaters.length === 0) return `## Top Skaters\n*Skater data unavailable.*`;
 
-    const rows = leaders.map(p => {
+    const rows = skaters.map(p => {
         const abbrev = p.teamId === game.awayTeam.id ? game.awayTeam.abbrev : game.homeTeam.abbrev;
         const pm = p.plusMinus >= 0 ? `+${p.plusMinus}` : `${p.plusMinus}`;
         return `| **${abbrev}** | ${p.name} | ${p.goals} | ${p.assists} | ${p.points} | ${pm} | ${p.avgTimeOnIce} |`;
     });
 
-    return `## Skater Leaders
+    return `## Top Skaters
 | Team | Player | G | A | PTS | +/- | ATOI |
 |---|---|---|---|---|---|---|
 ${rows.join('\n')}`;

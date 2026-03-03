@@ -143,6 +143,182 @@ export interface NHLScheduleResponse {
   }>;
 }
 
+// --------------- Pregame Data Types ---------------
+
+export interface StandingsTeam {
+  teamAbbrev: string;
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  otLosses: number;
+  points: number;
+  pointPctg: number;      // 0–1 decimal e.g. 0.75
+  goalsFor: number;       // season total — divide by gamesPlayed for GF/GP
+  goalsAgainst: number;   // season total — divide by gamesPlayed for GA/GP
+  l10Wins: number;
+  l10Losses: number;
+  l10OtLosses: number;
+  streakCode: string;     // "W", "L", "OT"
+  streakCount: number;
+}
+
+export interface GoalieStats {
+  name: string;
+  playerId: number;
+  record: string;         // pre-formatted string e.g. "21-4-5"
+  gaa?: number;
+  savePctg?: number;      // 0–1 decimal
+}
+
+export interface SkaterLeader {
+  name: string;
+  playerId: number;
+  teamId: number;
+  goals: number;
+  assists: number;
+  points: number;
+}
+
+export interface SeriesGame {
+  gameDate: string;
+  awayAbbrev: string;
+  homeAbbrev: string;
+  awayScore?: number;
+  homeScore?: number;
+  gameOutcome?: string; // 'REG', 'OT', 'SO'
+  gameState: string;
+}
+
+export interface PregameData {
+  awayStandings?: StandingsTeam | undefined;
+  homeStandings?: StandingsTeam | undefined;
+  awayGoalie?: GoalieStats | undefined;
+  homeGoalie?: GoalieStats | undefined;
+  skaterLeaders: SkaterLeader[];
+  seasonSeries: SeriesGame[];
+}
+
+// --------------- Pregame API Fetches ---------------
+
+export async function getPregameData(game: NHLGame, fetch: any): Promise<PregameData> {
+  const [standingsRes, landingRes] = await Promise.allSettled([
+    fetch(`https://api-web.nhle.com/v1/standings/now`),
+    fetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/landing`),
+  ]);
+
+  // ---- Standings ----
+  let awayStandings: StandingsTeam | undefined;
+  let homeStandings: StandingsTeam | undefined;
+
+  if (standingsRes.status === 'fulfilled' && standingsRes.value.ok) {
+    const data = await standingsRes.value.json();
+    const all: any[] = data.standings ?? [];
+
+    const findTeam = (abbrev: string): StandingsTeam | undefined => {
+      // teamAbbrev is { default: "COL" } in the API response
+      const s = all.find((t: any) => t.teamAbbrev?.default === abbrev);
+      if (!s) return undefined;
+      return {
+        teamAbbrev: abbrev,
+        gamesPlayed: s.gamesPlayed ?? 0,
+        wins: s.wins ?? 0,
+        losses: s.losses ?? 0,
+        otLosses: s.otLosses ?? 0,
+        points: s.points ?? 0,
+        pointPctg: s.pointPctg ?? 0,
+        goalsFor: s.goalFor ?? 0,
+        goalsAgainst: s.goalAgainst ?? 0,
+        l10Wins: s.l10Wins ?? 0,
+        l10Losses: s.l10Losses ?? 0,
+        l10OtLosses: s.l10OtLosses ?? 0,
+        streakCode: s.streakCode ?? '',
+        streakCount: s.streakCount ?? 0,
+      };
+    };
+
+    awayStandings = findTeam(game.awayTeam.abbrev);
+    homeStandings = findTeam(game.homeTeam.abbrev);
+  }
+
+  // ---- Landing (goalies, skater leaders, season series) ----
+  let awayGoalie: GoalieStats | undefined;
+  let homeGoalie: GoalieStats | undefined;
+  let skaterLeaders: SkaterLeader[] = [];
+  let seasonSeries: SeriesGame[] = [];
+
+  if (landingRes.status === 'fulfilled' && landingRes.value.ok) {
+    const landing: any = await landingRes.value.json();
+    const matchup = landing.matchup ?? {};
+
+    // ---- Goalies ----
+    // goalieComparison.{awayTeam|homeTeam}.leaders[0] is the top goalie by games played
+    const gc = matchup.goalieComparison ?? {};
+    const parseGoalie = (side: 'away' | 'home'): GoalieStats | undefined => {
+      const key = side === 'away' ? 'awayTeam' : 'homeTeam';
+      const leaders: any[] = gc[key]?.leaders ?? [];
+      const g = leaders.find((l: any) => l.record); // first with a record (skip empty rows)
+      if (!g) return undefined;
+      return {
+        name: g.name?.default ?? 'Unknown',
+        playerId: g.playerId ?? 0,
+        record: g.record ?? '-',
+        gaa: g.gaa,
+        savePctg: g.savePctg,
+      };
+    };
+    awayGoalie = parseGoalie('away');
+    homeGoalie = parseGoalie('home');
+
+    // ---- Skater leaders ----
+    // skaterSeasonStats.skaters contains all roster skaters for both teams
+    // sorted descending by points to get top 3 per team
+    const allSkaters: any[] = matchup.skaterSeasonStats?.skaters ?? [];
+    const LEADERS_PER_TEAM = 3;
+
+    const getTopSkaters = (teamId: number): SkaterLeader[] =>
+      allSkaters
+        .filter((s: any) => s.teamId === teamId && s.points != null)
+        .sort((a: any, b: any) => b.points - a.points)
+        .slice(0, LEADERS_PER_TEAM)
+        .map((s: any): SkaterLeader => ({
+          name: s.name?.default ?? 'Unknown',
+          playerId: s.playerId,
+          teamId: s.teamId,
+          goals: s.goals ?? 0,
+          assists: s.assists ?? 0,
+          points: s.points ?? 0,
+        }));
+
+    skaterLeaders = [
+      ...getTopSkaters(game.awayTeam.id),
+      ...getTopSkaters(game.homeTeam.id),
+    ];
+
+    // ---- Season series ----
+    // NOTE: summary.seasonSeries is only present for LIVE/FINAL/OFF games.
+    // For FUT games this will be empty — that is expected behaviour.
+    const rawSeries: any[] = landing.summary?.seasonSeries ?? [];
+    seasonSeries = rawSeries.map((g: any): SeriesGame => ({
+      gameDate: g.gameDate ?? '',
+      awayAbbrev: g.awayTeam?.abbrev ?? '',
+      homeAbbrev: g.homeTeam?.abbrev ?? '',
+      awayScore: g.awayTeam?.score,
+      homeScore: g.homeTeam?.score,
+      gameOutcome: g.gameOutcome?.lastPeriodType,
+      gameState: g.gameState ?? '',
+    }));
+  }
+
+  return {
+    awayStandings,
+    homeStandings,
+    awayGoalie,
+    homeGoalie,
+    skaterLeaders,
+    seasonSeries,
+  };
+}
+
 export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
 
   // Load subreddit config to know which team we're using

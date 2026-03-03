@@ -47,6 +47,9 @@
         },
         "cron": "0 8 * * * "
       },
+      "create-pregame-thread": {
+        "endpoint": "/internal/scheduler/create-pregame-thread"
+      },
       "create-game-thread": {
         "endpoint": "/internal/scheduler/create-game-thread"
       },

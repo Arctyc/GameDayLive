@@ -23,14 +23,18 @@ export const REDIS_KEYS = {
   JOB_DAILY_CHECK: () => `job:dailyCheck`,
   JOB_CREATE: (gameId: number) => `job:create:${gameId}`,
   JOB_GDT_UPDATE: (gameId: number) => `job:gdt:update:${gameId}`,
+  JOB_PREGAME: (gameId: number) => `job:pregame:${gameId}`,
   JOB_POSTGAME: (gameId: number) => `job:pgt:${gameId}`,
   JOB_PGT_UPDATE: (gameId: number) => `job:pgt:update:${gameId}`,
   JOB_PGT_CLEANUP: (gameId: number) => `job:pgt:cleanup:${gameId}`,
+  GAME_TO_PREGAME_ID: (gameId: number) => `game:${gameId}:pregameThreadId`,
+  PREGAME_TO_GAME_ID: (postId: string) => `pregameThreadId:${postId}:gameId`,
   EXPIRY: 86400, // 24 hours
 } as const;
 
 export const JOB_NAMES = {
   DAILY_GAME_CHECK: `daily-game-check-retry`,
+  CREATE_PREGAME_THREAD: `create-pregame-thread`,
   CREATE_GAME_THREAD: `create-game-thread`,
   CREATE_POSTGAME_THREAD: `create-postgame-thread`,
   NEXT_LIVE_UPDATE: `next-live-update`,

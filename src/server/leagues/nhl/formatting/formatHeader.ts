@@ -73,7 +73,7 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string): Pro
 
     const gameCenterUrl = `https://www.nhl.com/gamecenter/${game.id}`;
 
-    return `# [${awayTeamPlace} ${awayTeamName} @ ${homeTeamPlace} ${homeTeamName}](${gameCenterUrl})
+    return `# [More ${awayTeamAbbrev} @ ${homeTeamAbbrev} stats on GameCenter](${gameCenterUrl})
 
 **Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  

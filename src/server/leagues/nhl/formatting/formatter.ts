@@ -53,8 +53,8 @@ export async function formatThreadBody(game: NHLGame): Promise<string> {
     return (
         header +
         "\n\n---\n\n" +
-        buildBodyLinescore(game) +
-        "\n\n---\n\n" +
+        // buildBodyLinescore(game) + // NOTE: Disabled - not popular enough
+        // "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
         buildBodyPenalties(game)

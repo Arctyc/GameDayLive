@@ -43,8 +43,6 @@ export async function formatPregameBody(game: NHLGame, data: PregameData): Promi
     sections.push(buildSkaterLeaders(game, data));
     sections.push("---");
     sections.push(buildSeasonSeries(game, data));
-    sections.push("---");
-    sections.push(buildFooter());
 
     return sections.join("\n\n");
 }
@@ -165,7 +163,7 @@ function buildSeasonSeries(game: NHLGame, data: PregameData): string {
     const series = data.seasonSeries;
 
     if (!series || series.length === 0) {
-        return `## Season Series\n*No previous meetings this season.*`;
+        return `## Season Series\n*Missing data...*`;
     }
 
     const awayAbbrev = game.awayTeam.abbrev;
@@ -212,10 +210,4 @@ function formatSeriesDate(dateStr: string): string {
     if (!dateStr) return '-';
     const d = new Date(dateStr + 'T12:00:00Z');
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-}
-
-// --------------- Footer ---------------
-
-function buildFooter(): string {
-    return `[GameDayLive](https://developers.reddit.com/apps/gamedaylive) is an [open source project](https://github.com/Arctyc/GameDayLive) that is not affiliated with any organization.`;
 }

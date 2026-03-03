@@ -209,7 +209,7 @@ export const formStep1Action = (router: Router): void => {
                         {
                             type: 'boolean',
                             name: 'gamedaySort',
-                            label: 'Game day: Sort comments by New (off = Best)',
+                            label: 'Game day: Sort comments by New',
                             defaultValue: partialConfig.gameday.sort === 'new',
                         }
                     );
@@ -232,7 +232,7 @@ export const formStep1Action = (router: Router): void => {
                         {
                             type: 'boolean',
                             name: 'postgameSort',
-                            label: 'Post-game: Sort comments by New (off = Best)',
+                            label: 'Post-game: Sort comments by New',
                             defaultValue: partialConfig.postgame.sort === 'new',
                         }
                     );

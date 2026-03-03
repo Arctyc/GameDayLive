@@ -1,9 +1,9 @@
-import { redis, context, scheduler, ScheduledJob, Post } from '@devvit/web/server';
+import { redis, context, scheduler, ScheduledJob } from '@devvit/web/server';
 import { getGameData, getPregameData, NHLGame } from '../api';
 import { formatPregameTitle, formatPregameBody } from '../formatting/formatPregame';
-import { UPDATE_INTERVALS, REDIS_KEYS, JOB_NAMES } from '../constants';
+import { REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
-import { tryCleanupThread, tryCreateThread } from '../../../threads';
+import { tryCreateThread } from '../../../threads';
 import { NewJobData } from '../../../types';
 import { Logger } from '../../../utils/Logger';
 import { getJobData } from '../../../utils/jobs';

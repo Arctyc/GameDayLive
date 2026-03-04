@@ -174,19 +174,17 @@ function buildSeasonSeries(game: NHLGame, data: PregameData): string {
     const homeAbbrev = game.homeTeam.abbrev;
 
     // Tally record from completed games only
-    let awayWins = 0, homeWins = 0, otDecisions = 0;
+    let awayWins = 0, homeWins = 0;
     for (const g of series) {
         if (g.awayScore == null || g.homeScore == null) continue;
         if (g.gameState !== 'FINAL' && g.gameState !== 'OFF') continue;
-        const inOt = g.gameOutcome === 'OT' || g.gameOutcome === 'SO';
-        if (inOt) otDecisions++;
         const awayIsAway = g.awayAbbrev === awayAbbrev;
         const awayWon = g.awayScore > g.homeScore;
         if (awayIsAway ? awayWon : !awayWon) awayWins++;
         else homeWins++;
     }
 
-    const seriesHeader = buildSeriesHeader(awayAbbrev, homeAbbrev, awayWins, homeWins, otDecisions);
+    const seriesHeader = buildSeriesHeader(awayAbbrev, homeAbbrev, awayWins, homeWins);
 
     const rows = series.map(g => {
         const date = formatSeriesDate(g.gameDate);
@@ -203,11 +201,11 @@ function buildSeasonSeries(game: NHLGame, data: PregameData): string {
 ${rows.join('\n')}`;
 }
 
-function buildSeriesHeader(away: string, home: string, awayWins: number, homeWins: number, otDecisions: number): string {
+function buildSeriesHeader(away: string, home: string, awayWins: number, homeWins: number): string {
     if (awayWins === 0 && homeWins === 0) return `*(First meeting)*`;
-    if (awayWins > homeWins) return `*(${away} leads ${awayWins}-${homeWins}-${otDecisions})*`;
-    if (homeWins > awayWins) return `*(${home} leads ${homeWins}-${awayWins}-${otDecisions})*`;
-    return `*(Series tied ${awayWins}-${homeWins}-${otDecisions})*`;
+    if (awayWins > homeWins) return `*(${away} leads ${awayWins}-${homeWins})*`;
+    if (homeWins > awayWins) return `*(${home} leads ${homeWins}-${awayWins})*`;
+    return `*(Series tied ${awayWins}-${homeWins})*`;
 }
 
 function formatSeriesDate(dateStr: string): string {

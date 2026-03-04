@@ -12,7 +12,6 @@
 ### Tweaks
 - Changed GameCenter link text to be more apparent what it links to
 - Configuration menu now has two pages. Page 1 select league, team, thread types. Page 2 select sticky, lock, comment sort options
-- Added note for app users to refresh due to reddit app bug not refreshing post body.
 
 ---
 

@@ -78,6 +78,6 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string): Pro
 **Score:** ${awayTeamAbbrev} **${awayScore}** : **${homeScore}** ${homeTeamAbbrev}  
 **Status:** ${combinedStatusText}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
-**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })} App users close/open thread to refresh.
+**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}. App users close/open thread to refresh.
 `;
 }

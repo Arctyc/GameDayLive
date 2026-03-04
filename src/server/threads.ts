@@ -156,14 +156,14 @@ export async function tryUnstickyThread(post: Post) {
 		await post.unsticky();
 		logger.info(`Post ${post.id} unstickied.`);
 
-		// Check again
-		if (post.isStickied()) {
-			logger.warn(`Post ${post.id} is still stickied.`);
-			return;
-		}
 		// Undistinguish
 		await post.undistinguish();
 		logger.info(`Post ${post.id} undistinguished.`)
+
+		// Check again
+		if (post.isStickied()) {
+			logger.warn(`Post ${post.id} is still stickied.`);
+		}
 
 	} catch (err) {
 		logger.error(`Error trying to unsticky post ${post.id}:`, err);

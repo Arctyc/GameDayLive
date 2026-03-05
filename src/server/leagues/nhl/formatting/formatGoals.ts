@@ -87,5 +87,5 @@ function goalRowFromPlay(play: any, game: NHLGame, periodLabel: string): string 
         ? `[nhl.com](${d.highlightClipSharingUrl})`
         : "-";
 
-    return `| ${periodLabel} | ${time} | ${team} | ${modifier} |#${scorer.number} ${scorer.name} | ${shotType} | ${assistsStr} | ${clip}\n`;
+    return `| ${periodLabel} | ${time} | ${team} | ${modifier} | #${scorer.number} ${scorer.name} | ${shotType} | ${assistsStr} | ${clip}\n`;
 }

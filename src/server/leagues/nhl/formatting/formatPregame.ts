@@ -69,10 +69,12 @@ function buildHeader(game: NHLGame, timezone: string, data: PregameData): string
         : null;
 
     const infoLine = `**Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}`;
+    const updateLine = `**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}`;
 
     return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})  
 ${infoLine}  
-${officialsLine}`;
+${officialsLine}  
+${updateLine}`;
 }
 
 // --------------- Standings ---------------

@@ -108,8 +108,8 @@ function buildTeamStats(game: NHLGame, data: PregameData): string {
     if (!away || !home) return `## Team Stats\n*Stats unavailable.*`;
 
     const formatRow = (abbrev: string, s: StandingsTeam): string => {
-        const gfGp = (s.goalsFor / s.gamesPlayed).toFixed(2);
-        const gaGp = (s.goalsAgainst / s.gamesPlayed).toFixed(2);
+        const gfGp = s.gamesPlayed > 0 ? (s.goalsFor / s.gamesPlayed).toFixed(2) : '-';
+        const gaGp = s.gamesPlayed > 0 ? (s.goalsAgainst / s.gamesPlayed).toFixed(2) : '-';
         const diff = s.goalDifferential >= 0 ? `+${s.goalDifferential}` : `${s.goalDifferential}`;
         return `| **${abbrev}** | ${gfGp} | ${gaGp} | ${diff} |`;
     };

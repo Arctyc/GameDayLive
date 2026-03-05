@@ -30,7 +30,7 @@ export async function formatPregameBody(game: NHLGame, data: PregameData): Promi
 
     const sections: string[] = [];
 
-    sections.push(buildHeader(game, timezone));
+    sections.push(buildHeader(game, timezone, data));
     sections.push("---");
     sections.push(buildStandings(game, data));
     sections.push("---");
@@ -47,7 +47,7 @@ export async function formatPregameBody(game: NHLGame, data: PregameData): Promi
 
 // --------------- Header ---------------
 
-function buildHeader(game: NHLGame, timezone: string): string {
+function buildHeader(game: NHLGame, timezone: string, data: PregameData): string {
     const startTime = new Date(game.startTimeUTC);
     const localTime = startTime.toLocaleTimeString('en-US', {
         timeZone: timezone,
@@ -64,8 +64,14 @@ function buildHeader(game: NHLGame, timezone: string): string {
     const awayTeamName = `${game.awayTeam.placeName.default} ${game.awayTeam.commonName.default}`;
     const homeTeamName = `${game.homeTeam.placeName.default} ${game.homeTeam.commonName.default}`;
 
+    const officialsLine = data.officials
+        ? `**Referees:** ${data.officials.referees.join(", ") || "TBD"} | **Linesmen:** ${data.officials.linesmen.join(", ") || "TBD"}`
+        : null;
+
+    const infoLine = `**Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}`;
+
     return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})
-**Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}`;
+${officialsLine ? `${infoLine}  \n${officialsLine}` : infoLine}`;
 }
 
 // --------------- Standings ---------------

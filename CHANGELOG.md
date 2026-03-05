@@ -8,6 +8,7 @@
 ### Updates
 - Added pre-game threads
 - Added configuration granularity for pre-game threads, game day threads, and post-game threads individually
+- Added officials to pre-game thread
 
 ### Tweaks
 - Changed GameCenter link text to be more apparent what it links to

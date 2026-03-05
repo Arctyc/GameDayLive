@@ -64,9 +64,9 @@ function buildHeader(game: NHLGame, timezone: string, data: PregameData): string
     const awayTeamName = `${game.awayTeam.placeName.default} ${game.awayTeam.commonName.default}`;
     const homeTeamName = `${game.homeTeam.placeName.default} ${game.homeTeam.commonName.default}`;
 
-    const officialsLine = data.officials
-        ? `**Referees:** ${data.officials.referees.join(", ") || "TBD"} | **Linesmen:** ${data.officials.linesmen.join(", ") || "TBD"}`
-        : null;
+    const refs = data.officials?.referees.join(", ") || "TBD";
+    const lines = data.officials?.linesmen.join(", ") || "TBD";
+    const officialsLine = `**Referees:** ${refs} | **Linesmen:** ${lines}`;
 
     const infoLine = `**Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}`;
     const updateLine = `**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}`;

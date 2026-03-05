@@ -194,6 +194,11 @@ export interface SeriesGame {
   gameState: string;
 }
 
+export interface Officials {
+  referees: string[];
+  linesmen: string[];
+}
+
 export interface PregameData {
   awayStandings?: StandingsTeam | undefined;
   homeStandings?: StandingsTeam | undefined;
@@ -201,6 +206,7 @@ export interface PregameData {
   homeGoalies: GoalieStats[];
   topSkaters: topSkaters[];
   seasonSeries: SeriesGame[];
+  officials?: Officials;
 }
 
 // --------------- Pregame API Fetches ---------------
@@ -252,6 +258,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
   let homeGoalies: GoalieStats[] = [];
   let topSkaters: topSkaters[] = [];
   let seasonSeries: SeriesGame[] = [];
+  let officials: Officials | undefined;
 
   if (landingRes.status === 'fulfilled' && landingRes.value.ok) {
     const landing: any = await landingRes.value.json();
@@ -307,7 +314,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
 
   }
 
-  // ---- Season series ----
+  // ---- Right rail: Season series + Officials ----
 
   if (rightRailRes.status === 'fulfilled' && rightRailRes.value.ok) {
     const rightRail: any = await rightRailRes.value.json();
@@ -322,6 +329,12 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
         gameOutcome: g.gameOutcome?.lastPeriodType,
         gameState: g.gameState ?? '',
       }));
+
+    const gameInfo = rightRail.gameInfo ?? {};
+    officials = {
+      referees: (gameInfo.referees ?? []).map((r: any) => r.default).filter(Boolean),
+      linesmen: (gameInfo.linesmen ?? []).map((l: any) => l.default).filter(Boolean),
+    };
   }
 
   return {
@@ -331,6 +344,7 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
     homeGoalies,
     topSkaters: topSkaters,
     seasonSeries,
+    ...(officials && { officials }),
   };
 }
 

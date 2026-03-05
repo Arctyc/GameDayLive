@@ -70,8 +70,9 @@ function buildHeader(game: NHLGame, timezone: string, data: PregameData): string
 
     const infoLine = `**Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}`;
 
-    return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})
-${officialsLine ? `${infoLine}  \n${officialsLine}` : infoLine}`;
+    return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})  
+${infoLine}  
+${officialsLine}`;
 }
 
 // --------------- Standings ---------------

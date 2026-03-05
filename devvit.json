@@ -53,6 +53,9 @@
       "pregame-cleanup": {
         "endpoint": "/internal/scheduler/pregame-cleanup"
       },
+      "next-pregame-update": {
+        "endpoint": "/internal/scheduler/next-pregame-update"
+      },
       "create-game-thread": {
         "endpoint": "/internal/scheduler/create-game-thread"
       },

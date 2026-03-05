@@ -318,23 +318,9 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
 
   if (rightRailRes.status === 'fulfilled' && rightRailRes.value.ok) {
     const rightRail: any = await rightRailRes.value.json();
-    const rawSeries: any[] = rightRail.seasonSeries ?? [];
-    seasonSeries = rawSeries
-      .map((g: any): SeriesGame => ({
-        gameDate: g.gameDate ?? '',
-        awayAbbrev: g.awayTeam?.abbrev ?? '',
-        homeAbbrev: g.homeTeam?.abbrev ?? '',
-        awayScore: g.awayTeam?.score,
-        homeScore: g.homeTeam?.score,
-        gameOutcome: g.gameOutcome?.lastPeriodType,
-        gameState: g.gameState ?? '',
-      }));
-
-    const gameInfo = rightRail.gameInfo ?? {};
-    officials = {
-      referees: (gameInfo.referees ?? []).map((r: any) => r.default).filter(Boolean),
-      linesmen: (gameInfo.linesmen ?? []).map((l: any) => l.default).filter(Boolean),
-    };
+    const parsed = parseRightRailJson(rightRail);
+    seasonSeries = parsed.seasonSeries;
+    officials = parsed.officials;
   }
 
   return {
@@ -417,6 +403,68 @@ export async function getGameData(gameId: number, fetch: any, etag?: string): Pr
   
   return {
     game: data,
+    etag: newEtag,
+    modified: true,
+  };
+}
+
+// --------------- Right-Rail Data (with ETag) ---------------
+
+export interface RightRailResult {
+  officials?: Officials;
+  seasonSeries: SeriesGame[];
+  etag: string;
+  modified: boolean;
+}
+
+function parseRightRailJson(rightRail: any): { officials?: Officials; seasonSeries: SeriesGame[] } {
+  const rawSeries: any[] = rightRail.seasonSeries ?? [];
+  const seasonSeries: SeriesGame[] = rawSeries.map((g: any): SeriesGame => ({
+    gameDate: g.gameDate ?? '',
+    awayAbbrev: g.awayTeam?.abbrev ?? '',
+    homeAbbrev: g.homeTeam?.abbrev ?? '',
+    awayScore: g.awayTeam?.score,
+    homeScore: g.homeTeam?.score,
+    gameOutcome: g.gameOutcome?.lastPeriodType,
+    gameState: g.gameState ?? '',
+  }));
+
+  const gameInfo = rightRail.gameInfo ?? {};
+  const referees: string[] = (gameInfo.referees ?? []).map((r: any) => r.default).filter(Boolean);
+  const linesmen: string[] = (gameInfo.linesmen ?? []).map((l: any) => l.default).filter(Boolean);
+  const hasOfficials = referees.length > 0 || linesmen.length > 0;
+
+  return {
+    seasonSeries,
+    ...(hasOfficials && { officials: { referees, linesmen } }),
+  };
+}
+
+export async function getRightRailData(gameId: number, fetch: any, etag?: string): Promise<RightRailResult> {
+  const headers: Record<string, string> = {};
+  if (etag) {
+    headers['If-None-Match'] = etag;
+  }
+
+  const response = await fetch(
+    `https://api-web.nhle.com/v1/gamecenter/${gameId}/right-rail`,
+    { headers }
+  );
+
+  if (response.status === 304) {
+    return { seasonSeries: [], etag: etag!, modified: false };
+  }
+
+  if (!response.ok) {
+    throw new Error(`NHL API error: ${response.status}`);
+  }
+
+  const rightRail: any = await response.json();
+  const newEtag = response.headers.get('etag') || '';
+  const parsed = parseRightRailJson(rightRail);
+
+  return {
+    ...parsed,
     etag: newEtag,
     modified: true,
   };

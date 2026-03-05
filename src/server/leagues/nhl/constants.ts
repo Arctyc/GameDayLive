@@ -4,6 +4,7 @@ export const UPDATE_INTERVALS = {
   OVERTIME_SHOOTOUT: 15 * 1000, // Seconds to wait between updates, OT/SO
   INTERMISSION: 60 * 1000, // Seconds before next period to resume updating during intermission
   PREGAME_THREAD_OFFSET: 60 * 60 * 1000,  // 1 hour before game
+  PREGAME_UPDATE_INTERVAL: 10 * 60 * 1000, // 10 minutes between right-rail updates
   LATE_SCHEDULE_THRESHOLD: 3 * 60 * 60 * 1000, // 3 hours after start
   PGT_CLEANUP_DELAY: 18 * 60 * 60 * 1000, // Clean up PGT after 18 hours // TODO: Allow custom timing
   RETRY_MAX_TIME: 1800000,
@@ -30,6 +31,8 @@ export const REDIS_KEYS = {
   JOB_PGT_CLEANUP: (gameId: number) => `job:pgt:cleanup:${gameId}`,
   GAME_TO_PREGAME_ID: (gameId: number) => `game:${gameId}:pregameThreadId`,
   PREGAME_TO_GAME_ID: (postId: string) => `pregameThreadId:${postId}:gameId`,
+  PREGAME_ETAG: (gameId: number) => `game:${gameId}:pregame:etag`,
+  JOB_PREGAME_UPDATE: (gameId: number) => `job:pregame:update:${gameId}`,
   EXPIRY: 86400, // 24 hours
 } as const;
 
@@ -37,6 +40,7 @@ export const JOB_NAMES = {
   DAILY_GAME_CHECK: `daily-game-check-retry`,
   CREATE_PREGAME_THREAD: `create-pregame-thread`,
   PREGAME_CLEANUP: `pregame-cleanup`,
+  NEXT_PREGAME_UPDATE: `next-pregame-update`,
   CREATE_GAME_THREAD: `create-game-thread`,
   CREATE_POSTGAME_THREAD: `create-postgame-thread`,
   NEXT_LIVE_UPDATE: `next-live-update`,

@@ -290,8 +290,15 @@ export async function tryCleanupThread(
                 await redis.del(REDIS_KEYS.JOB_PREGAME_CLEANUP(gameId));
             }
 
+            const pregameUpdateJobId = await redis.get(REDIS_KEYS.JOB_PREGAME_UPDATE(gameId));
+            if (pregameUpdateJobId) {
+                await tryCancelScheduledJob(pregameUpdateJobId);
+                await redis.del(REDIS_KEYS.JOB_PREGAME_UPDATE(gameId));
+            }
+
             await redis.del(REDIS_KEYS.GAME_TO_PREGAME_ID(gameId));
             await redis.del(REDIS_KEYS.PREGAME_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.PREGAME_ETAG(gameId));
 
             logger.info(`Pregame ${postId} cleaned up.`);
         } else {

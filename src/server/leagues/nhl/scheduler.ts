@@ -3,7 +3,7 @@ import { context } from '@devvit/web/server';
 import { dailyGameCheckJob } from './jobs/dailyGameCheck';
 import { createGameThreadJob, nextLiveUpdateJob } from './jobs/gameday';
 import { createPostgameThreadJob, nextPGTUpdateJob } from './jobs/postgame';
-import { createPregameThreadJob } from './jobs/pregame';
+import { createPregameThreadJob, nextPregameUpdateJob } from './jobs/pregame';
 import { tryCleanupThread } from '../../threads';
 import { getSubredditConfig } from '../../config';
 import { Logger } from '../../utils/Logger';
@@ -133,6 +133,28 @@ export const nextPGTUpdate = (router: Router) => {
   });
 };
 
+export const nextPregameUpdate = (router: Router) => {
+  router.post('/internal/scheduler/next-pregame-update', async (_req, res) => {
+    const logger = await Logger.Create('Scheduler - Next Pregame Update');
+
+    try {
+      const { gameId } = _req.body.data || {};
+      if (!gameId) throw new Error('gameId required');
+
+      await nextPregameUpdateJob(gameId);
+      res.status(200).json({ status: 'success' });
+
+    } catch (err) {
+      logger.error('Next pregame update failed:', err);
+      res.status(200).json({
+        status: 'error',
+        message: 'Next pregame update failed',
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+};
+
 export const pregameCleanup = (router: Router) => {
   router.post('/internal/scheduler/pregame-cleanup', async (_req, res) => {
     const logger = await Logger.Create('Scheduler - Pregame Cleanup');
@@ -178,6 +200,7 @@ export const pgtCleanup = (router: Router) => {
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createPregameThread(router);
+  nextPregameUpdate(router);
   pregameCleanup(router);
   createGameThread(router);
   createPostgameThread(router);

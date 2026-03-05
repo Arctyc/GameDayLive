@@ -35,7 +35,7 @@ export function buildBodyGoals(game: NHLGame): string {
     }
 
     if (!hasAnyGoals) {
-        out += `- | - | - | - | - | - | -\n`;
+        out += `| - | - | - | - | - | - | - | - |\n`;
     }
 
     out += `\n`;

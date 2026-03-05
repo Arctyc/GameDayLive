@@ -39,7 +39,7 @@ export function buildBodyPenalties(game: NHLGame): string {
     }
 
     if (!hasAnyPenalties) {
-        out += `- | - | - | - | - | - | -\n`;
+        out += `| - | - | - | - | - | - | - |\n`;
     }
 
     out += `\n`;
@@ -74,5 +74,5 @@ function penaltyRowFromPlay(play: any, game: NHLGame, periodLabel: string): stri
     const infraction = formatInfraction(d.descKey);
     const minutes = d.duration ?? 0;
 
-    return `${periodLabel} | ${time} | ${team} | ${playerStr} | ${infraction} | ${againstStr} | ${minutes}\n`;
+    return `| ${periodLabel} | ${time} | ${team} | ${playerStr} | ${infraction} | ${againstStr} | ${minutes}\n`;
 }

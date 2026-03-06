@@ -1,14 +1,14 @@
 # Changelog
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-05
 
 ---
 
-## [0.4.0] - 2026-03-03
+## [0.4.0] - 2026-03-05
 
 ### Updates
 - Added pre-game threads
 - Added configuration granularity for pre-game threads, game day threads, and post-game threads individually
-- Added officials to pre-game thread
+- Added names of officials in pre-game and game day header
 
 ### Tweaks
 - Changed GameCenter link text to be more apparent what it links to

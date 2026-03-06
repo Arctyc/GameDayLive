@@ -1,7 +1,7 @@
 import { getSubredditConfig } from "../../../config";
 import { getTeamTimezone } from "../config";
 import { GAME_STATES } from "../constants";
-import type { NHLGame } from "../api";
+import type { NHLGame, Officials } from "../api";
 import { context } from "@devvit/web/server";
 import { buildBodyHeader } from "./formatHeader";
 //import { buildBodyLinescore } from "./formatLinescore";
@@ -40,11 +40,11 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${gameDate} ${localTime}`;
 }
 
-export async function formatThreadBody(game: NHLGame): Promise<string> {
+export async function formatThreadBody(game: NHLGame, officials?: Officials): Promise<string> {
     const subredditName = context.subredditName;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
 
-    const header = await buildBodyHeader(game, subredditName);
+    const header = await buildBodyHeader(game, subredditName, officials);
 
     if (gameState === GAME_STATES.FUT || gameState === GAME_STATES.PRE) {
         return header;

@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, NHLGame } from '../api';
+import { getGameData, getRightRailData, Officials, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
@@ -214,7 +214,31 @@ export async function nextLiveUpdateJob(gameId: number) {
             await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
         }
 
-        const body = await formatThreadBody(game);
+        // Fetch officials from right-rail until confirmed, then use cache
+        let officials: Officials | undefined;
+        const cachedOfficialsJson = await redis.get(REDIS_KEYS.GDT_OFFICIALS(gameId));
+        if (cachedOfficialsJson) {
+            officials = JSON.parse(cachedOfficialsJson) as Officials;
+        } else {
+            try {
+                const currentRREtag = await redis.get(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId));
+                const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
+                if (rightRail.modified && rightRail.etag) {
+                    await redis.set(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
+                    await redis.expire(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
+                }
+                if (rightRail.officials) {
+                    officials = rightRail.officials;
+                    await redis.set(REDIS_KEYS.GDT_OFFICIALS(gameId), JSON.stringify(officials));
+                    await redis.expire(REDIS_KEYS.GDT_OFFICIALS(gameId), REDIS_KEYS.EXPIRY);
+                    logger.info(`Officials confirmed for game ${gameId}. Caching and stopping right-rail polling.`);
+                }
+            } catch (err) {
+                logger.warn(`Failed to fetch right-rail for officials: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        }
+
+        const body = await formatThreadBody(game, officials);
         const result = await tryUpdateThread(postId as Post["id"], body);
         if (!result.success) {
             logger.error(`Thread update failed for post ${postId}: ${result.error}`);

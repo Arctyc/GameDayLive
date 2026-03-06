@@ -33,6 +33,8 @@ export const REDIS_KEYS = {
   PREGAME_TO_GAME_ID: (postId: string) => `pregameThreadId:${postId}:gameId`,
   PREGAME_ETAG: (gameId: number) => `game:${gameId}:pregame:etag`,
   JOB_PREGAME_UPDATE: (gameId: number) => `job:pregame:update:${gameId}`,
+  GDT_OFFICIALS: (gameId: number) => `game:${gameId}:gdt:officials`,
+  GDT_RIGHTRAIL_ETAG: (gameId: number) => `game:${gameId}:gdt:rightrail:etag`,
   EXPIRY: 86400, // 24 hours
 } as const;
 

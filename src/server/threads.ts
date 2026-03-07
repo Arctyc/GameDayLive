@@ -273,7 +273,7 @@ export async function tryCleanupThread(
             await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
             await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
             await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
-            await redis.del(REDIS_KEYS.GDT_OFFICIALS(gameId));
+            // await redis.del(REDIS_KEYS.GDT_OFFICIALS(gameId)); // NOTE: Not cleaned up because PGT needs it, let expiry handle it
             await redis.del(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId));
 
             logger.info(`GDT ${postId} cleaned up.`);

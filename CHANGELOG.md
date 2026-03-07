@@ -14,6 +14,9 @@
 - Changed GameCenter link text to be more apparent what it links to
 - Configuration menu now has two pages. Page 1 select league, team, thread types. Page 2 select sticky, lock, comment sort options
 
+### Bugfixes
+- Fixed an issue where extra attacker ("EA") goals would be displayed with the power play ("PP") strength modifier
+
 ---
 
 ## [0.3.0] - 2026-02-13

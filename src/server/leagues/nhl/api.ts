@@ -418,13 +418,12 @@ export async function getGameData(gameId: number, fetch: any, etag?: string): Pr
 
 export interface RightRailResult {
   officials?: Officials;
-  threeStars?: ThreeStar[];
   seasonSeries: SeriesGame[];
   etag: string;
   modified: boolean;
 }
 
-function parseRightRailJson(rightRail: any): { officials?: Officials; threeStars?: ThreeStar[]; seasonSeries: SeriesGame[] } {
+function parseRightRailJson(rightRail: any): { officials?: Officials; seasonSeries: SeriesGame[] } {
   const rawSeries: any[] = rightRail.seasonSeries ?? [];
   const seasonSeries: SeriesGame[] = rawSeries.map((g: any): SeriesGame => ({
     gameDate: g.gameDate ?? '',
@@ -441,21 +440,9 @@ function parseRightRailJson(rightRail: any): { officials?: Officials; threeStars
   const linesmen: string[] = (gameInfo.linesmen ?? []).map((l: any) => l.default).filter(Boolean);
   const hasOfficials = referees.length > 0 || linesmen.length > 0;
 
-  const rawStars: any[] = rightRail.threeStars ?? [];
-  const parsedStars: ThreeStar[] = rawStars
-    .filter((s: any) => s.star && s.name?.default && s.teamAbbrev?.default)
-    .map((s: any): ThreeStar => ({
-      star: s.star as 1 | 2 | 3,
-      name: s.name.default,
-      teamAbbrev: s.teamAbbrev.default,
-    }))
-    .sort((a, b) => a.star - b.star);
-  const hasThreeStars = parsedStars.length > 0;
-
   return {
     seasonSeries,
     ...(hasOfficials && { officials: { referees, linesmen } }),
-    ...(hasThreeStars && { threeStars: parsedStars }),
   };
 }
 

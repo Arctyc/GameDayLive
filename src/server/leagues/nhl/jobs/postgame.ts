@@ -135,23 +135,14 @@ export async function nextPGTUpdateJob(gameId: number) {
         } else {
             logger.debug(`Three stars not yet cached for game ${gameId}. Fetching right-rail...`);
             try {
-                const currentRREtag = await redis.get(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId));
-                const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
-                if (!rightRail.modified) {
-                    logger.debug(`Right-rail unchanged for game ${gameId} (304). Three stars not yet available.`);
+                const rightRail = await getRightRailData(gameId, fetch);
+                if (rightRail.threeStars) {
+                    threeStars = rightRail.threeStars;
+                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
+                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                    logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}.`);
                 } else {
-                    if (rightRail.etag) {
-                        await redis.set(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
-                        await redis.expire(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
-                    }
-                    if (rightRail.threeStars) {
-                        threeStars = rightRail.threeStars;
-                        await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
-                        await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
-                        logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}. Caching and stopping right-rail polling.`);
-                    } else {
-                        logger.debug(`Right-rail fetched for game ${gameId} but three stars not yet present.`);
-                    }
+                    logger.debug(`Right-rail fetched for game ${gameId} but three stars not yet present.`);
                 }
             } catch (err) {
                 logger.warn(`Failed to fetch right-rail for three stars: ${err instanceof Error ? err.message : String(err)}`);

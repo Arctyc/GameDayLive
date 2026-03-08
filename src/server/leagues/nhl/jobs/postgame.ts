@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, getRightRailData, Officials, NHLGame } from '../api';
+import { getGameData, Officials, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from '../constants';
 import { getSubredditConfig } from '../../../config';

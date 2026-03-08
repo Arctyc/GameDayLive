@@ -1,9 +1,9 @@
 import { getSubredditConfig } from "../../../config";
 import { getTeamTimezone } from "../config";
 import { GAME_STATES } from "../constants";
-import type { NHLGame, Officials } from "../api";
+import type { NHLGame, Officials, ThreeStar } from "../api";
 
-export async function buildBodyHeader(game: NHLGame, subredditName: string, officials?: Officials): Promise<string> {
+export async function buildBodyHeader(game: NHLGame, subredditName: string, officials?: Officials, threeStars?: ThreeStar[]): Promise<string> {
     const homeTeamAbbrev = game.homeTeam.abbrev;
     const awayTeamAbbrev = game.awayTeam.abbrev;
     // const homeTeamPlace = game.homeTeam.placeName.default;
@@ -74,6 +74,10 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string, offi
     const refs = officials?.referees.join(", ") || "TBD";
     const lines = officials?.linesmen.join(", ") || "TBD";
 
+    const threeStarsLine = threeStars && threeStars.length > 0
+        ? `**Three Stars:** ${threeStars.map(s => `#${s.star} ${s.name} (${s.teamAbbrev})`).join(" | ")}`
+        : null;
+
     const gameCenterUrl = `https://www.nhl.com/gamecenter/${game.id}`;
 
     return `# [GameCenter: ${awayTeamName} @ ${homeTeamName}](${gameCenterUrl})
@@ -82,6 +86,6 @@ export async function buildBodyHeader(game: NHLGame, subredditName: string, offi
 **Status:** ${combinedStatusText}  
 **Start Time:** ${localTime} | **Venue:** ${game.venue.default} | **Networks:** ${networks}  
 **Referees:** ${refs} | **Linesmen:** ${lines}  
-**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
+${threeStarsLine ? `${threeStarsLine}  \n` : ""}**Last Update:** ${new Date().toLocaleString('en-US', { timeZone: timezone })}
 `;
 }

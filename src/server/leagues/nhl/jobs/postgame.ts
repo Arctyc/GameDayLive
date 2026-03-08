@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, Officials, NHLGame } from '../api';
+import { getGameData, getRightRailData, Officials, ThreeStar, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from '../constants';
 import { getSubredditConfig } from '../../../config';
@@ -66,7 +66,8 @@ export async function createPostgameThreadJob(gameId: number) {
 
     const title = await formatThreadTitle(game);
     const officials = await getCachedOfficials(gameId);
-    const body = await formatThreadBody(game, officials);
+    const threeStars = await getCachedThreeStars(gameId);
+    const body = await formatThreadBody(game, officials, threeStars ?? undefined);
 
     const result = await tryCreateThread(context, title, body, config.postgame.sticky, config.postgame.sort);
 
@@ -128,7 +129,29 @@ export async function nextPGTUpdateJob(gameId: number) {
             }
 
             const officials = await getCachedOfficials(gameId);
-            const body = await formatThreadBody(game, officials);
+
+            // Fetch three stars from right-rail until confirmed, then use cache
+            let threeStars = await getCachedThreeStars(gameId);
+            if (!threeStars) {
+                try {
+                    const currentRREtag = await redis.get(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId));
+                    const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
+                    if (rightRail.modified && rightRail.etag) {
+                        await redis.set(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
+                        await redis.expire(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
+                    }
+                    if (rightRail.threeStars) {
+                        threeStars = rightRail.threeStars;
+                        await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
+                        await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                        logger.info(`Three stars confirmed for game ${gameId}. Caching and stopping right-rail polling.`);
+                    }
+                } catch (err) {
+                    logger.warn(`Failed to fetch right-rail for three stars: ${err instanceof Error ? err.message : String(err)}`);
+                }
+            }
+
+            const body = await formatThreadBody(game, officials, threeStars ?? undefined);
             const result = await tryUpdateThread(postId as Post["id"], body);
             
             if (!result.success) {
@@ -285,5 +308,15 @@ async function getCachedOfficials(gameId: number): Promise<Officials | undefined
         return cached ? JSON.parse(cached) as Officials : undefined;
     } catch {
         return undefined;
+    }
+}
+
+// --------------- Get Cached Three Stars -----------------
+async function getCachedThreeStars(gameId: number): Promise<ThreeStar[] | null> {
+    try {
+        const cached = await redis.get(REDIS_KEYS.PGT_THREE_STARS(gameId));
+        return cached ? JSON.parse(cached) as ThreeStar[] : null;
+    } catch {
+        return null;
     }
 }

@@ -35,6 +35,8 @@ export const REDIS_KEYS = {
   JOB_PREGAME_UPDATE: (gameId: number) => `job:pregame:update:${gameId}`,
   GDT_OFFICIALS: (gameId: number) => `game:${gameId}:gdt:officials`,
   GDT_RIGHTRAIL_ETAG: (gameId: number) => `game:${gameId}:gdt:rightrail:etag`,
+  PGT_THREE_STARS: (gameId: number) => `game:${gameId}:pgt:threestars`,
+  PGT_RIGHTRAIL_ETAG: (gameId: number) => `game:${gameId}:pgt:rightrail:etag`,
   EXPIRY: 86400, // 24 hours
 } as const;
 

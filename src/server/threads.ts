@@ -253,6 +253,8 @@ export async function tryCleanupThread(
 
             await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
             await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.PGT_THREE_STARS(gameId));
+            await redis.del(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId));
 
             logger.info(`PGT ${postId} cleaned up.`);
         } else if (gameIdForGDT) {

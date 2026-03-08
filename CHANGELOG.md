@@ -9,6 +9,7 @@
 - Added pre-game threads
 - Added configuration granularity for pre-game threads, game day threads, and post-game threads individually
 - Added names of officials in pre-game and game day header
+- Added Three Stars to post-game header
 
 ### Tweaks
 - Changed GameCenter link text to be more apparent what it links to

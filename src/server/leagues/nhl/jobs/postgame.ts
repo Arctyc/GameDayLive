@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, getRightRailData, Officials, ThreeStar, NHLGame } from '../api';
+import { getGameData, getThreeStars, Officials, ThreeStar, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from '../constants';
 import { getSubredditConfig } from '../../../config';
@@ -115,6 +115,27 @@ export async function nextPGTUpdateJob(gameId: number) {
         const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
         const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
 
+        const officials = await getCachedOfficials(gameId);
+        let threeStars = await getCachedThreeStars(gameId);
+        if (threeStars) {
+            logger.info(`Three stars for game ${gameId} loaded from cache.`);
+        } else {
+            logger.info(`Three stars not yet cached for game ${gameId}. Fetching landing...`);
+            try {
+                const stars = await getThreeStars(gameId, fetch);
+                if (stars) {
+                    threeStars = stars;
+                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
+                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                    logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}.`);
+                } else {
+                    logger.info(`Landing fetched for game ${gameId} but three stars not yet present.`);
+                }
+            } catch (err) {
+                logger.warn(`Failed to fetch three stars: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        }
+
         if (!game) {
             logger.error(`Could not fetch game data for PGT update: ${gameId}`);
             const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
@@ -125,28 +146,6 @@ export async function nextPGTUpdateJob(gameId: number) {
         if (modified && etag) {
             await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
             await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
-        }
-
-        const officials = await getCachedOfficials(gameId);
-
-        let threeStars = await getCachedThreeStars(gameId);
-        if (threeStars) {
-            logger.debug(`Three stars for game ${gameId} loaded from cache.`);
-        } else {
-            logger.debug(`Three stars not yet cached for game ${gameId}. Fetching right-rail...`);
-            try {
-                const rightRail = await getRightRailData(gameId, fetch);
-                if (rightRail.threeStars) {
-                    threeStars = rightRail.threeStars;
-                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
-                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
-                    logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}.`);
-                } else {
-                    logger.debug(`Right-rail fetched for game ${gameId} but three stars not yet present.`);
-                }
-            } catch (err) {
-                logger.warn(`Failed to fetch right-rail for three stars: ${err instanceof Error ? err.message : String(err)}`);
-            }
         }
 
         const body = await formatThreadBody(game, officials, threeStars ?? undefined);

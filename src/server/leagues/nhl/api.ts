@@ -459,6 +459,28 @@ function parseRightRailJson(rightRail: any): { officials?: Officials; threeStars
   };
 }
 
+export async function getThreeStars(gameId: number, fetch: any): Promise<ThreeStar[] | null> {
+  const response = await fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/landing`);
+
+  if (!response.ok) {
+    throw new Error(`NHL API error: ${response.status}`);
+  }
+
+  const data: any = await response.json();
+  const rawStars: any[] = data.summary?.threeStars ?? [];
+
+  const parsed: ThreeStar[] = rawStars
+    .filter((s: any) => s.star && s.name?.default && s.teamAbbrev)
+    .map((s: any): ThreeStar => ({
+      star: s.star as 1 | 2 | 3,
+      name: s.name.default,
+      teamAbbrev: s.teamAbbrev,
+    }))
+    .sort((a, b) => a.star - b.star);
+
+  return parsed.length > 0 ? parsed : null;
+}
+
 export async function getRightRailData(gameId: number, fetch: any, etag?: string): Promise<RightRailResult> {
   const headers: Record<string, string> = {};
   if (etag) {

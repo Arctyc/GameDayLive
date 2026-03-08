@@ -352,8 +352,7 @@ export const formStep2Action = (router: Router): void => {
 
                 // -------- DAILY GAME SCHEDULER --------
                 // HACK:FIX: Determine job to run based on league selection
-                await dailyGameCheckJob();
-
+                
                 const teamName = getTeamLabel(savedTeam ?? 'N/A');
                 res.status(200).json({
                     showToast: {
@@ -361,6 +360,10 @@ export const formStep2Action = (router: Router): void => {
                         text: `Configuration saved for team: ${teamName}`,
                     },
                 });
+
+                // Immediately check for games upon new config save
+                await dailyGameCheckJob();
+
             } catch (err) {
                 logger.error('Error saving subreddit config:', err);
                 res.status(200).json({

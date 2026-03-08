@@ -17,6 +17,7 @@
 
 ### Bugfixes
 - Fixed an issue where extra attacker ("EA") goals would be displayed with the power play ("PP") strength modifier
+- Fixed an issue where live updates could stop before the game was over.
 
 ---
 

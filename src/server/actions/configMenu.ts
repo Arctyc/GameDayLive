@@ -360,10 +360,10 @@ export const formStep2Action = (router: Router): void => {
                         text: `Configuration saved for team: ${teamName}`,
                     },
                 });
+                logger.info(`Confirmation toast shown with team: ${teamName}`);
 
                 // Immediately check for games upon new config save
                 await dailyGameCheckJob();
-                logger.info(`dailyGameCheck called.`);
 
             } catch (err) {
                 logger.error('Error saving subreddit config:', err);

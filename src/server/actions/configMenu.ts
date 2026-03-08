@@ -134,9 +134,10 @@ export const formStep1Action = (router: Router): void => {
                     return;
                 }
 
-                // Authorization check — do this before any writes
+                // Authorization check
                 const subreddit = context.subredditName?.toLowerCase();
                 if (!subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit)) {
+                    // Send denial modmail
                     const conversationId = sendModmail(getDenySubject(), getDenyBody());
                     logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);
                     res.status(200).json({
@@ -155,8 +156,7 @@ export const formStep1Action = (router: Router): void => {
                     logger.warn('Failed to fetch existing config during step 1 save', err);
                 }
 
-                // Save partial config — preserve existing thread settings if present,
-                // otherwise fall back to defaults. Step 2 will overwrite with final values.
+                // Save partial config
                 const partialConfig: SubredditConfig = {
                     league: leagueValue,
                     nhl: { teamAbbreviation: teamValue } as NHLConfig,
@@ -276,7 +276,7 @@ export const formStep2Action = (router: Router): void => {
                     res.status(200).json({
                         showToast: {
                             appearance: 'error',
-                            text: 'Session expired. Please re-open the config menu.',
+                            text: 'Error locating config data. Please re-open the config menu.',
                         },
                     });
                     return;

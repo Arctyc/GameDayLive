@@ -363,6 +363,7 @@ export const formStep2Action = (router: Router): void => {
 
                 // Immediately check for games upon new config save
                 await dailyGameCheckJob();
+                logger.info(`dailyGameCheck called.`);
 
             } catch (err) {
                 logger.error('Error saving subreddit config:', err);

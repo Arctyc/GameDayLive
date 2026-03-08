@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, NHLGame } from '../api';
+import { getGameData, getRightRailData, Officials, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from '../constants';
 import { getSubredditConfig } from '../../../config';
@@ -65,7 +65,8 @@ export async function createPostgameThreadJob(gameId: number) {
     }
 
     const title = await formatThreadTitle(game);
-    const body = await formatThreadBody(game);
+    const officials = await getCachedOfficials(gameId);
+    const body = await formatThreadBody(game, officials);
 
     const result = await tryCreateThread(context, title, body, config.postgame.sticky, config.postgame.sort);
 
@@ -126,7 +127,8 @@ export async function nextPGTUpdateJob(gameId: number) {
                 await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
             }
 
-            const body = await formatThreadBody(game);
+            const officials = await getCachedOfficials(gameId);
+            const body = await formatThreadBody(game, officials);
             const result = await tryUpdateThread(postId as Post["id"], body);
             
             if (!result.success) {
@@ -273,5 +275,15 @@ async function scheduleCleanup(postId: Post["id"], gameId: number, cleanupTime: 
         logger.info(`Scheduled PGT cleanup ID: ${jobId} for game ${gameId}`);
     } catch (err) {
         logger.error(`Failed to schedule PGT cleanup: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
+// --------------- Get Cached Officials -----------------
+async function getCachedOfficials(gameId: number): Promise<Officials | undefined> {
+    try {
+        const cached = await redis.get(REDIS_KEYS.GDT_OFFICIALS(gameId));
+        return cached ? JSON.parse(cached) as Officials : undefined;
+    } catch {
+        return undefined;
     }
 }

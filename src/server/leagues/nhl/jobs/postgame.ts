@@ -122,54 +122,51 @@ export async function nextPGTUpdateJob(gameId: number) {
             return;
         }
 
-        if (modified) {
-            if (etag) {
-                await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
-                await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
-            }
+        if (modified && etag) {
+            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+        }
 
-            const officials = await getCachedOfficials(gameId);
+        const officials = await getCachedOfficials(gameId);
 
-            // Fetch three stars from right-rail until confirmed, then use cache
-            let threeStars = await getCachedThreeStars(gameId);
-            if (threeStars) {
-                logger.debug(`Three stars for game ${gameId} loaded from cache.`);
-            } else {
-                logger.debug(`Three stars not yet cached for game ${gameId}. Fetching right-rail...`);
-                try {
-                    const currentRREtag = await redis.get(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId));
-                    const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
-                    if (!rightRail.modified) {
-                        logger.debug(`Right-rail unchanged for game ${gameId} (304). Three stars not yet available.`);
-                    } else {
-                        if (rightRail.etag) {
-                            await redis.set(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
-                            await redis.expire(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
-                        }
-                        if (rightRail.threeStars) {
-                            threeStars = rightRail.threeStars;
-                            await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
-                            await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
-                            logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}. Caching and stopping right-rail polling.`);
-                        } else {
-                            logger.debug(`Right-rail fetched for game ${gameId} but three stars not yet present.`);
-                        }
+        let threeStars = await getCachedThreeStars(gameId);
+        if (threeStars) {
+            logger.debug(`Three stars for game ${gameId} loaded from cache.`);
+        } else {
+            logger.debug(`Three stars not yet cached for game ${gameId}. Fetching right-rail...`);
+            try {
+                const currentRREtag = await redis.get(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId));
+                const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
+                if (!rightRail.modified) {
+                    logger.debug(`Right-rail unchanged for game ${gameId} (304). Three stars not yet available.`);
+                } else {
+                    if (rightRail.etag) {
+                        await redis.set(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
+                        await redis.expire(REDIS_KEYS.PGT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
                     }
-                } catch (err) {
-                    logger.warn(`Failed to fetch right-rail for three stars: ${err instanceof Error ? err.message : String(err)}`);
+                    if (rightRail.threeStars) {
+                        threeStars = rightRail.threeStars;
+                        await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
+                        await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                        logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}. Caching and stopping right-rail polling.`);
+                    } else {
+                        logger.debug(`Right-rail fetched for game ${gameId} but three stars not yet present.`);
+                    }
                 }
+            } catch (err) {
+                logger.warn(`Failed to fetch right-rail for three stars: ${err instanceof Error ? err.message : String(err)}`);
             }
+        }
 
-            const body = await formatThreadBody(game, officials, threeStars ?? undefined);
-            const result = await tryUpdateThread(postId as Post["id"], body);
-            
-            if (!result.success) {
-                logger.error(`PGT update failed for post ${postId}: ${result.error}`);
-                const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-                logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
-                await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
-                return;
-            }
+        const body = await formatThreadBody(game, officials, threeStars ?? undefined);
+        const result = await tryUpdateThread(postId as Post["id"], body);
+
+        if (!result.success) {
+            logger.error(`PGT update failed for post ${postId}: ${result.error}`);
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
+            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
+            return;
         }
 
         if (game.gameState !== GAME_STATES.OFF) {

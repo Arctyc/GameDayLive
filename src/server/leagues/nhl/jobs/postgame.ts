@@ -85,12 +85,16 @@ export async function createPostgameThreadJob(gameId: number) {
 
         // Clean up game day thread
         const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-        const GDT = await reddit.getPostById(existingGDT as Post["id"]);
-        const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`;
-        if (config.gameday.lock) {
-            await tryAddComment(GDT, completeComment);
+        if (existingGDT) {
+            const GDT = await reddit.getPostById(existingGDT as Post["id"]);
+            const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`;
+            if (config.gameday.lock && GDT) {
+                await tryAddComment(GDT, completeComment);
+            }
+            await tryCleanupThread(existingGDT as Post["id"], config.gameday.lock);
+        } else {
+            logger.warn(`No GDT found in Redis for game ${gameId} during PGT creation. Skipping GDT cleanup.`);
         }
-        await tryCleanupThread(existingGDT as Post["id"], config.gameday.lock);
         
     } else {
         await sendModmail(

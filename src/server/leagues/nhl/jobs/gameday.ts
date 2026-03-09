@@ -161,10 +161,6 @@ export async function nextLiveUpdateJob(gameId: number) {
     
     const subredditName = context.subredditName;
     const config = await getSubredditConfig(subredditName);
-    if (!config) {
-        logger.error(`No config found for ${subredditName}, aborting.`);
-        return;
-    }
 
     // Guard: postId must exist, otherwise chain is orphaned
     const postId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
@@ -176,15 +172,17 @@ export async function nextLiveUpdateJob(gameId: number) {
     // Guard: terminal state ends the GDT chain — next scheduled job exits here.
     // If PGT is disabled, GDT runs until OFF (official) instead of stopping at FINAL.
     const cachedState = await redis.get(REDIS_KEYS.GAME_STATE(gameId));
-    const gdtTerminalState = config.postgame.enabled
-        ? cachedState === GAME_STATES.FINAL || cachedState === GAME_STATES.OFF
-        : cachedState === GAME_STATES.OFF;
+    const gdtTerminalState = config
+        ? config.postgame.enabled
+            ? cachedState === GAME_STATES.FINAL || cachedState === GAME_STATES.OFF
+            : cachedState === GAME_STATES.OFF
+        : cachedState === GAME_STATES.OFF; // fail-safe: assume no PGT if config missing
     if (gdtTerminalState) {
         logger.info(`Game ${gameId} is in terminal GDT state (${cachedState}). Chain terminated.`);
         return;
     }
 
-    // Guard: if game hasn't started yet, reschedule and skip the API call
+    // Guard: if game hasn't started yet, skip the API call
     const cachedStartTime = await redis.get(REDIS_KEYS.GAME_START_TIME(gameId));
     const isPreGame =
         (cachedState === GAME_STATES.FUT || cachedState === GAME_STATES.PRE || cachedState === GAME_STATES.PREVIEW) &&
@@ -197,6 +195,12 @@ export async function nextLiveUpdateJob(gameId: number) {
 
     if (isPreGame) {
         logger.info(`Game ${gameId} has not started yet (state: ${cachedState}, start: ${cachedStartTime}). Skipping update.`);
+        return;
+    }
+
+    // Config is required for everything below
+    if (!config) {
+        logger.error(`No config found for ${subredditName}. Skipping update, will retry next cycle.`);
         return;
     }
 

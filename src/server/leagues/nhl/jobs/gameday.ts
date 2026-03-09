@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, getRightRailData, Officials, NHLGame } from '../api';
+import { getGameData, getRightRailData, getThreeStars, Officials, ThreeStar, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
@@ -271,7 +271,32 @@ export async function nextLiveUpdateJob(gameId: number) {
         }
     }
 
-    const body = await formatThreadBody(game, officials);
+    // If PGT is disabled and game is over, fetch and cache three stars for GDT display.
+    // Keeps retrying each cycle until found or game reaches OFF.
+    let threeStars: ThreeStar[] | undefined;
+    if (!config.postgame.enabled && (game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF)) {
+        const cachedStars = await redis.get(REDIS_KEYS.PGT_THREE_STARS(gameId));
+        if (cachedStars) {
+            threeStars = JSON.parse(cachedStars) as ThreeStar[];
+            logger.info(`Three stars for game ${gameId} loaded from cache.`);
+        } else {
+            try {
+                const stars = await getThreeStars(gameId, fetch);
+                if (stars) {
+                    threeStars = stars;
+                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(stars));
+                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                    logger.info(`Three stars confirmed for game ${gameId}: ${stars.map(s => `#${s.star} ${s.name}`).join(', ')}.`);
+                } else {
+                    logger.info(`Three stars not yet available for game ${gameId}.`);
+                }
+            } catch (err) {
+                logger.warn(`Failed to fetch three stars for GDT: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        }
+    }
+
+    const body = await formatThreadBody(game, officials, threeStars);
     const updateResult = await tryUpdateThread(postId as Post["id"], body);
     if (!updateResult.success) {
         logger.error(`Thread update failed for post ${postId}: ${updateResult.error}`);

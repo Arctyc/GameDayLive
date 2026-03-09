@@ -339,7 +339,7 @@ export const formStep2Action = (router: Router): void => {
 
                     const matchingJob = jobTitles.find(j => j.label.includes(prefix));
                     if (matchingJob) {
-                        const result = await tryCancelScheduledJob(matchingJob.label);
+                        const result = await tryCancelScheduledJob(matchingJob.value);
                         if (result) {
                             logger.info(`Job: ${matchingJob.label} already exists. Overwriting...`);
                         } else {

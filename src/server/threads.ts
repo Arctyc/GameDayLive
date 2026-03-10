@@ -150,15 +150,20 @@ export async function tryUnstickyThread(post: Post) {
 
 		// Undistinguish
 		if (post.isDistinguishedBy()) {
-			logger.info(`Post distinguished by: ${post.isDistinguishedBy()}`)
+			logger.info(`Post distinguished by: ${post.isDistinguishedBy()}`);
 			await post.undistinguish();
-			logger.info(`Post ${post.id} undistinguished.`)
+			logger.info(`Post ${post.id} undistinguished.`);
+		} else {
+			logger.debug(`Post ${post.id} is NOT distinguished.`);
 		}
 
 		// Unsticky
 		if (!post.isStickied()) {
 			logger.warn(`Post ${post.id} is NOT stickied.`);
+			await post.unsticky();
+			logger.info(`Attempted Unsticky anyway.`);
 		} else {
+			logger.debug(`Post ${post.id} is stickied.`);
 			await post.unsticky();
 			logger.info(`Post ${post.id} unstickied.`);
 		}

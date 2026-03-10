@@ -142,7 +142,7 @@ export const formStep1Action = (router: Router): void => {
                     logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);
                     res.status(200).json({
                         showToast: {
-                            text: `Configuration denied - unauthorized subreddit. For more info: r/gamedaylive_dev`,
+                            text: `Configuration denied - unauthorized subreddit. Contact the developer to [request authorization](https://developers.reddit.com/apps/gamedaylive).`,
                         },
                     });
                     return;

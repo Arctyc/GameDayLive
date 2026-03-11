@@ -55,7 +55,7 @@ You will receive a modmail message confirming your settings.
 ## Roadmap
 
 - [x] NHL support
-- [ ] Pre-game threads
+- [x] Pre-game threads
 - [ ] Off-day threads
 - [ ] More customization (e.g. customizable thread post time)
 - [ ] More sports/leagues
@@ -84,7 +84,7 @@ npm install
 devvit login
 
 # Test locally
-devvit playtest r/your_test_subreddit
+npm run build && devvit playtest r/your_test_subreddit
 ```
 
 ### Project Structure
@@ -97,11 +97,22 @@ src/
     │   └── triggers.ts
     ├── leagues
     │   ├── nhl
+    │   │   ├── formatting
+    │   │   │   ├── formatGoals.ts
+    │   │   │   ├── formatHeader.ts
+    │   │   │   ├── formatLinescore.ts
+    │   │   │   ├── formatPenalties.ts
+    │   │   │   ├── formatPregame.ts
+    │   │   │   ├── formatter.ts
+    │   │   │   └── helpers.ts
+    │   │   ├── jobs
+    │   │   │   ├── dailyGameCheck.ts
+    │   │   │   ├── gameday.ts
+    │   │   │   ├── postgame.ts
+    │   │   │   └── pregame.ts
     │   │   ├── api.ts
     │   │   ├── config.ts
     │   │   ├── constants.ts
-    │   │   ├── formatter.ts
-    │   │   ├── jobs.ts
     │   │   ├── scheduler.ts
     │   │   └── types.ts
     │   └── index.ts
@@ -129,8 +140,8 @@ src/
 2. Update `src/server/types.ts`, `src/server/actions/configMenu.ts`, `src/server/leagues/index.ts`
 
 4. Register scheduler in `src/server/index.ts` Note: Schedule execution and league-specific jobs need to be decoupled, (e.g.):
-    - Current:  `/internal/scheduler/daily-game-check -> nhl/jobs.ts`
-    - Fix:      `/internal/scheduler/daily-game-check -> leagues/index.ts -> {league}/jobs.ts`
+    - Current:  `/internal/scheduler/daily-game-check -> nhl/jobs/dailyGameCheck.ts`
+    - Fix:      `/internal/scheduler/daily-game-check -> leagues/index.ts -> {league}/jobs/dailyGameCheck.ts`
 
 ## Contributing
 

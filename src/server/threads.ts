@@ -11,7 +11,7 @@ export async function tryCreateThread(
 	title: string,
 	body: string,
 	sticky: boolean,
-	sort: 'new' | 'best',
+	sort: 'new' | 'confidence',
 ): Promise<{ success: boolean; post?: Post; error?: string }> {
 	const logger = await Logger.Create('Thread - Create');
 
@@ -41,7 +41,7 @@ To see more, report a bug, or contribute to the project, please visit [the githu
 			await post.setSuggestedCommentSort(sort.toUpperCase() as PostSuggestedCommentSort);
 			logger.info(`Post sort set to ${sort} for ${post.id}`);
 		} catch (sortErr) {
-			logger.warn(`Failed to set comment sort on post ${post.id}:`, sortErr);
+			logger.warn(`Failed to set comment sort as ${sort} on post ${post.id}:`, sortErr);
 		}
 
 		await tryStickyThread(post, sticky);
@@ -147,13 +147,26 @@ export async function tryUnstickyThread(post: Post) {
 	}
 
 	try {
-		if (!post.isStickied()) {
-			logger.warn(`Post ${post.id} is not stickied.`);
-			return;
+
+		// Undistinguish
+		if (post.isDistinguishedBy()) {
+			logger.info(`Post distinguished by: ${post.isDistinguishedBy()}`);
+			await post.undistinguish();
+			logger.info(`Post ${post.id} undistinguished.`);
+		} else {
+			logger.debug(`Post ${post.id} is NOT distinguished.`);
 		}
 
-		await post.unsticky();
-		logger.info(`Post ${post.id} successfully unstickied.`);
+		// Unsticky
+		if (!post.isStickied()) {
+			logger.warn(`Post ${post.id} is NOT stickied.`);
+			await post.unsticky();
+			logger.info(`Attempted Unsticky anyway.`);
+		} else {
+			logger.debug(`Post ${post.id} is stickied.`);
+			await post.unsticky();
+			logger.info(`Post ${post.id} unstickied.`);
+		}
 
 	} catch (err) {
 		logger.error(`Error trying to unsticky post ${post.id}:`, err);
@@ -189,93 +202,123 @@ export async function tryLockThread(post: Post, enabled: boolean) {
 }
 
 export async function tryCleanupThread(
-	postId: Post["id"],
-	lock: boolean,
+    postId: Post["id"],
+    lock: boolean,
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
-	const logger = await Logger.Create('Thread - Cleanup');
+    const logger = await Logger.Create('Thread - Cleanup');
 
-	if (!postId) {
-		logger.warn('No post ID provided, skipping cleanup');
-		return {
-			success: false,
-			error: 'No post ID provided',
-		};
-	}
+    if (!postId) {
+        logger.warn('No post ID provided, skipping cleanup');
+        return {
+            success: false,
+            error: 'No post ID provided',
+        };
+    }
 
-	try {
-		const post = await reddit.getPostById(postId);
+    try {
+        const post = await reddit.getPostById(postId);
 
-		if (!post) {
-			logger.error(`Cannot find post ${postId}`);
-			return {
-				success: false,
-				error: `Post ${postId} not found`,
-			};
-		}
+        if (!post) {
+            logger.error(`Cannot find post ${postId}`);
+            return {
+                success: false,
+                error: `Post ${postId} not found`,
+            };
+        }
 
-		await tryUnstickyThread(post);
-		await tryLockThread(post, lock);
+        await tryUnstickyThread(post);
+        await tryLockThread(post, lock);
 
-		// Get scheduled job ID
-		const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-		const gameIdForPGT = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+        // Get scheduled job ID mappings
+        const gameIdForGDT = await redis.get(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+        const gameIdForPGT = await redis.get(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+        const gameIdForPre = await redis.get(REDIS_KEYS.PREGAME_TO_GAME_ID(postId));
 
-		// Prefer PGT mapping first
-		if (gameIdForPGT) {
-			const gameId = Number(gameIdForPGT);
+        // Prefer PGT mapping first, then GDT, then Pregame
+        if (gameIdForPGT) {
+            const gameId = Number(gameIdForPGT);
 
-			const pgtCreateJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
-			if (pgtCreateJobId) {
-				await tryCancelScheduledJob(pgtCreateJobId);
-				await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
-			}
+            const pgtCreateJobId = await redis.get(REDIS_KEYS.JOB_POSTGAME(gameId));
+            if (pgtCreateJobId) {
+                await tryCancelScheduledJob(pgtCreateJobId);
+                await redis.del(REDIS_KEYS.JOB_POSTGAME(gameId));
+            }
 
-			const pgtCleanupJobId = await redis.get(REDIS_KEYS.JOB_PGT_CLEANUP(gameId));
-			if (pgtCleanupJobId) {
-				await tryCancelScheduledJob(pgtCleanupJobId);
-				await redis.del(REDIS_KEYS.JOB_PGT_CLEANUP(gameId));
-			}
+            const pgtCleanupJobId = await redis.get(REDIS_KEYS.JOB_PGT_CLEANUP(gameId));
+            if (pgtCleanupJobId) {
+                await tryCancelScheduledJob(pgtCleanupJobId);
+                await redis.del(REDIS_KEYS.JOB_PGT_CLEANUP(gameId));
+            }
 
-			const pgtUpdateJobId = await redis.get(REDIS_KEYS.JOB_PGT_UPDATE(gameId));
-			if (pgtUpdateJobId) {
-				await tryCancelScheduledJob(pgtUpdateJobId);
-				await redis.del(REDIS_KEYS.JOB_PGT_UPDATE(gameId));
-			}
+            const pgtUpdateJobId = await redis.get(REDIS_KEYS.JOB_PGT_UPDATE(gameId));
+            if (pgtUpdateJobId) {
+                await tryCancelScheduledJob(pgtUpdateJobId);
+                await redis.del(REDIS_KEYS.JOB_PGT_UPDATE(gameId));
+            }
 
-			await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-			await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+            await redis.del(REDIS_KEYS.PGT_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.PGT_THREE_STARS(gameId));
 
-			logger.info(`PGT ${postId} cleaned up.`);
-		} else if (gameIdForGDT) {
-			const gameId = Number(gameIdForGDT);
+            logger.info(`PGT ${postId} cleaned up.`);
+        } else if (gameIdForGDT) {
+            const gameId = Number(gameIdForGDT);
 
-			const gdtCreateJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
-			if (gdtCreateJobId) {
-				await tryCancelScheduledJob(gdtCreateJobId);
-				await redis.del(REDIS_KEYS.JOB_CREATE(gameId));
-			}
+            const gdtCreateJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
+            if (gdtCreateJobId) {
+                await tryCancelScheduledJob(gdtCreateJobId);
+                await redis.del(REDIS_KEYS.JOB_CREATE(gameId));
+            }
 
-			const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
-			if (updateJobId) {
-				await tryCancelScheduledJob(updateJobId);
-				await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
-			}
+            const updateJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+            if (updateJobId) {
+                await tryCancelScheduledJob(updateJobId);
+                await redis.del(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+            }
 
-			await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-			await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
-			await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
+            await redis.del(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
+            await redis.del(REDIS_KEYS.THREAD_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.GAME_ETAG(gameId));
+            // await redis.del(REDIS_KEYS.GDT_OFFICIALS(gameId)); // NOTE: Not cleaned up because PGT needs it, let expiry handle it
+            await redis.del(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId));
 
-			logger.info(`GDT ${postId} cleaned up.`);
-		} else {
-			logger.warn(`No Redis mapping found for post: ${postId}`);
-		}
+            logger.info(`GDT ${postId} cleaned up.`);
+        } else if (gameIdForPre) {
+            const gameId = Number(gameIdForPre);
 
-		return { success: true, postId };
+            const pregameJobId = await redis.get(REDIS_KEYS.JOB_PREGAME(gameId));
+            if (pregameJobId) {
+                await tryCancelScheduledJob(pregameJobId);
+                await redis.del(REDIS_KEYS.JOB_PREGAME(gameId));
+            }
 
-	} catch (err) {
-		logger.error(`Failed to clean up post ${postId}:`, err);
-		return { success: false, error: String(err) };
-	}
+            const pregameCleanupJobId = await redis.get(REDIS_KEYS.JOB_PREGAME_CLEANUP(gameId));
+            if (pregameCleanupJobId) {
+                await tryCancelScheduledJob(pregameCleanupJobId);
+                await redis.del(REDIS_KEYS.JOB_PREGAME_CLEANUP(gameId));
+            }
+
+            const pregameUpdateJobId = await redis.get(REDIS_KEYS.JOB_PREGAME_UPDATE(gameId));
+            if (pregameUpdateJobId) {
+                await tryCancelScheduledJob(pregameUpdateJobId);
+                await redis.del(REDIS_KEYS.JOB_PREGAME_UPDATE(gameId));
+            }
+
+            await redis.del(REDIS_KEYS.GAME_TO_PREGAME_ID(gameId));
+            await redis.del(REDIS_KEYS.PREGAME_TO_GAME_ID(postId));
+            await redis.del(REDIS_KEYS.PREGAME_ETAG(gameId));
+
+            logger.info(`Pregame ${postId} cleaned up.`);
+        } else {
+            logger.warn(`No Redis mapping found for post: ${postId}`);
+        }
+
+        return { success: true, postId };
+
+    } catch (err) {
+        logger.error(`Failed to clean up post ${postId}:`, err);
+        return { success: false, error: String(err) };
+    }
 }
 
 // TODO: Feature/option: Add thread menu to devvit.json to cancel live updates from thread

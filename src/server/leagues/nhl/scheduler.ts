@@ -183,7 +183,7 @@ export const pgtCleanup = (router: Router) => {
     try {
       const { postId } = _req.body.data || {};
       if (!postId) throw new Error('postId required');
-      const config = await getSubredditConfig(_req.body.subredditName);
+      const config = await getSubredditConfig(context.subredditName);
       await tryCleanupThread(postId, config?.postgame?.lock ?? false);
       res.status(200).json({ status: 'success' });
     } catch (err) {

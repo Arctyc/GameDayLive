@@ -1,9 +1,9 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, getRightRailData, Officials, NHLGame } from '../api';
+import { getGameData, getRightRailData, getThreeStars, Officials, ThreeStar, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
-import { tryCleanupThread, tryCreateThread, tryUpdateThread } from '../../../threads';
+import { tryCleanupThread, tryCreateThread, tryUpdateThread, tryCancelScheduledJob } from '../../../threads';
 import { NewJobData, UpdateJobData } from '../../../types';
 import { Logger } from '../../../utils/Logger';
 import { getJobData } from '../../../utils/jobs';
@@ -132,6 +132,10 @@ export async function createGameThreadJob(gameId: number) {
         await redis.expire(REDIS_KEYS.GAME_TO_THREAD_ID(gameId), REDIS_KEYS.EXPIRY);
         await redis.set(REDIS_KEYS.THREAD_TO_GAME_ID(post.id), gameId.toString());
         await redis.expire(REDIS_KEYS.THREAD_TO_GAME_ID(post.id), REDIS_KEYS.EXPIRY);
+        await redis.set(REDIS_KEYS.GAME_STATE(gameId), game.gameState);
+        await redis.expire(REDIS_KEYS.GAME_STATE(gameId), REDIS_KEYS.EXPIRY);
+        await redis.set(REDIS_KEYS.GAME_START_TIME(gameId), game.startTimeUTC);
+        await redis.expire(REDIS_KEYS.GAME_START_TIME(gameId), REDIS_KEYS.EXPIRY);
 
         if (!game.gameState || game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
             let updateTime = new Date(game.startTimeUTC);
@@ -157,32 +161,65 @@ export async function nextLiveUpdateJob(gameId: number) {
     
     const subredditName = context.subredditName;
     const config = await getSubredditConfig(subredditName);
-    if (!config) {
-        logger.error(`No config found for ${subredditName}, aborting.`);
-        return;
-    }
-    
+
+    // Guard: postId must exist, otherwise chain is orphaned
     const postId = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
     if (!postId) {
-        logger.error(`Invalid postId`);
+        logger.error(`No postId found for game ${gameId}. GDT chain terminated.`);
         return;
     }
 
-    // Check that post is actually live on reddit
+    // Guard: terminal state ends the GDT chain — next scheduled job exits here.
+    // If PGT is disabled, GDT runs until OFF (official) instead of stopping at FINAL.
+    const cachedState = await redis.get(REDIS_KEYS.GAME_STATE(gameId));
+    const gdtTerminalState = config
+        ? config.postgame.enabled
+            ? cachedState === GAME_STATES.FINAL || cachedState === GAME_STATES.OFF
+            : cachedState === GAME_STATES.OFF
+        : cachedState === GAME_STATES.OFF; // fail-safe: assume no PGT if config missing
+    if (gdtTerminalState) {
+        logger.info(`Game ${gameId} is in terminal GDT state (${cachedState}). Chain terminated.`);
+        return;
+    }
+
+    // Guard: if game hasn't started yet, skip the API call
+    const cachedStartTime = await redis.get(REDIS_KEYS.GAME_START_TIME(gameId));
+    const isPreGame =
+        (cachedState === GAME_STATES.FUT || cachedState === GAME_STATES.PRE || cachedState === GAME_STATES.PREVIEW) &&
+        cachedStartTime !== null &&
+        cachedStartTime !== undefined &&
+        Date.now() < new Date(cachedStartTime).getTime();
+
+    // Schedule next job before any risky work — chain survives failures from here
+    await scheduleNextLiveUpdate(subredditName, postId, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+
+    if (isPreGame) {
+        logger.info(`Game ${gameId} has not started yet (state: ${cachedState}, start: ${cachedStartTime}). Skipping update.`);
+        return;
+    }
+
+    // Config is required for everything below
+    if (!config) {
+        logger.error(`No config found for ${subredditName}. Skipping update, will retry next cycle.`);
+        return;
+    }
+
+    // Verify post still exists on Reddit
     try {
         const existingPost = await reddit.getPostById(postId as Post["id"]);
         if (!existingPost) {
+            logger.warn(`Post ${postId} not found on Reddit. Cleaning up.`);
             await tryCleanupThread(postId as Post["id"], config.gameday.lock);
+            await redis.del(REDIS_KEYS.GAME_STATE(gameId));
+            return;
         }
     } catch (err) {
         logger.error(`Failed to verify post exists: ${err instanceof Error ? err.message : String(err)}`);
-        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-        logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
-        await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
+        // Already scheduled — will retry next cycle
         return;
     }
 
-    // Check for game data changes and update if modified
+    // Fetch game data
     const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
     let game: NHLGame | undefined;
     let etag: string | undefined;
@@ -195,90 +232,117 @@ export async function nextLiveUpdateJob(gameId: number) {
         modified = result.modified;
     } catch (err) {
         logger.error(`Failed to fetch game data for game ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
-        
-        const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-        logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
-        await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
+        // Already scheduled — will retry next cycle
         return;
     }
 
     if (!game) {
-        logger.error(`Game data is null. Game: ${gameId}`);
-        await scheduleNextLiveUpdate(subredditName, postId, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT * 2));
+        // 304 — no changes, nothing to do
+        logger.info(`Game data unchanged for game ${gameId}.`);
         return;
     }
 
-    if (modified) {
-        if (etag) {
-            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
-            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
-        }
+    // Write new state to Redis
+    await redis.set(REDIS_KEYS.GAME_STATE(gameId), game.gameState);
+    await redis.expire(REDIS_KEYS.GAME_STATE(gameId), REDIS_KEYS.EXPIRY);
 
-        // Fetch officials from right-rail until confirmed, then use cache
-        let officials: Officials | undefined;
-        const cachedOfficialsJson = await redis.get(REDIS_KEYS.GDT_OFFICIALS(gameId));
-        if (cachedOfficialsJson) {
-            officials = JSON.parse(cachedOfficialsJson) as Officials;
+    if (modified && etag) {
+        await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+        await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+    }
+
+    // Fetch officials from right-rail until confirmed, then use cache
+    let officials: Officials | undefined;
+    const cachedOfficialsJson = await redis.get(REDIS_KEYS.GDT_OFFICIALS(gameId));
+    if (cachedOfficialsJson) {
+        officials = JSON.parse(cachedOfficialsJson) as Officials;
+    } else {
+        try {
+            const currentRREtag = await redis.get(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId));
+            const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
+            if (rightRail.modified && rightRail.etag) {
+                await redis.set(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
+                await redis.expire(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
+            }
+            if (rightRail.officials) {
+                officials = rightRail.officials;
+                await redis.set(REDIS_KEYS.GDT_OFFICIALS(gameId), JSON.stringify(officials));
+                await redis.expire(REDIS_KEYS.GDT_OFFICIALS(gameId), REDIS_KEYS.EXPIRY);
+                logger.info(`Officials confirmed for game ${gameId}. Caching and stopping right-rail polling.`);
+            }
+        } catch (err) {
+            logger.warn(`Failed to fetch right-rail for officials: ${err instanceof Error ? err.message : String(err)}`);
+        }
+    }
+
+    // If PGT is disabled and game is over, fetch and cache three stars for GDT display.
+    // Keeps retrying each cycle until found or game reaches OFF.
+    let threeStars: ThreeStar[] | undefined;
+    if (!config.postgame.enabled && (game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF)) {
+        const cachedStars = await redis.get(REDIS_KEYS.PGT_THREE_STARS(gameId));
+        if (cachedStars) {
+            threeStars = JSON.parse(cachedStars) as ThreeStar[];
+            logger.info(`Three stars for game ${gameId} loaded from cache.`);
         } else {
             try {
-                const currentRREtag = await redis.get(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId));
-                const rightRail = await getRightRailData(gameId, fetch, currentRREtag || undefined);
-                if (rightRail.modified && rightRail.etag) {
-                    await redis.set(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId), rightRail.etag);
-                    await redis.expire(REDIS_KEYS.GDT_RIGHTRAIL_ETAG(gameId), REDIS_KEYS.EXPIRY);
-                }
-                if (rightRail.officials) {
-                    officials = rightRail.officials;
-                    await redis.set(REDIS_KEYS.GDT_OFFICIALS(gameId), JSON.stringify(officials));
-                    await redis.expire(REDIS_KEYS.GDT_OFFICIALS(gameId), REDIS_KEYS.EXPIRY);
-                    logger.info(`Officials confirmed for game ${gameId}. Caching and stopping right-rail polling.`);
+                const stars = await getThreeStars(gameId, fetch);
+                if (stars) {
+                    threeStars = stars;
+                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(stars));
+                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                    logger.info(`Three stars confirmed for game ${gameId}: ${stars.map(s => `#${s.star} ${s.name}`).join(', ')}.`);
+                } else {
+                    logger.info(`Three stars not yet available for game ${gameId}.`);
                 }
             } catch (err) {
-                logger.warn(`Failed to fetch right-rail for officials: ${err instanceof Error ? err.message : String(err)}`);
+                logger.warn(`Failed to fetch three stars for GDT: ${err instanceof Error ? err.message : String(err)}`);
             }
-        }
-
-        const body = await formatThreadBody(game, officials);
-        const result = await tryUpdateThread(postId as Post["id"], body);
-        if (!result.success) {
-            logger.error(`Thread update failed for post ${postId}: ${result.error}`);
-            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            logger.info(`Rescheduling update attempt for game ${gameId} at ${retryTime.toISOString()}`);
-            await scheduleNextLiveUpdate(subredditName, postId, gameId, retryTime);
-            return;
         }
     }
 
-    // Schedule next live update
-    if (game.gameState && game.gameState !== GAME_STATES.FINAL && game.gameState !== GAME_STATES.OFF) {
-        let updateTime: Date = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+    const body = await formatThreadBody(game, officials, threeStars);
+    const updateResult = await tryUpdateThread(postId as Post["id"], body);
+    if (!updateResult.success) {
+        logger.error(`Thread update failed for post ${postId}: ${updateResult.error}`);
+        // Already scheduled — will retry next cycle
+        return;
+    }
 
-        /* NOTE: Disabled to keep intermission time remaining on thread
-        if (game.clock?.inIntermission) {
-            const intermissionRemaining = game.clock.secondsRemaining;
-            if (intermissionRemaining > (UPDATE_INTERVALS.INTERMISSION / 1000)) {
-                logger.debug(`Game is in intermission`);
-                updateTime = new Date(Date.now() + ((intermissionRemaining * 1000)-UPDATE_INTERVALS.INTERMISSION));
-            }
-        }
-        */
-
-        if (game.periodDescriptor?.periodType == "OT" || game.periodDescriptor?.periodType == "SO") {
-            updateTime = new Date(Date.now() + UPDATE_INTERVALS.OVERTIME_SHOOTOUT);
-        } 
-
-        await scheduleNextLiveUpdate(subredditName, postId, gameId, updateTime);
-
-    } else {
-        // Game finished
-        if (config?.postgame.enabled) {
-            logger.info(`Game ended. Scheduling PGT.`);
-            const scheduledTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            await scheduleCreatePostgameThread(game, scheduledTime);
-        } else {
+    // Handle game end transition.
+    // If PGT enabled: FINAL triggers PGT creation, GDT chain ends (next job reads FINAL/OFF from cache).
+    // If PGT disabled: keep updating GDT until OFF so the thread reflects official results.
+    if (game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF) {
+        if (config.postgame.enabled) {
+            logger.info(`Game ${gameId} ended (${game.gameState}). Scheduling PGT.`);
+            await scheduleCreatePostgameThread(game, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+        } else if (game.gameState === GAME_STATES.OFF) {
+            logger.info(`Game ${gameId} results official (OFF), PGT disabled. Cleaning up GDT.`);
             await tryCleanupThread(postId as Post["id"], config.gameday.lock);
+        } else {
+            logger.info(`Game ${gameId} in FINAL, PGT disabled. Continuing GDT updates until OFF.`);
+        }
+        return;
+    }
+
+    // OT/SO: cancel the default-interval job and reschedule with shorter interval
+    if (game.periodDescriptor?.periodType === "OT" || game.periodDescriptor?.periodType === "SO") {
+        const scheduledJobId = await redis.get(REDIS_KEYS.JOB_GDT_UPDATE(gameId));
+        if (scheduledJobId) {
+            await tryCancelScheduledJob(scheduledJobId);
+        }
+        await scheduleNextLiveUpdate(subredditName, postId, gameId, new Date(Date.now() + UPDATE_INTERVALS.OVERTIME_SHOOTOUT));
+        logger.info(`Game ${gameId} in ${game.periodDescriptor.periodType}. Switched to ${UPDATE_INTERVALS.OVERTIME_SHOOTOUT / 1000}s update interval.`);
+    }
+
+    /* NOTE: Disabled to keep intermission time remaining on thread
+    if (game.clock?.inIntermission) {
+        const intermissionRemaining = game.clock.secondsRemaining;
+        if (intermissionRemaining > (UPDATE_INTERVALS.INTERMISSION / 1000)) {
+            logger.debug(`Game is in intermission`);
+            // cancel + reschedule with intermission-aware time
         }
     }
+    */
 }
 
 // --------------- Schedule Create Game Thread -----------------

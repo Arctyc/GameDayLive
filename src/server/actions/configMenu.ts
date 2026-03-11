@@ -134,14 +134,15 @@ export const formStep1Action = (router: Router): void => {
                     return;
                 }
 
-                // Authorization check — do this before any writes
+                // Authorization check
                 const subreddit = context.subredditName?.toLowerCase();
                 if (!subreddit || !APPROVED_NHL_SUBREDDITS.some(s => s.toLowerCase() === subreddit)) {
+                    // Send denial modmail
                     const conversationId = sendModmail(getDenySubject(), getDenyBody());
                     logger.warn(`Unauthorized subreddit attempted config: ${subreddit}, ${conversationId}`);
                     res.status(200).json({
                         showToast: {
-                            text: `Configuration denied - unauthorized subreddit. For more info: r/gamedaylive_dev`,
+                            text: `Configuration denied - unauthorized subreddit. [Contact the developer](https://developers.reddit.com/apps/gamedaylive) to request authorization.`,
                         },
                     });
                     return;
@@ -155,8 +156,7 @@ export const formStep1Action = (router: Router): void => {
                     logger.warn('Failed to fetch existing config during step 1 save', err);
                 }
 
-                // Save partial config — preserve existing thread settings if present,
-                // otherwise fall back to defaults. Step 2 will overwrite with final values.
+                // Save partial config
                 const partialConfig: SubredditConfig = {
                     league: leagueValue,
                     nhl: { teamAbbreviation: teamValue } as NHLConfig,
@@ -276,7 +276,7 @@ export const formStep2Action = (router: Router): void => {
                     res.status(200).json({
                         showToast: {
                             appearance: 'error',
-                            text: 'Session expired. Please re-open the config menu.',
+                            text: 'Error locating config data. Please re-open the config menu.',
                         },
                     });
                     return;
@@ -339,7 +339,7 @@ export const formStep2Action = (router: Router): void => {
 
                     const matchingJob = jobTitles.find(j => j.label.includes(prefix));
                     if (matchingJob) {
-                        const result = await tryCancelScheduledJob(matchingJob.label);
+                        const result = await tryCancelScheduledJob(matchingJob.value);
                         if (result) {
                             logger.info(`Job: ${matchingJob.label} already exists. Overwriting...`);
                         } else {
@@ -352,8 +352,7 @@ export const formStep2Action = (router: Router): void => {
 
                 // -------- DAILY GAME SCHEDULER --------
                 // HACK:FIX: Determine job to run based on league selection
-                await dailyGameCheckJob();
-
+                
                 const teamName = getTeamLabel(savedTeam ?? 'N/A');
                 res.status(200).json({
                     showToast: {
@@ -361,6 +360,11 @@ export const formStep2Action = (router: Router): void => {
                         text: `Configuration saved for team: ${teamName}`,
                     },
                 });
+                logger.info(`Confirmation toast shown with team: ${teamName}`);
+
+                // Immediately check for games upon new config save
+                await dailyGameCheckJob();
+
             } catch (err) {
                 logger.error('Error saving subreddit config:', err);
                 res.status(200).json({

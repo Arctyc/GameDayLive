@@ -85,12 +85,16 @@ export async function createPostgameThreadJob(gameId: number) {
 
         // Clean up game day thread
         const existingGDT = await redis.get(REDIS_KEYS.GAME_TO_THREAD_ID(gameId));
-        const GDT = await reddit.getPostById(existingGDT as Post["id"]);
-        const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`;
-        if (config.gameday.lock) {
-            await tryAddComment(GDT, completeComment);
+        if (existingGDT) {
+            const GDT = await reddit.getPostById(existingGDT as Post["id"]);
+            const completeComment = COMMENTS.CLOSED_GDT_BASE + `${post.url.toString()}`;
+            if (config.gameday.lock && GDT) {
+                await tryAddComment(GDT, completeComment);
+            }
+            await tryCleanupThread(existingGDT as Post["id"], config.gameday.lock);
+        } else {
+            logger.warn(`No GDT found in Redis for game ${gameId} during PGT creation. Skipping GDT cleanup.`);
         }
-        await tryCleanupThread(existingGDT as Post["id"], config.gameday.lock);
         
     } else {
         await sendModmail(
@@ -105,76 +109,87 @@ export async function createPostgameThreadJob(gameId: number) {
 export async function nextPGTUpdateJob(gameId: number) {
     const logger = await Logger.Create('Jobs - Next PGT Update');
 
+    // Guard: postId must exist, otherwise chain is orphaned
+    const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+    if (!postId) {
+        logger.error(`No PGT postId found for game ${gameId}. PGT chain terminated.`);
+        return;
+    }
+
+    // Guard: OFF is the terminal PGT state — next scheduled job exits here
+    const cachedState = await redis.get(REDIS_KEYS.GAME_STATE(gameId));
+    if (cachedState === GAME_STATES.OFF) {
+        logger.info(`Game ${gameId} results are official (OFF). PGT chain terminated.`);
+        return;
+    }
+
+    // Schedule next job before any risky work — chain survives failures from here
+    await scheduleNextPGTUpdate(postId as string, gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+
+    // Fetch game data
+    const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
+    let game: NHLGame | undefined;
+    let etag: string | undefined;
+
     try {
-        const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-        if (!postId) {
-            logger.error(`No PGT postId found for game ${gameId}`);
-            return;
-        }
-
-        const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
-        const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
-
-        const officials = await getCachedOfficials(gameId);
-        let threeStars = await getCachedThreeStars(gameId);
-        if (threeStars) {
-            logger.info(`Three stars for game ${gameId} loaded from cache.`);
-        } else {
-            logger.info(`Three stars not yet cached for game ${gameId}. Fetching landing...`);
-            try {
-                const stars = await getThreeStars(gameId, fetch);
-                if (stars) {
-                    threeStars = stars;
-                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
-                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
-                    logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}.`);
-                } else {
-                    logger.info(`Landing fetched for game ${gameId} but three stars not yet present.`);
-                }
-            } catch (err) {
-                logger.warn(`Failed to fetch three stars: ${err instanceof Error ? err.message : String(err)}`);
-            }
-        }
-
-        if (!game) {
-            logger.error(`Could not fetch game data for PGT update: ${gameId}`);
-            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
-            return;
-        }
-
-        if (modified && etag) {
-            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
-            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
-        }
-
-        const body = await formatThreadBody(game, officials, threeStars ?? undefined);
-        const result = await tryUpdateThread(postId as Post["id"], body);
-
-        if (!result.success) {
-            logger.error(`PGT update failed for post ${postId}: ${result.error}`);
-            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
-            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
-            return;
-        }
-
-        if (game.gameState !== GAME_STATES.OFF) {
-            const nextUpdate = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            await scheduleNextPGTUpdate(postId as string, gameId, nextUpdate);
-        } else {
-            logger.info(`Game ${gameId} results are official. Ending PGT updates.`);
-        }
-        
+        const result = await getGameData(gameId, fetch, currentEtag);
+        game = result.game;
+        etag = result.etag;
     } catch (err) {
-        logger.error(`PGT update job failed for game ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
-        
-        const postId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
-        if (postId) {
-            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-            logger.info(`Rescheduling PGT update attempt for game ${gameId} at ${retryTime.toISOString()}`);
-            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
+        logger.error(`Could not fetch game data for PGT update: ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
+        // Already scheduled — will retry next cycle
+        return;
+    }
+
+    if (!game) {
+        // 304 — no changes
+        logger.info(`Game data unchanged for PGT update: ${gameId}.`);
+        return;
+    }
+
+    // Write new state to Redis
+    await redis.set(REDIS_KEYS.GAME_STATE(gameId), game.gameState);
+    await redis.expire(REDIS_KEYS.GAME_STATE(gameId), REDIS_KEYS.EXPIRY);
+
+    if (etag) {
+        await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+        await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+    }
+
+    // Fetch or update three stars
+    const officials = await getCachedOfficials(gameId);
+    let threeStars = await getCachedThreeStars(gameId);
+    if (threeStars) {
+        logger.info(`Three stars for game ${gameId} loaded from cache.`);
+    } else {
+        logger.info(`Three stars not yet cached for game ${gameId}. Fetching landing...`);
+        try {
+            const stars = await getThreeStars(gameId, fetch);
+            if (stars) {
+                threeStars = stars;
+                await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
+                await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}.`);
+            } else {
+                logger.info(`Landing fetched for game ${gameId} but three stars not yet present.`);
+            }
+        } catch (err) {
+            logger.warn(`Failed to fetch three stars: ${err instanceof Error ? err.message : String(err)}`);
         }
+    }
+
+    const body = await formatThreadBody(game, officials, threeStars ?? undefined);
+    const result = await tryUpdateThread(postId as Post["id"], body);
+    if (!result.success) {
+        logger.error(`PGT update failed for post ${postId}: ${result.error}`);
+        // Already scheduled — will retry next cycle
+        return;
+    }
+
+    // OFF: results are official. The already-scheduled next PGT job will read
+    // OFF from Redis cache and terminate without rescheduling.
+    if (game.gameState === GAME_STATES.OFF) {
+        logger.info(`Game ${gameId} results are official (OFF). Final PGT update complete.`);
     }
 }
 

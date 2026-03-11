@@ -7,7 +7,7 @@ export interface ThreadConfig {
   enabled: boolean;
   sticky: boolean;
   lock: boolean;
-  sort: 'new' | 'best';
+  sort: 'new' | 'confidence';
 }
 
 export interface SubredditConfig {

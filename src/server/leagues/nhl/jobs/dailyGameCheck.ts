@@ -4,6 +4,7 @@ import { UPDATE_INTERVALS, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
 import { Logger } from '../../../utils/Logger';
 import { scheduleCreateGameThread } from './gameday';
+import { schedulePregameThread } from './pregame';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
@@ -65,7 +66,23 @@ export async function dailyGameCheckJob() {
 
         logger.info(`Game found for sub: ${context.subredditName} - ${game.awayTeam.abbrev} at ${game.homeTeam.abbrev}`);
 
-        // Determine pre-game thread creation time // TODO: Make this customizable
+        // Schedule pregame thread immediately if enabled
+        if (config.pregame.enabled) {
+            const gameStartMs = new Date(game.startTimeUTC).getTime();
+            const twoHoursMs = 2 * 60 * 60 * 1000;
+            const alreadyCreated = await redis.get(REDIS_KEYS.GAME_TO_PREGAME_ID(game.id));
+
+            if (alreadyCreated) {
+                logger.info(`Pre-game thread already exists for game ${game.id}. Skipping.`);
+            } else if (gameStartMs - Date.now() <= twoHoursMs) {
+                logger.info(`Game ${game.id} starts in ≤2 hours. Too late to create a pre-game thread.`);
+            } else {
+                logger.info(`Pre-game threads enabled. Scheduling pre-game thread now.`);
+                await schedulePregameThread(game, new Date());
+            }
+        }
+
+        // Determine GDT thread creation time
         const startTime = new Date(game.startTimeUTC).getTime();
         const scheduleTime = new Date(startTime - UPDATE_INTERVALS.PREGAME_THREAD_OFFSET);
 

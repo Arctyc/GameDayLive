@@ -1,5 +1,5 @@
 import { redis, context, scheduler, ScheduledJob, Post, reddit } from '@devvit/web/server';
-import { getGameData, NHLGame } from '../api';
+import { getGameData, getThreeStars, Officials, ThreeStar, NHLGame } from '../api';
 import { formatThreadTitle, formatThreadBody } from '../formatting/formatter';
 import { UPDATE_INTERVALS, GAME_STATES, REDIS_KEYS, JOB_NAMES, COMMENTS } from '../constants';
 import { getSubredditConfig } from '../../../config';
@@ -65,7 +65,9 @@ export async function createPostgameThreadJob(gameId: number) {
     }
 
     const title = await formatThreadTitle(game);
-    const body = await formatThreadBody(game);
+    const officials = await getCachedOfficials(gameId);
+    const threeStars = await getCachedThreeStars(gameId);
+    const body = await formatThreadBody(game, officials, threeStars ?? undefined);
 
     const result = await tryCreateThread(context, title, body, config.postgame.sticky, config.postgame.sort);
 
@@ -113,6 +115,27 @@ export async function nextPGTUpdateJob(gameId: number) {
         const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
         const { game, etag, modified } = await getGameData(gameId, fetch, currentEtag);
 
+        const officials = await getCachedOfficials(gameId);
+        let threeStars = await getCachedThreeStars(gameId);
+        if (threeStars) {
+            logger.info(`Three stars for game ${gameId} loaded from cache.`);
+        } else {
+            logger.info(`Three stars not yet cached for game ${gameId}. Fetching landing...`);
+            try {
+                const stars = await getThreeStars(gameId, fetch);
+                if (stars) {
+                    threeStars = stars;
+                    await redis.set(REDIS_KEYS.PGT_THREE_STARS(gameId), JSON.stringify(threeStars));
+                    await redis.expire(REDIS_KEYS.PGT_THREE_STARS(gameId), REDIS_KEYS.EXPIRY);
+                    logger.info(`Three stars confirmed for game ${gameId}: ${threeStars.map(s => `#${s.star} ${s.name}`).join(", ")}.`);
+                } else {
+                    logger.info(`Landing fetched for game ${gameId} but three stars not yet present.`);
+                }
+            } catch (err) {
+                logger.warn(`Failed to fetch three stars: ${err instanceof Error ? err.message : String(err)}`);
+            }
+        }
+
         if (!game) {
             logger.error(`Could not fetch game data for PGT update: ${gameId}`);
             const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
@@ -120,22 +143,20 @@ export async function nextPGTUpdateJob(gameId: number) {
             return;
         }
 
-        if (modified) {
-            if (etag) {
-                await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
-                await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
-            }
+        if (modified && etag) {
+            await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+            await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+        }
 
-            const body = await formatThreadBody(game);
-            const result = await tryUpdateThread(postId as Post["id"], body);
-            
-            if (!result.success) {
-                logger.error(`PGT update failed for post ${postId}: ${result.error}`);
-                const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
-                logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
-                await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
-                return;
-            }
+        const body = await formatThreadBody(game, officials, threeStars ?? undefined);
+        const result = await tryUpdateThread(postId as Post["id"], body);
+
+        if (!result.success) {
+            logger.error(`PGT update failed for post ${postId}: ${result.error}`);
+            const retryTime = new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT);
+            logger.info(`Rescheduling PGT update for game ${gameId} at ${retryTime.toISOString()}`);
+            await scheduleNextPGTUpdate(postId as string, gameId, retryTime);
+            return;
         }
 
         if (game.gameState !== GAME_STATES.OFF) {
@@ -273,5 +294,25 @@ async function scheduleCleanup(postId: Post["id"], gameId: number, cleanupTime: 
         logger.info(`Scheduled PGT cleanup ID: ${jobId} for game ${gameId}`);
     } catch (err) {
         logger.error(`Failed to schedule PGT cleanup: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
+// --------------- Get Cached Officials -----------------
+async function getCachedOfficials(gameId: number): Promise<Officials | undefined> {
+    try {
+        const cached = await redis.get(REDIS_KEYS.GDT_OFFICIALS(gameId));
+        return cached ? JSON.parse(cached) as Officials : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+// --------------- Get Cached Three Stars -----------------
+async function getCachedThreeStars(gameId: number): Promise<ThreeStar[] | null> {
+    try {
+        const cached = await redis.get(REDIS_KEYS.PGT_THREE_STARS(gameId));
+        return cached ? JSON.parse(cached) as ThreeStar[] : null;
+    } catch {
+        return null;
     }
 }

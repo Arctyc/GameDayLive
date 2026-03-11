@@ -1,16 +1,22 @@
 # Changelog
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-05
 
 ---
 
-## [0.4.0] - 2026-03-01
+## [0.4.0] - 2026-03-05
 
 ### Updates
+- Added pre-game threads
 - Added configuration granularity for pre-game threads, game day threads, and post-game threads individually
-- Added linescore table to GDT/PGT body
+- Added names of officials in pre-game and game day header
+- Added Three Stars to post-game header
 
-### News
-- Pre-game threads coming soon
+### Tweaks
+- Changed GameCenter link text to be more apparent what it links to
+- Configuration menu now has two pages. Page 1 select league, team, thread types. Page 2 select sticky, lock, comment sort options
+
+### Bugfixes
+- Fixed an issue where extra attacker ("EA") goals would be displayed with the power play ("PP") strength modifier
 
 ---
 

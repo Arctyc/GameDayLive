@@ -1,10 +1,10 @@
 import { getSubredditConfig } from "../../../config";
 import { getTeamTimezone } from "../config";
 import { GAME_STATES } from "../constants";
-import type { NHLGame } from "../api";
+import type { NHLGame, Officials, ThreeStar } from "../api";
 import { context } from "@devvit/web/server";
 import { buildBodyHeader } from "./formatHeader";
-import { buildBodyLinescore } from "./formatLinescore";
+//import { buildBodyLinescore } from "./formatLinescore";
 import { buildBodyGoals } from "./formatGoals";
 import { buildBodyPenalties } from "./formatPenalties";
 
@@ -40,11 +40,11 @@ export async function formatThreadTitle(game: NHLGame): Promise<string> {
     return `Game Day Thread | ${awayTeam} @ ${homeTeam} | ${gameDate} ${localTime}`;
 }
 
-export async function formatThreadBody(game: NHLGame): Promise<string> {
+export async function formatThreadBody(game: NHLGame, officials?: Officials, threeStars?: ThreeStar[]): Promise<string> {
     const subredditName = context.subredditName;
     const gameState = game.gameState ?? GAME_STATES.UNKNOWN;
 
-    const header = await buildBodyHeader(game, subredditName);
+    const header = await buildBodyHeader(game, subredditName, officials, threeStars);
 
     if (gameState === GAME_STATES.FUT || gameState === GAME_STATES.PRE) {
         return header;
@@ -53,8 +53,8 @@ export async function formatThreadBody(game: NHLGame): Promise<string> {
     return (
         header +
         "\n\n---\n\n" +
-        buildBodyLinescore(game) +
-        "\n\n---\n\n" +
+        // buildBodyLinescore(game) + // NOTE: Disabled - not popular enough
+        // "\n\n---\n\n" +
         buildBodyGoals(game) +
         "\n\n---\n\n" +
         buildBodyPenalties(game)

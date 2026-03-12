@@ -1,9 +1,9 @@
 # Changelog
-**Last Updated:** 2026-03-09
+**Last Updated:** 2026-03-12
 
 ---
 
-## [0.4.0] - 2026-03-09
+## [0.4.1] - 2026-03-12
 
 ### Updates
 - Added pre-game threads
@@ -19,6 +19,7 @@
 ### Bugfixes
 - Fixed an issue where extra attacker ("EA") goals would be displayed with the power play ("PP") strength modifier
 - Fixed an issue where live updates could stop before the game was over
+- Unsticky should now also remove from new reddit highlights
 
 ---
 

@@ -5,6 +5,7 @@ import { getSubredditConfig } from '../../../config';
 import { Logger } from '../../../utils/Logger';
 import { scheduleCreateGameThread } from './gameday';
 import { schedulePregameThread } from './pregame';
+import { scheduleNextPGTMonitor } from './postgame';
 
 // --------------- Daily Game Check -----------------
 export async function dailyGameCheckJob() {
@@ -88,6 +89,24 @@ export async function dailyGameCheckJob() {
 
         logger.debug(`Calling scheduleCreateGameThread with subreddit:${subredditName}, gameId: ${game.id}, time: ${scheduleTime.toISOString()}`);
         await scheduleCreateGameThread(subredditName, game, scheduleTime);
+
+        // If GDT is disabled but PGT is enabled, start the PGT monitor instead.
+        // The monitor polls game state and fires PGT creation when the game ends.
+        if (!config.gameday.enabled && config.postgame.enabled) {
+            const existingMonitor = await redis.get(REDIS_KEYS.JOB_PGT_MONITOR(game.id));
+            if (existingMonitor) {
+                logger.info(`PGT monitor already scheduled for game ${game.id}. Skipping.`);
+            } else {
+                // Seed start time so the monitor can skip pre-game API calls
+                await redis.set(REDIS_KEYS.GAME_START_TIME(game.id), game.startTimeUTC);
+                await redis.expire(REDIS_KEYS.GAME_START_TIME(game.id), REDIS_KEYS.EXPIRY);
+
+                // Start at game time, or now if already in progress
+                const monitorStartTime = new Date(Math.max(startTime, Date.now()));
+                logger.info(`GDT disabled, PGT enabled. Scheduling PGT monitor for game ${game.id} at ${monitorStartTime.toISOString()}.`);
+                await scheduleNextPGTMonitor(game.id, monitorStartTime);
+            }
+        }
         
     } catch (err) {
         logger.error(`Daily game check failed: ${err instanceof Error ? err.message : String(err)}`);

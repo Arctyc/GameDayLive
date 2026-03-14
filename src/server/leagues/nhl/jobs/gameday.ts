@@ -29,6 +29,11 @@ export async function createGameThreadJob(gameId: number) {
     const attemptKey = REDIS_KEYS.CREATE_THREAD_ATTEMPTS(gameId);
     const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
 
+    if (!config.gameday.enabled) {
+        logger.info(`Game day threads disabled for ${subredditName}. Skipping.`);
+        return;
+    }
+
     logger.debug(`Fetching data for game ${gameId} (attempt ${attemptNumber + 1})`);
 
     let game: NHLGame;

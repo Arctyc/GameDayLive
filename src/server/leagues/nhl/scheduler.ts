@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { context } from '@devvit/web/server';
 import { dailyGameCheckJob } from './jobs/dailyGameCheck';
 import { createGameThreadJob, nextLiveUpdateJob } from './jobs/gameday';
-import { createPostgameThreadJob, nextPGTUpdateJob } from './jobs/postgame';
+import { createPostgameThreadJob, nextPGTUpdateJob, nextPGTMonitorJob } from './jobs/postgame';
 import { createPregameThreadJob, nextPregameUpdateJob } from './jobs/pregame';
 import { tryCleanupThread } from '../../threads';
 import { getSubredditConfig } from '../../config';
@@ -197,6 +197,28 @@ export const pgtCleanup = (router: Router) => {
   });
 };
 
+export const nextPGTMonitor = (router: Router) => {
+  router.post('/internal/scheduler/next-pgt-monitor', async (_req, res) => {
+    const logger = await Logger.Create('Scheduler - Next PGT Monitor');
+
+    try {
+      const { gameId } = _req.body.data || {};
+      if (!gameId) throw new Error('gameId required');
+
+      await nextPGTMonitorJob(gameId);
+      res.status(200).json({ status: 'success' });
+
+    } catch (err) {
+      logger.error('Next PGT monitor failed:', err);
+      res.status(200).json({
+        status: 'error',
+        message: 'Next PGT monitor failed',
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+};
+
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createPregameThread(router);
@@ -207,4 +229,5 @@ export const registerSchedulers = (router: Router) => {
   pgtCleanup(router);
   nextLiveUpdate(router);
   nextPGTUpdate(router);
+  nextPGTMonitor(router);
 };

@@ -25,6 +25,7 @@ export const REDIS_KEYS = {
   JOB_DAILY_CHECK: () => `job:dailyCheck`,
   JOB_CREATE: (gameId: number) => `job:create:${gameId}`,
   JOB_GDT_UPDATE: (gameId: number) => `job:gdt:update:${gameId}`,
+  JOB_PGT_MONITOR: (gameId: number) => `job:pgt:monitor:${gameId}`,
   JOB_PREGAME: (gameId: number) => `job:pregame:${gameId}`,
   JOB_PREGAME_CLEANUP: (gameId: number) => `job:pregame:cleanup:${gameId}`,
   JOB_POSTGAME: (gameId: number) => `job:pgt:${gameId}`,
@@ -48,6 +49,7 @@ export const JOB_NAMES = {
   CREATE_GAME_THREAD: `create-game-thread`,
   CREATE_POSTGAME_THREAD: `create-postgame-thread`,
   NEXT_LIVE_UPDATE: `next-live-update`,
+  NEXT_PGT_MONITOR: `next-pgt-monitor`,
   NEXT_PGT_UPDATE: `next-pgt-update`,
   PGT_CLEANUP: `pgt-cleanup`,
 }

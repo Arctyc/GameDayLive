@@ -199,6 +199,11 @@ export interface Officials {
   linesmen: string[];
 }
 
+export interface Scratch {
+  id: number;
+  name: string;
+}
+
 export interface ThreeStar {
   star: 1 | 2 | 3;
   name: string;
@@ -213,6 +218,8 @@ export interface PregameData {
   topSkaters: topSkaters[];
   seasonSeries: SeriesGame[];
   officials?: Officials;
+  awayScratches: Scratch[];
+  homeScratches: Scratch[];
 }
 
 // --------------- Pregame API Fetches ---------------
@@ -265,6 +272,8 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
   let topSkaters: topSkaters[] = [];
   let seasonSeries: SeriesGame[] = [];
   let officials: Officials | undefined;
+  let awayScratches: Scratch[] = [];
+  let homeScratches: Scratch[] = [];
 
   if (landingRes.status === 'fulfilled' && landingRes.value.ok) {
     const landing: any = await landingRes.value.json();
@@ -327,6 +336,8 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
     const parsed = parseRightRailJson(rightRail);
     seasonSeries = parsed.seasonSeries;
     officials = parsed.officials;
+    awayScratches = parsed.awayScratches;
+    homeScratches = parsed.homeScratches;
   }
 
   return {
@@ -336,6 +347,8 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
     homeGoalies,
     topSkaters: topSkaters,
     seasonSeries,
+    awayScratches,
+    homeScratches,
     ...(officials && { officials }),
   };
 }
@@ -419,11 +432,13 @@ export async function getGameData(gameId: number, fetch: any, etag?: string): Pr
 export interface RightRailResult {
   officials?: Officials;
   seasonSeries: SeriesGame[];
+  awayScratches: Scratch[];
+  homeScratches: Scratch[];
   etag: string;
   modified: boolean;
 }
 
-function parseRightRailJson(rightRail: any): { officials?: Officials; seasonSeries: SeriesGame[] } {
+function parseRightRailJson(rightRail: any): { officials?: Officials; seasonSeries: SeriesGame[]; awayScratches: Scratch[]; homeScratches: Scratch[] } {
   const rawSeries: any[] = rightRail.seasonSeries ?? [];
   const seasonSeries: SeriesGame[] = rawSeries.map((g: any): SeriesGame => ({
     gameDate: g.gameDate ?? '',
@@ -440,8 +455,16 @@ function parseRightRailJson(rightRail: any): { officials?: Officials; seasonSeri
   const linesmen: string[] = (gameInfo.linesmen ?? []).map((l: any) => l.default).filter(Boolean);
   const hasOfficials = referees.length > 0 || linesmen.length > 0;
 
+  const parseScratches = (side: 'awayTeam' | 'homeTeam'): Scratch[] =>
+    (gameInfo[side]?.scratches ?? []).map((s: any): Scratch => ({
+      id: s.id,
+      name: `${s.firstName?.default ?? ''} ${s.lastName?.default ?? ''}`.trim(),
+    }));
+
   return {
     seasonSeries,
+    awayScratches: parseScratches('awayTeam'),
+    homeScratches: parseScratches('homeTeam'),
     ...(hasOfficials && { officials: { referees, linesmen } }),
   };
 }
@@ -480,7 +503,7 @@ export async function getRightRailData(gameId: number, fetch: any, etag?: string
   );
 
   if (response.status === 304) {
-    return { seasonSeries: [], etag: etag!, modified: false };
+    return { seasonSeries: [], awayScratches: [], homeScratches: [], etag: etag!, modified: false };
   }
 
   if (!response.ok) {

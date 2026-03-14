@@ -70,6 +70,9 @@
       },
       "next-pgt-update": {
         "endpoint": "/internal/scheduler/next-pgt-update"
+      },
+      "next-pgt-monitor": {
+        "endpoint": "/internal/scheduler/next-pgt-monitor"
       }
     }
   },

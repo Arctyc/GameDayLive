@@ -12,9 +12,6 @@
 - Fixed a bug where post-game threads would be prevented from posting if game day threads weren't also enabled
 - Potential fix to lost threads/threads never posting (modified existing scheduled thread check)
 
-### Devvit
-- Update to devvit 0.12.15
-
 ---
 
 ## [0.4.1] - 2026-03-12

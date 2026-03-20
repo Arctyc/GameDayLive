@@ -382,8 +382,9 @@ export async function scheduleCreateGameThread(subredditName: string, game: NHLG
 
     const existingJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
     const existingJob = existingJobId ? await getJobData(existingJobId) : undefined;
+    const isStale = existingJob && 'runAt' in existingJob && existingJob.runAt < new Date();
 
-    if (existingJob?.data?.jobTitle === jobTitle) {
+    if (existingJob?.data?.jobTitle === jobTitle && !isStale) {
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`);
         return;
     }

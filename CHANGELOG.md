@@ -10,7 +10,7 @@
 
 ### Bugfixes
 - Fixed a bug where post-game threads would be prevented from posting if game day threads weren't also enabled
-- Potential fix to lost threads/threads never posting
+- Potential fix to lost threads/threads never posting (modified existing scheduled thread check)
 
 ---
 

@@ -1,9 +1,9 @@
 # Changelog
-**Last Updated:** 2026-03-14
+**Last Updated:** 2026-03-20
 
 ---
 
-## [0.4.2 - 2026-03-14]
+## [0.4.2 - 2026-03-20]
 
 ### Updates
 - Added scratches to pre-game threads
@@ -11,6 +11,9 @@
 ### Bugfixes
 - Fixed a bug where post-game threads would be prevented from posting if game day threads weren't also enabled
 - Potential fix to lost threads/threads never posting (modified existing scheduled thread check)
+
+### Devvit
+- Update to devvit 0.12.15
 
 ---
 
@@ -31,6 +34,9 @@
 - Fixed an issue where extra attacker ("EA") goals would be displayed with the power play ("PP") strength modifier
 - Fixed an issue where live updates could stop before the game was over
 - Unsticky should now also remove from new reddit highlights
+
+### Devvit
+- Update to devvit 0.12.14
 
 ---
 

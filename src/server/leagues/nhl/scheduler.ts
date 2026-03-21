@@ -18,7 +18,7 @@ export const dailyGameCheck = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Daily game check failed:', err);
-      res.status(200).json({ // TODO: schedule retry logic in dailyGameCheckJob if necessary
+      res.status(200).json({
         status: 'error', 
         message: 'Daily check failed',
         error: err instanceof Error ? err.message : String(err)

@@ -80,7 +80,7 @@ export const createPostgameThread = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Create postgame thread failed:', err);
-      res.status(200).json({ // TODO: schedule retry logic in createPostgameThreadJob if necessary
+      res.status(200).json({
         status: 'error', 
         message: 'Create postgame thread failed',
         error: err instanceof Error ? err.message : String(err)

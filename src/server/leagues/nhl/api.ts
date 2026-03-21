@@ -1,6 +1,3 @@
-import { context } from "@devvit/web/server";
-import { getSubredditConfig } from "../../config";
-
 export interface NHLGame {
   id: number;
   season: number;

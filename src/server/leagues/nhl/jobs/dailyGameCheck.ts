@@ -2,6 +2,7 @@ import { redis, context, scheduler, ScheduledJob } from '@devvit/web/server';
 import { getTodaysSchedule, NHLGame } from '../api';
 import { UPDATE_INTERVALS, REDIS_KEYS, JOB_NAMES } from '../constants';
 import { getSubredditConfig } from '../../../config';
+import { NHL_TEAMS } from '../config';
 import { Logger } from '../../../utils/Logger';
 import { scheduleCreateGameThread } from './gameday';
 import { schedulePregameThread } from './pregame';
@@ -27,10 +28,16 @@ export async function dailyGameCheckJob() {
 
         const subredditName = context.subredditName;
         const teamAbbrev = config.nhl.teamAbbreviation;
+
+        const team = NHL_TEAMS.find(t => t.value === teamAbbrev);
+        if (!team) {
+            logger.error(`Team abbreviation "${teamAbbrev}" not found in NHL_TEAMS. Check subreddit configuration.`);
+            return;
+        }
         
         let todayGames: NHLGame[];
         try {
-            todayGames = await getTodaysSchedule(fetch);
+            todayGames = await getTodaysSchedule(fetch, team.timezone);
         } catch (err) {
             logger.error(`Failed to fetch today's schedule: ${err instanceof Error ? err.message : String(err)}`);
             
@@ -50,7 +57,7 @@ export async function dailyGameCheckJob() {
             return;
         }
         
-        // Success - clear attempt counter
+        // Success - clear attempt counters
         await redis.del(attemptKey);
         await redis.del(apiAttemptKey);
         

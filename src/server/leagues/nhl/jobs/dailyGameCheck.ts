@@ -12,7 +12,9 @@ export async function dailyGameCheckJob() {
     const logger = await Logger.Create('Jobs - Daily Game Check');
     
     const attemptKey = REDIS_KEYS.DAILY_CHECK_ATTEMPTS();
+    const apiAttemptKey = REDIS_KEYS.DAILY_CHECK_API_ATTEMPTS();
     const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
+    const apiAttemptNumber = parseInt(await redis.get(apiAttemptKey) || '0');
     
     logger.debug(`Running daily game check (attempt ${attemptNumber + 1})...`);
 
@@ -32,25 +34,25 @@ export async function dailyGameCheckJob() {
         } catch (err) {
             logger.error(`Failed to fetch today's schedule: ${err instanceof Error ? err.message : String(err)}`);
             
-            // Retry with exponential backoff
-            if (attemptNumber < 5) {
-                const backoffMs = Math.min(60000 * Math.pow(2, attemptNumber), UPDATE_INTERVALS.RETRY_MAX_TIME);
+            if (apiAttemptNumber < 5) {
+                const backoffMs = Math.min(60000 * Math.pow(2, apiAttemptNumber), UPDATE_INTERVALS.RETRY_MAX_TIME);
                 const retryTime = new Date(Date.now() + backoffMs);
                 
-                await redis.set(attemptKey, String(attemptNumber + 1));
-                await redis.expire(attemptKey, 7200); // 2 hours TTL
+                await redis.set(apiAttemptKey, String(apiAttemptNumber + 1));
+                await redis.expire(apiAttemptKey, 7200);
                 
                 logger.info(`Rescheduling daily game check at ${retryTime.toISOString()}`);
                 await scheduleDailyGameCheck(retryTime);
             } else {
-                logger.error(`Failed to fetch schedule after ${attemptNumber + 1} attempts. Giving up.`);
-                await redis.del(attemptKey);
+                logger.error(`Failed to fetch schedule after ${apiAttemptNumber + 1} attempts. Giving up.`);
+                await redis.del(apiAttemptKey);
             }
             return;
         }
         
         // Success - clear attempt counter
         await redis.del(attemptKey);
+        await redis.del(apiAttemptKey);
         
         const todayGamesIds = todayGames.map(g => g.id).join(', ');
         logger.info(`Team: ${teamAbbrev}, Games: ${todayGamesIds}`);

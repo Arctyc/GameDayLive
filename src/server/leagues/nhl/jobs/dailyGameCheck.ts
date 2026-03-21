@@ -125,6 +125,7 @@ export async function dailyGameCheckJob() {
         } else {
             logger.error(`Daily game check failed after ${attemptNumber + 1} attempts. Giving up.`);
             await redis.del(attemptKey);
+            await redis.del(apiAttemptKey);
         }
     }
 }

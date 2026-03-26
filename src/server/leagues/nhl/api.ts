@@ -1,7 +1,3 @@
-import { context } from "@devvit/web/server";
-import { getSubredditConfig } from "../../config";
-import { NHL_TEAMS } from "./config";
-
 export interface NHLGame {
   id: number;
   season: number;
@@ -353,32 +349,18 @@ export async function getPregameData(game: NHLGame, fetch: any): Promise<Pregame
   };
 }
 
-export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
-
-  // Load subreddit config to know which team we're using
-	const config = await getSubredditConfig(context.subredditName);
-	if (!config?.nhl) return [];
-
-	const teamAbbrev = config.nhl.teamAbbreviation;
-
-	// Find the team timezone from NHL_TEAMS
-	const team = NHL_TEAMS.find(t => t.value === teamAbbrev);
-	if (!team) return [];
-
-	const tz = team.timezone;
-
-	// Get today's date IN THAT TIMEZONE
-	const today = new Intl.DateTimeFormat('en-CA', {
-		timeZone: tz,
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit',
-	}).format(new Date()); 
-	// en-CA → YYYY-MM-DD
+export async function getTodaysSchedule(fetch: any, timezone: string): Promise<NHLGame[]> {
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+  // en-CA → YYYY-MM-DD
 
   try {
     const response = await fetch(`https://api-web.nhle.com/v1/schedule/${today}`);
-    
+
     if (!response.ok) {
       throw new Error(`NHL API error: ${response.status}`);
     }
@@ -386,10 +368,10 @@ export async function getTodaysSchedule(fetch: any): Promise<NHLGame[]> {
     const data: NHLScheduleResponse = await response.json();
     const todayGames = data.gameWeek.find(day => day.date === today);
     return todayGames?.games || [];
-    
+
   } catch (error) {
     console.error(`Failed to fetch NHL schedule for ${today}:`, error);
-    return [];
+    throw error; // Let the caller handle retries
   }
 }
 

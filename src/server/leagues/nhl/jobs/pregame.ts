@@ -62,6 +62,8 @@ export async function createPregameThreadJob(gameId: number) {
             homeGoalies: [],
             topSkaters: [],
             seasonSeries: [],
+            awayScratches: [],
+            homeScratches: [],
         };
     }
 

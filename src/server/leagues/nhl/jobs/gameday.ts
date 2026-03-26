@@ -29,6 +29,11 @@ export async function createGameThreadJob(gameId: number) {
     const attemptKey = REDIS_KEYS.CREATE_THREAD_ATTEMPTS(gameId);
     const attemptNumber = parseInt(await redis.get(attemptKey) || '0');
 
+    if (!config.gameday.enabled) {
+        logger.info(`Game day threads disabled for ${subredditName}. Skipping.`);
+        return;
+    }
+
     logger.debug(`Fetching data for game ${gameId} (attempt ${attemptNumber + 1})`);
 
     let game: NHLGame;
@@ -375,15 +380,18 @@ export async function scheduleCreateGameThread(subredditName: string, game: NHLG
         }
     }
 
+    // duplicate GDT schedule check
     const existingJobId = await redis.get(REDIS_KEYS.JOB_CREATE(gameId));
     const existingJob = existingJobId ? await getJobData(existingJobId) : undefined;
+    const isStale = existingJob && 'runAt' in existingJob && existingJob.runAt < new Date();
 
-    if (existingJob?.data?.jobTitle === jobTitle) {
+    if (existingJob?.data?.jobTitle === jobTitle && !isStale) {
         logger.warn(`Job ${jobTitle} already exists. Skipping scheduling.`);
         return;
     }
 
     /* NOTE: Thread title check disabled due to nonfunctioning reddit.getNewPosts()
+    // Duplicate thread check
     const foundThread = await findRecentThreadByName(threadTitle);
     if (foundThread){
         logger.warn(`Game day thread matching title ${threadTitle} already exists. Skipping scheduling.`);

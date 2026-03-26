@@ -312,6 +312,105 @@ async function scheduleCleanup(postId: Post["id"], gameId: number, cleanupTime: 
     }
 }
 
+// --------------- Next PGT Monitor (GDT disabled) -----------------
+// Used when game day threads are disabled but post-game threads are enabled.
+// Polls game state only — no thread updates — and fires PGT creation at FINAL.
+export async function nextPGTMonitorJob(gameId: number) {
+    const logger = await Logger.Create('Jobs - Next PGT Monitor');
+
+    // Guard: if PGT already exists, nothing left to do
+    const existingPgtId = await redis.get(REDIS_KEYS.GAME_TO_PGT_ID(gameId));
+    if (existingPgtId) {
+        logger.info(`PGT already exists for game ${gameId}. Monitor terminated.`);
+        return;
+    }
+
+    // Guard: terminal states — FINAL means PGT was already kicked, OFF means too late
+    const cachedState = await redis.get(REDIS_KEYS.GAME_STATE(gameId));
+    if (cachedState === GAME_STATES.FINAL || cachedState === GAME_STATES.OFF) {
+        logger.info(`Game ${gameId} already in terminal monitor state (${cachedState}). Monitor terminated.`);
+        return;
+    }
+
+    // Guard: game hasn't started yet, skip API call
+    const cachedStartTime = await redis.get(REDIS_KEYS.GAME_START_TIME(gameId));
+    const isPreGame =
+        (cachedState === GAME_STATES.FUT || cachedState === GAME_STATES.PRE || cachedState === GAME_STATES.PREVIEW) &&
+        cachedStartTime !== null &&
+        cachedStartTime !== undefined &&
+        Date.now() < new Date(cachedStartTime).getTime();
+
+    // Schedule next monitor before any risky work — chain survives failures from here
+    await scheduleNextPGTMonitor(gameId, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+
+    if (isPreGame) {
+        logger.info(`Game ${gameId} has not started yet (state: ${cachedState}, start: ${cachedStartTime}). Monitor skipping.`);
+        return;
+    }
+
+    // Fetch game state
+    const currentEtag = await redis.get(REDIS_KEYS.GAME_ETAG(gameId));
+    let game: NHLGame | undefined;
+    let etag: string | undefined;
+
+    try {
+        const result = await getGameData(gameId, fetch, currentEtag);
+        game = result.game;
+        etag = result.etag;
+    } catch (err) {
+        logger.error(`Failed to fetch game data for monitor: ${gameId}: ${err instanceof Error ? err.message : String(err)}`);
+        // Already scheduled — will retry next cycle
+        return;
+    }
+
+    if (!game) {
+        // 304 — no changes
+        logger.info(`Game data unchanged for monitor: ${gameId}.`);
+        return;
+    }
+
+    // Write state and etag to Redis so PGT creation has fresh data
+    await redis.set(REDIS_KEYS.GAME_STATE(gameId), game.gameState);
+    await redis.expire(REDIS_KEYS.GAME_STATE(gameId), REDIS_KEYS.EXPIRY);
+
+    if (etag) {
+        await redis.set(REDIS_KEYS.GAME_ETAG(gameId), etag);
+        await redis.expire(REDIS_KEYS.GAME_ETAG(gameId), REDIS_KEYS.EXPIRY);
+    }
+
+    // Game ended — kick PGT creation. Already-scheduled next monitor will
+    // find existingPgtId in Redis and terminate.
+    if (game.gameState === GAME_STATES.FINAL || game.gameState === GAME_STATES.OFF) {
+        logger.info(`Game ${gameId} ended (${game.gameState}). Scheduling PGT from monitor.`);
+        await scheduleCreatePostgameThread(game, new Date(Date.now() + UPDATE_INTERVALS.LIVE_GAME_DEFAULT));
+    }
+}
+
+// --------------- Schedule Next PGT Monitor -----------------
+export async function scheduleNextPGTMonitor(gameId: number, runAt: Date) {
+    const logger = await Logger.Create('Jobs - Schedule PGT Monitor');
+
+    const subredditName = context.subredditName;
+    const jobTitle = `PGT-Monitor-${gameId}`;
+    const jobData: UpdateJobData = { subredditName, gameId, postId: '', jobTitle };
+
+    const job: ScheduledJob = {
+        id: `pgt-monitor-${gameId}`,
+        name: JOB_NAMES.NEXT_PGT_MONITOR,
+        data: jobData,
+        runAt,
+    };
+
+    try {
+        const jobId = await scheduler.runJob(job);
+        await redis.set(REDIS_KEYS.JOB_PGT_MONITOR(gameId), jobId);
+        await redis.expire(REDIS_KEYS.JOB_PGT_MONITOR(gameId), REDIS_KEYS.EXPIRY);
+        logger.info(`Scheduled PGT monitor ID: ${jobId} for game ${gameId} at ${runAt.toISOString()}`);
+    } catch (err) {
+        logger.error(`Failed to schedule PGT monitor: ${err instanceof Error ? err.message : String(err)}`);
+    }
+}
+
 // --------------- Get Cached Officials -----------------
 async function getCachedOfficials(gameId: number): Promise<Officials | undefined> {
     try {

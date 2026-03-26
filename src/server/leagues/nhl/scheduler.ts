@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { context } from '@devvit/web/server';
 import { dailyGameCheckJob } from './jobs/dailyGameCheck';
 import { createGameThreadJob, nextLiveUpdateJob } from './jobs/gameday';
-import { createPostgameThreadJob, nextPGTUpdateJob } from './jobs/postgame';
+import { createPostgameThreadJob, nextPGTUpdateJob, nextPGTMonitorJob } from './jobs/postgame';
 import { createPregameThreadJob, nextPregameUpdateJob } from './jobs/pregame';
 import { tryCleanupThread } from '../../threads';
 import { getSubredditConfig } from '../../config';
@@ -18,7 +18,7 @@ export const dailyGameCheck = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Daily game check failed:', err);
-      res.status(200).json({ // TODO: schedule retry logic in dailyGameCheckJob if necessary
+      res.status(200).json({
         status: 'error', 
         message: 'Daily check failed',
         error: err instanceof Error ? err.message : String(err)
@@ -52,13 +52,13 @@ export const createGameThread = (router: Router) => {
     const logger = await Logger.Create('Scheduler - Create Game Thread');
     
     try {
-      const { gameId } = _req.body.data || {}; // NOTE: Ensure proper destructuring
+      const { gameId } = _req.body.data || {};
       if (!gameId) throw new Error('gameId required');
       await createGameThreadJob(gameId);
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Create game thread failed:', err);
-      res.status(200).json({  // TODO: schedule retry logic in createGameThreadJob if necessary
+      res.status(200).json({
         status: 'error', 
         message: 'Create game thread failed',
         error: err instanceof Error ? err.message : String(err)
@@ -80,7 +80,7 @@ export const createPostgameThread = (router: Router) => {
       res.status(200).json({ status: 'success' });
     } catch (err) {
       logger.error('Create postgame thread failed:', err);
-      res.status(200).json({ // TODO: schedule retry logic in createPostgameThreadJob if necessary
+      res.status(200).json({
         status: 'error', 
         message: 'Create postgame thread failed',
         error: err instanceof Error ? err.message : String(err)
@@ -197,6 +197,28 @@ export const pgtCleanup = (router: Router) => {
   });
 };
 
+export const nextPGTMonitor = (router: Router) => {
+  router.post('/internal/scheduler/next-pgt-monitor', async (_req, res) => {
+    const logger = await Logger.Create('Scheduler - Next PGT Monitor');
+
+    try {
+      const { gameId } = _req.body.data || {};
+      if (!gameId) throw new Error('gameId required');
+
+      await nextPGTMonitorJob(gameId);
+      res.status(200).json({ status: 'success' });
+
+    } catch (err) {
+      logger.error('Next PGT monitor failed:', err);
+      res.status(200).json({
+        status: 'error',
+        message: 'Next PGT monitor failed',
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  });
+};
+
 export const registerSchedulers = (router: Router) => {
   dailyGameCheck(router);
   createPregameThread(router);
@@ -207,4 +229,5 @@ export const registerSchedulers = (router: Router) => {
   pgtCleanup(router);
   nextLiveUpdate(router);
   nextPGTUpdate(router);
+  nextPGTMonitor(router);
 };

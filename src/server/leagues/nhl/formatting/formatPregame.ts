@@ -40,6 +40,8 @@ export async function formatPregameBody(game: NHLGame, data: PregameData): Promi
     sections.push("---");
     sections.push(buildSkaterLeaders(game, data));
     sections.push("---");
+    sections.push(buildScratches(game, data));
+    sections.push("---");
     sections.push(buildSeasonSeries(game, data));
 
     return sections.join("\n\n");
@@ -167,6 +169,27 @@ function buildSkaterLeaders(game: NHLGame, data: PregameData): string {
     return `## Top Skaters
 | Team | Player | G | A | PTS | +/- | ATOI |
 |---|---|---|---|---|---|---|
+${rows.join('\n')}`;
+}
+
+// --------------- Scratches ---------------
+
+function buildScratches(game: NHLGame, data: PregameData): string {
+    const away = data.awayScratches ?? [];
+    const home = data.homeScratches ?? [];
+
+    if (away.length === 0 && home.length === 0) {
+        return `## Scratches\n*No scratches reported.*`;
+    }
+
+    const rows = [
+        ...away.map(s => `| **${game.awayTeam.abbrev}** | ${s.name} |`),
+        ...home.map(s => `| **${game.homeTeam.abbrev}** | ${s.name} |`),
+    ];
+
+    return `## Scratches
+| Team | Player |
+|---|---|
 ${rows.join('\n')}`;
 }
 

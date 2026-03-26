@@ -1,9 +1,9 @@
 # Changelog
-**Last Updated:** 2026-03-20
+**Last Updated:** 2026-03-26
 
 ---
 
-## [0.4.2 - 2026-03-20]
+## [0.4.2 - 2026-03-26]
 
 ### Updates
 - Added scratches to pre-game threads
@@ -11,6 +11,9 @@
 ### Bugfixes
 - Fixed a bug where post-game threads would be prevented from posting if game day threads weren't also enabled
 - Potential fix to lost threads/threads never posting (modified existing scheduled thread check)
+
+### Misc.
+- Added r/OnlyHabs to allowlist
 
 ### Devvit
 - Update to devvit 0.12.15

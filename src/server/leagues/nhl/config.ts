@@ -45,6 +45,7 @@ export const APPROVED_NHL_SUBREDDITS: string[] = [
   "hockey",
   "FantasyHockey",
   "OnlyHabs",
+  "UtahMammothHC",
 
   "AnaheimDucks",
   "BostonBruins",

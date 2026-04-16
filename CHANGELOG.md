@@ -1,9 +1,16 @@
 # Changelog
-**Last Updated:** 2026-03-26
+**Last Updated:** 2026-04-15
 
 ---
 
-## [0.4.2 - 2026-03-26]
+## [0.4.4 - 2026-04-15]
+
+### Misc.
+- Added r/UtahMammothHC to allowlist
+
+---
+
+## [0.4.3 - 2026-03-26]
 
 ### Updates
 - Added scratches to pre-game threads

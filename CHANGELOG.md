@@ -1,5 +1,11 @@
 # Changelog
-**Last Updated:** 2026-04-15
+**Last Updated:** 2026-08-21
+
+---
+## [0.4.5 - 2026-08-21]
+
+## Misc.
+- Added r/FaceTestSubreddit to allowlist
 
 ---
 
